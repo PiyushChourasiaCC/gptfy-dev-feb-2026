@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>AI_Agent_Builder_Final_Instructions</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Agent Builder Final Instructions</shortDescription>
+        <value>The systemPrompt itself should be plain text, but it must instruct the agent to return HTML-formatted responses. Select the most relevant skill IDs from the provided list based on the user&apos;s requirements.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Agent_Builder_HTML_Formatting_Instructions</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Agent Builder HTML Formatting Instructions</shortDescription>
+        <value>7. CRITICALLY IMPORTANT: Instructs the agent to ALWAYS format its responses using HTML tags for better readability: - Use &lt;h3&gt; for section headings - Use &lt;p&gt; for paragraphs - Use &lt;ul&gt; and &lt;li&gt; for lists and bullet points - Use &lt;strong&gt; for emphasis on important points - Use &lt;br&gt; for line breaks where needed - Structure responses with clear HTML formatting for professional presentation</value>
+    </labels>
+    <labels>
+        <fullName>AI_Agent_Builder_Pill_Helpdesk_Description</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Agent Builder Pill Helpdesk Description</shortDescription>
+        <value>Create a helpdesk agent that can assist users with common IT support issues, troubleshoot technical problems, guide users through software installations, reset passwords, and provide solutions to frequently asked questions. The agent should be friendly, patient, and capable of escalating complex issues to human support staff.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Agent_Builder_Pill_Sales_Description</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Agent Builder Pill Sales Agent Description</shortDescription>
+        <value>Create a sales agent that helps manage leads, track opportunities, qualify prospects, provide product information, generate quotes, answer pricing questions, and guide customers through the sales process. The agent should understand the sales pipeline, follow up on opportunities, track customer interactions, and help close deals by providing timely information and support.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Agent_Builder_Pill_Support_Description</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Agent Builder Pill Support Agent Description</shortDescription>
+        <value>Create a customer support agent that handles customer inquiries, troubleshoots product issues, tracks support tickets, provides product guidance, processes refunds or returns, and ensures customer satisfaction. The agent should be empathetic, solution-oriented, maintain detailed case notes, escalate critical issues appropriately, and follow up to ensure customer issues are fully resolved.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Agent_Builder_System_Prompt_Introduction</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Agent Builder System Prompt Introduction</shortDescription>
+        <value>You are an AI agent creation assistant. Based on the user&apos;s description and available skills, generate a comprehensive agent configuration. Respond ONLY with valid JSON in this exact format: {&quot;name&quot;: &quot;Agent Name&quot;, &quot;description&quot;: &quot;Agent description&quot;, &quot;systemPrompt&quot;: &quot;Detailed system instructions&quot;, &quot;selectedSkillIds&quot;: [&quot;skillId1&quot;, &quot;skillId2&quot;]}.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Agent_Builder_System_Prompt_Part1</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Agent Builder System Prompt Part 1</shortDescription>
+        <value>You are an AI agent creation assistant. Based on the user&apos;s description and available skills, generate a comprehensive agent configuration. Respond ONLY with valid JSON in this exact format: {&quot;name&quot;: &quot;Agent Name&quot;, &quot;description&quot;: &quot;Agent description&quot;, &quot;systemPrompt&quot;: &quot;Detailed system instructions&quot;, &quot;selectedSkillIds&quot;: [&quot;skillId1&quot;, &quot;skillId2&quot;]}.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Agent_Builder_System_Prompt_Part2</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Agent Builder System Prompt Part 2</shortDescription>
+        <value>For the systemPrompt field, create a DETAILED, comprehensive prompt (200-400 words) that: 1. Clearly defines the agent&apos;s role and purpose 2. Lists core responsibilities and capabilities 3. Provides specific guidelines for behavior and decision-making 4. Defines the communication style and tone 5. Includes examples of how to handle common scenarios 6. Specifies any limitations or boundaries</value>
+    </labels>
+    <labels>
+        <fullName>AI_Agent_Builder_System_Prompt_Part3</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Agent Builder System Prompt Part 3</shortDescription>
+        <value>7. CRITICALLY IMPORTANT: Instructs the agent to ALWAYS format its responses using HTML tags for better readability: - Use &lt;h3&gt; for section headings - Use &lt;p&gt; for paragraphs - Use &lt;ul&gt; and &lt;li&gt; for lists and bullet points - Use &lt;strong&gt; for emphasis on important points - Use &lt;br&gt; for line breaks where needed - Structure responses with clear HTML formatting for professional presentation</value>
+    </labels>
+    <labels>
+        <fullName>AI_Agent_Builder_System_Prompt_Part4</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Agent Builder System Prompt Part 4</shortDescription>
+        <value>The systemPrompt itself should be plain text, but it must instruct the agent to return HTML-formatted responses. Select the most relevant skill IDs from the provided list based on the user&apos;s requirements.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Agent_Builder_System_Prompt_Requirements</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Agent Builder System Prompt Requirements</shortDescription>
+        <value>For the systemPrompt field, create a DETAILED, comprehensive prompt (200-400 words) that: 1. Clearly defines the agent&apos;s role and purpose 2. Lists core responsibilities and capabilities 3. Provides specific guidelines for behavior and decision-making 4. Defines the communication style and tone 5. Includes examples of how to handle common scenarios 6. Specifies any limitations or boundaries</value>
+    </labels>
+    <labels>
+        <fullName>AI_Agent_Builder_User_Prompt_Template</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Agent Builder User Prompt Template</shortDescription>
+        <value>User wants to create an agent with this description: {0}
+
+Available skills (ID - Name):
+{1}
+
+Based on this description, generate the agent configuration with name, description, system prompt, and select relevant skill IDs.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Current_Record_Identification_Instructions</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Current Record Identification Instructions</shortDescription>
+        <value>IF user query CONTAINS (&quot;this&quot; OR &quot;current&quot; OR &quot;selected&quot; OR explicit reference to CURRENT RECORD) THEN USE current record details ELSE SEARCH across records; DO NOT USE current record details when query does NOT explicitly reference it.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Example_Prompt_Account_Analysis</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Example Prompt for Account Analysis</shortDescription>
+        <value>Analyze Account health using Opportunities (StageName, Amount, CloseDate) and Cases (Status, Priority). Provide health score, risk factors, and growth recommendations. Target Object: Account</value>
+    </labels>
+    <labels>
+        <fullName>AI_Example_Prompt_Case_Insights</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Example Prompt for Case Insights</shortDescription>
+        <value>Analyze Case details (Subject, Description, Status, Priority). Provide root cause analysis, customer sentiment, and resolution recommendations. Target Object: Case</value>
+    </labels>
+    <labels>
+        <fullName>AI_Example_Prompt_Contact_Summary</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Example Prompt for Contact Summary</shortDescription>
+        <value>Analyze Contact (Name, Title, Email, Phone) and Opportunities (StageName, Amount). Provide engagement score, relationship strength, and personalized outreach recommendations. Target Object: Contact</value>
+    </labels>
+    <labels>
+        <fullName>AI_Example_Prompt_Opportunity_Recommendations</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Example Prompt for Opportunity Recommendations</shortDescription>
+        <value>Analyze Opportunity (StageName, Amount, Probability, CloseDate) and OpportunityContactRoles (Role, IsPrimary). Provide win probability, risk factors, and next actions. Target Object: Opportunity</value>
+    </labels>
+    <labels>
+        <fullName>AI_Failed_In_Last_Step</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Failed In Last Step</shortDescription>
+        <value>Sorry, the AI has lost the conversation context due to an exception in the previous step. Please hit the &quot;Start a New Chat&quot; button to start a fresh conversation.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Additional_Rules</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Prompt Builder Additional Rules</shortDescription>
+        <value>- Key fields from the main object (standard fields like Name, Status, Amount, etc.)\n   - Appropriate fields from child objects (avoid system fields)\n   - ONLY include &quot;whereClause&quot; in childRelationships if the user EXPLICITLY requests filtering, sorting, or limiting records (e.g., &quot;latest 10 opportunities&quot;, &quot;closed cases only&quot;, &quot;sorted by date&quot;)\n   - If no specific filtering is mentioned, DO NOT include the &quot;whereClause&quot; field at all\n\n4. Match the tone and structure of existing prompts provided in the context.\n5. Always set Type to &quot;Text&quot;\n6. Do NOT include any explanations, markdown formatting, or additional text outside the JSON.\n7. Ensure all field names are valid Salesforce API names.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Command_Example</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Prompt Builder Command Example Format</shortDescription>
+        <value>- Provides specific examples of the expected formatted output structure\n   - Includes constraints (e.g., word limits, specific values)\n   - Instructs to avoid hallucination and use only provided data\n   - Example format:\n     &quot;You are tasked with [objective].&lt;br/&gt;&lt;br/&gt;Analyze the provided data and deliver a VISUALLY FORMATTED response with:&lt;br/&gt;&lt;br/&gt;### Summary Section&lt;br/&gt;- Key Metric 1: [value]&lt;br/&gt;- Key Metric 2: [value]&lt;br/&gt;&lt;br/&gt;### Detailed Analysis&lt;br/&gt;Present findings in a formatted table:&lt;br/&gt;| Category | Value | Status |&lt;br/&gt;|----------|-------|--------|&lt;br/&gt;| Item 1   | X     | OK     |&lt;br/&gt;&lt;br/&gt;### Recommendations&lt;br/&gt;1. **Priority Action**: [description]&lt;br/&gt;2. **Secondary Action**: [description]&quot;</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Command_Instructions</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Prompt Builder Command Formatting Instructions</shortDescription>
+        <value>2. For promptCommand, create a COMPREHENSIVE, WELL-FORMATTED instruction that produces VISUALLY APPEALING output:\n   - Uses HTML-style formatting for better readability\n   - Starts with a clear objective paragraph\n   - Uses &lt;br/&gt;&lt;br/&gt; for paragraph breaks\n   - Uses numbered or bulleted lists with proper line breaks\n   - Clearly defines the analysis or task objective\n   - Specifies what data points to focus on (use bullet points)\n   - CRITICAL: Include detailed formatting instructions that produce GRAPHICAL, STRUCTURED output:\n     * Use emojis for visual appeal\n     * Request tables with borders using markdown or HTML format\n     * Use headers (###), bold (**text**), and bullet points\n     * Include sections with clear visual separators (lines, dashes, etc.)\n     * Request color indicators or status badges where applicable\n     * Use indentation and spacing for hierarchy\n     * Include summary boxes or key highlights sections</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Data_Context_Instructions</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Prompt Builder Data Context Mapping Instructions</shortDescription>
+        <value>3. For dataContextMapping, intelligently suggest:\n   - CRITICAL: ONLY use POPULAR, STANDARD Salesforce objects:\n     * Primary Objects: Account, Contact, Lead, Opportunity, Case, Campaign\n     * Secondary Objects: Order, Product2, Quote, Contract, Asset\n     * AVOID: Event, Task, ActivityHistory, OpenActivity, EmailMessage, Attachment, ContentDocument, FeedItem, Note, and other system/activity objects\n     * EXCEPTION: Only include non-standard objects if the user EXPLICITLY mentions them by name\n   - Relevant child relationships (e.g., Opportunities for Account, Cases for Contact, Contacts for Account)\n   - MAXIMUM 3 child relationships - prioritize the most important/relevant ones\n   - Focus on business-critical relationships, not activity tracking</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Error_Create_Failed</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error message for prompt creation failure</shortDescription>
+        <value>Failed to create prompt.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Error_Empty_Input</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error message for empty input</shortDescription>
+        <value>Please describe the prompt you want to create</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Error_Parse_Failed</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Error message for AI response parsing failure</shortDescription>
+        <value>Failed to parse AI response.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_JSON_Structure</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Prompt Builder JSON Structure Instructions</shortDescription>
+        <value>CRITICAL INSTRUCTIONS:\n1. Respond ONLY with valid JSON in this exact structure:\n{\n  &quot;name&quot;: &quot;Concise prompt name (e.g., Account Sentiment Analysis)&quot;,\n  &quot;targetObject&quot;: &quot;Primary Salesforce object (e.g., Account, Case, Opportunity)&quot;,\n  &quot;description&quot;: &quot;2-3 sentence description of what the prompt does&quot;,\n  &quot;promptCommand&quot;: &quot;Detailed, comprehensive prompt instruction (300-500 words)&quot;,\n  &quot;dataContextMapping&quot;: {\n    &quot;childRelationships&quot;: [\n      {\n        &quot;relationshipName&quot;: &quot;Opportunities&quot;,\n        &quot;objectName&quot;: &quot;Opportunity&quot;,\n        &quot;fields&quot;: [&quot;Name&quot;, &quot;StageName&quot;, &quot;Amount&quot;, &quot;CloseDate&quot;]\n      }\n    ],\n    &quot;mainObjectFields&quot;: [&quot;Name&quot;, &quot;Industry&quot;, &quot;AnnualRevenue&quot;, &quot;Description&quot;]\n  }\n}</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Pill_Account</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Pill button label for Account Analysis</shortDescription>
+        <value>Account Analysis</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Pill_Case</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Pill button label for Case Insights</shortDescription>
+        <value>Case Insights</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Pill_Contact</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Pill button label for Contact Summary</shortDescription>
+        <value>Contact Summary</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Pill_Opportunity</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Pill button label for Opportunity Recommendations</shortDescription>
+        <value>Opportunity Recommendations</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Placeholder_1</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Placeholder text 1 for prompt builder</shortDescription>
+        <value>Create a prompt to analyze account sentiment based on opportunities and cases...</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Placeholder_2</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Placeholder text 2 for prompt builder</shortDescription>
+        <value>Build a prompt for case intent analysis including email threads and activities...</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Placeholder_3</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Placeholder text 3 for prompt builder</shortDescription>
+        <value>Generate a prompt to provide next best action recommendations for opportunities...</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Placeholder_4</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Placeholder text 4 for prompt builder</shortDescription>
+        <value>Design a prompt to summarize contact interactions and engagement history...</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_Success_Created</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Success message for prompt creation</shortDescription>
+        <value>Prompt created successfully! Redirecting...</value>
+    </labels>
+    <labels>
+        <fullName>AI_Prompt_Builder_System_Prompt_Intro</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Prompt Builder System Prompt Introduction</shortDescription>
+        <value>You are an expert Salesforce AI Prompt Engineer. Your task is to generate comprehensive, well-structured prompts for Salesforce data analysis based on user requirements.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Response_Formatting_Instructions</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Response Formatting Instructions</shortDescription>
+        <value>IMPORTANT: All RESPONSES must be in {0} LANGUAGE ONLY, using {1}  LOCALE conventions for all formatting (dates, numbers, etc.). {2} ALL RESPONSES must be structured and OUTPUT as VALID {3}. DO NOT use any HTML &lt;table&gt;, &lt;thead&gt;, &lt;tbody&gt;, &lt;tfoot&gt;, &lt;tr&gt;, &lt;th&gt;, or &lt;td&gt; tags—tables in any format are STRICTLY PROHIBITED. DO NOT use Markdown, code fences, or any code block delimiters (such as ``````) in the output. The response must be pure {3} without code wrappers.</value>
+    </labels>
+    <labels>
+        <fullName>AI_Settings_Header_Label</fullName>
+        <categories>AI Settings Header Label</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI Settings Header Label</shortDescription>
+        <value>Use AI Settings to View/Modify the Preferences and set up the Retention process.</value>
+    </labels>
+    <labels>
+        <fullName>AI_View_Record_Hyperlink_Instructions</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>AI View Record Hyperlink Instructions</shortDescription>
+        <value>IMPORTANT: For EACH provided RECORD, IF record ID is PRESENT and NOT NULL, ADD a &apos;View Record&apos; LINK clearly and distinctly generated from the Salesforce BASE URL (USE: {0}  /&lt;RecordId&gt;), REPLACE &quot;&lt;RecordId&gt;&quot; with the actual record ID. ONLY generate this LINK when a valid record ID EXISTS in the RESPONSE. The LINK must open the record in VIEW-ONLY (READ-ONLY) MODE. Do NOT show the link if the record ID is missing. The record ID should be embedded in the URL, NOT displayed elsewhere on the UI.</value>
+    </labels>
+    <labels>
+        <fullName>API_DataSource_Header_Label</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>API DataSource Header Label</shortDescription>
+        <value>Use Data Sources to setup a new external data point.</value>
+    </labels>
+    <labels>
+        <fullName>Assistant_API_Delay</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Assistant API Delay</shortDescription>
+        <value>32</value>
+    </labels>
+    <labels>
+        <fullName>Bot_Redirect_Message</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bot Redirect Message</shortDescription>
+        <value>If there is anything else I can help you with, please ask another question.</value>
+    </labels>
+    <labels>
+        <fullName>CHAT_ENDED</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Ended Chat Message</shortDescription>
+        <value>Chat Ended</value>
+    </labels>
+    <labels>
+        <fullName>CHAT_EXPIRED</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Expired Chat Message</shortDescription>
+        <value>Chat Expired</value>
+    </labels>
+    <labels>
+        <fullName>Catalog_header_label</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Catalog header label</shortDescription>
+        <value>For details, refer the help article &lt;a href=&quot;https://gptfy.ai/docs/configure-prompt-catalog/&quot;&gt;here&lt;/a&gt;.</value>
+    </labels>
+    <labels>
+        <fullName>Connections_header_label</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Connections header label</shortDescription>
+        <value>For details on setting up a new connection, refer the help article &lt;a href=&quot;https://gptfy.ai/docs/create-connection&quot;&gt;here&lt;/a&gt;.</value>
+    </labels>
+    <labels>
+        <fullName>Context_Mapping_Field_Disable</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Context_Mapping_Field_Disable</shortDescription>
+        <value>{
+&quot;FeedItem&quot;: [&quot;HasContent&quot;,&quot;HasLink&quot;,&quot;HasFeedEntity&quot;,&quot;HasVerifiedComment&quot;,&quot;IsClosed&quot;,&quot;Status&quot;]
+}</value>
+    </labels>
+    <labels>
+        <fullName>Disable_Typewriter_Effect</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Disable Typewriter Effect</shortDescription>
+        <value>true</value>
+    </labels>
+    <labels>
+        <fullName>Embedding_Fields_To_Ignore</fullName>
+        <categories>AI,Embedding</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Embedding Fields To Ignore</shortDescription>
+        <value>Id,Object Name</value>
+    </labels>
+    <labels>
+        <fullName>Enable_Exception_Log</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Enable Exception Log</shortDescription>
+        <value>false</value>
+    </labels>
+    <labels>
+        <fullName>Enable_Prompt_Versioning</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Enable Prompt Versioning</shortDescription>
+        <value>true</value>
+    </labels>
+    <labels>
+        <fullName>LICENESES_PLAN_ERROR_MESSAGE</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>LICENESES_PLAN_ERROR_MESSAGE</shortDescription>
+        <value>This Feature is available in {0} Paid Version.</value>
+    </labels>
+    <labels>
+        <fullName>LICENSES_ENTERPRISE_PLAN</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>LICENSES_ENTERPRISE_PLAN</shortDescription>
+        <value>Enterprise</value>
+    </labels>
+    <labels>
+        <fullName>LICENSES_PRO_PLAN</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>LICENSES_PRO_PLAN</shortDescription>
+        <value>Pro</value>
+    </labels>
+    <labels>
+        <fullName>LICENSES_STARTER_PLAN</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>LICENSES_STARTER_PLAN</shortDescription>
+        <value>Starter</value>
+    </labels>
+    <labels>
+        <fullName>LOCALE_PROMPT_COMMAND</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>LOCALE_PROMPT_COMMAND</shortDescription>
+        <value>Replace date, time and currency formats in response for {0} locale.</value>
+    </labels>
+    <labels>
+        <fullName>License_Consumption_Error</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>License Consumption Error</shortDescription>
+        <value>You have consumed all the callouts for this month, please reach out to your Salesforce team for further assistance.</value>
+    </labels>
+    <labels>
+        <fullName>Longer_Fields</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Longer Fields</shortDescription>
+        <value>Data_Original__c;Data_PII_Removed__c;Extracted_Data__c;AI_Processed_Data_No_PII__c;AI_Processed_Data_PII_Added__c</value>
+    </labels>
+    <labels>
+        <fullName>Microsoft_OAuth_Client_Id</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Microsoft OAuth Client ID for browser OAuth flow</shortDescription>
+        <value>REPLACE_WITH_YOUR_AZURE_CLIENT_ID</value>
+    </labels>
+    <labels>
+        <fullName>Premium_Feature_Licenses_Message_Label</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Premium_Feature_Licenses_Message_Label</shortDescription>
+        <value>This Feature is available in Paid Version. Schedule your trial &lt;a href=&quot;https://gptfy.ai/book-a-demo&quot; target=&quot;_blank&quot;&gt;here&lt;/a&gt;</value>
+    </labels>
+    <labels>
+        <fullName>Show_Include_Files</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Show Include Files</shortDescription>
+        <value>true</value>
+    </labels>
+    <labels>
+        <fullName>Show_Prefix_Suffix</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Show Prefix Suffix</shortDescription>
+        <value>true</value>
+    </labels>
+    <labels>
+        <fullName>Special_Characters_to_Skip_on_Masking</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Special Characters to Skip on Masking</shortDescription>
+        <value>. , ; &gt; &lt; ) ( } { ] [ : \ / &apos; &quot;</value>
+    </labels>
+</CustomLabels>

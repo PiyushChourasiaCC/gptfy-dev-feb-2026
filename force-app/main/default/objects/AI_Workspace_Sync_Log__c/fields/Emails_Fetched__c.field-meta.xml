@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Emails_Fetched__c</fullName>
+    <description>Total records fetched from provider (emails, events, or tasks)</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Total number of records retrieved from the email/calendar/task provider (Gmail, Outlook, etc.) during this sync operation.</inlineHelpText>
+    <label>Fetched</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

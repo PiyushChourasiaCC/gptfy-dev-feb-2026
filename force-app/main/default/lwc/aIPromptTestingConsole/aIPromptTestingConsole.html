@@ -1,0 +1,398 @@
+<template>
+
+
+    <template if:true={showSpinner}>
+        <template if:true={waitMsg}>
+            <div class="slds-notify slds-notify_alert slds-theme_warning" role="alert">
+                <h2 style="color:white;">
+                    <strong>
+                        {waitMsg}
+                    </strong>   
+                </h2>
+            </div>
+        </template>
+        <template if:false={waitMsg}>
+            <div style="height:5rem;position:relative">
+                <div class="slds-spinner_container">
+                    <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                        <span class="slds-assistive-text">Loading</span>
+                        <div class="slds-spinner__dot-a"></div>
+                        <div class="slds-spinner__dot-b"></div>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </template>
+    <template if:false={showSpinner}>
+
+     <div style="text-align:left;justify-content:left;background-color:white; border-radius:0.3rem;">
+            <!--div>
+                    <div class="slds-p-around_medium slds-text-title_caps slds-align_absolute-center">
+                        TEST THE PROMPT USING A SAMPLE RECORD
+                    </div>
+            </div-->
+                    
+                    <div class="slds-grid slds-gutters">
+                                <lightning-record-picker style="display:flex;;align-content: end;padding-right: 0px; width:auto;" class="slds-col slds-size_3-of-12"
+                                            label="Select Record"
+                                            placeholder="Search Record..."
+                                            object-api-name={targetObj}
+                                            onchange={handlerRecordPicker}
+                                            value={targetobjectRecordId}>
+                                        </lightning-record-picker>
+                                <div class="slds-col slds-size_7-of-12 " style="display:flex;margin-left: 0px;padding-left: 0px;align-content: end;">
+                                    <template if:true={allowUserInput}>
+                                        <h2 style="display:flex;align-self: end;">
+                                            <lightning-input 
+                                                variant="label-hidden" 
+                                                type="text" 
+                                                onchange={changePromptInput} 
+                                                onkeypress={handleEnter} 
+                                                name="input1" 
+                                                value={userInput} 
+                                                placeholder="Type your prompt and press Enter"
+                                                class="slds-var-m-left_x-small" 
+                                            ></lightning-input>
+                                        </h2>
+                                    </template>
+        
+                                    <template if:true={attachmentIconEnable}>
+                                        <template if:true={includeFiles}>
+                                            <h2 style="display:flex;align-self: end;">
+                                                <lightning-button-icon 
+                                                    icon-name="utility:attach"   
+                                                    variant="border-filled" 
+                                                    alternative-text="Files"
+                                                    title="Files"
+                                                    onclick={handleFilesModal}
+                                                    size="large"
+                                                    class="slds-var-m-left_x-small" 
+                                                ></lightning-button-icon>
+                                            </h2>
+                                        </template>
+                                    </template>
+                                    <template if:true={gptfyBtnDisable}>
+                                     <div style="display:flex;height: 32px;align-self: end;" title={selectedVisibilityExceptionMessage} class="slds-button slds-button_brand slds-var-m-left_x-small" disabled={gptfyBtnDisable} >
+                                        <img class="slds-button__icon slds-button__icon_left" src={gptfylogo} alt="gptfylogo" style="width: 20px; height: 20px;">
+                                        Run GPTfy
+                                     </div>
+                                    </template>
+                                    <template if:false={gptfyBtnDisable}>
+                                        <div style="display:flex;height: 32px;align-self: end;" title={selectedVisibilityExceptionMessage} class="slds-button slds-button_brand slds-var-m-left_x-small" onclick={checkValidationPrompt} >
+                                           <img class="slds-button__icon slds-button__icon_left" src={gptfylogo} alt="gptfylogo" style="width: 20px; height: 20px;">
+                                           Run GPTfy
+                                        </div>
+                                    </template>
+                                    <template if:true={visibleOpenForm}>
+                                        <template if:true={openFormActions.length}>
+                                            <lightning-button-icon 
+                                                style="display:flex;height: 32px;align-self: end;" 
+                                                icon-name="utility:form"   
+                                                variant="border-filled" 
+                                                alternative-text="Open Form"
+                                                title="Open Form"
+                                                class="slds-var-m-left_x-small" 
+                                                onclick={handleOpenFormClick}
+                                            ></lightning-button-icon>
+                                        </template>
+                                    </template>
+                                    <template if:true={hasAllLoadedContent}>
+                                        <lightning-button-icon 
+                                            style="display:flex;height: 32px;align-self: end;" 
+                                            icon-name="utility:zoomin" 
+                                            variant="border-filled" 
+                                            alternative-text="Zoom" 
+                                            title="Zoom" 
+                                            onclick={handlePopOutContent} 
+                                            class="slds-var-m-left_x-small">
+                                        </lightning-button-icon>
+                                    </template>
+                                </div>
+                        </div>
+                            
+                        <template if:true={selectedFiles}>
+                            <div class="slds-var-m-top_xx-small slds-p-left_x-small slds-p-right_x-small">
+                                <template for:each={selectedFiles} for:item="file">
+                                    <lightning-pill 
+                                        label={file.title}
+                                        key={file.docId}
+                                        data-docid={file.docId}
+                                        onremove={handleFileRemove}
+                                        class="slds-var-m-left_xxx-small"
+                                    ></lightning-pill>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template if:false={showExpanded}>
+                            <div class="slds-p-bottom_x-small"></div>
+                        </template>
+
+                        <template if:true={hasContentToDisplay}>
+                            <template if:true={showExpanded}>
+                                <!--div class="slds-col slds-p-top_x-small slds-p-left_x-small slds-p-right_x-small">
+                                    <span>
+                                        <div>
+                                            <h2 style="display:inline-block; float:left;">
+                                                <b>
+                                                    <template if:true={hasPortalUser}>
+                                                        <div>
+                                                            <lightning-formatted-text value={gptResponseName}></lightning-formatted-text>
+                                                        </div>
+                                                    </template>
+                                                    <template if:false={hasPortalUser}>
+                                                        <a href={gptResponseUrl} target="_blank">
+                                                            <lightning-formatted-text value={gptResponseName}></lightning-formatted-text>
+                                                        </a>
+                                                    </template>
+                                                </b>
+                                            </h2>
+                                            <h2 style="display:inline-block; float:right; color:gray;">
+                                                <template if:true={timeSaved}>
+                                                    <span class="slds-m-right_xx-small">
+                                                        {timeSaved} seconds Saved&nbsp;|&nbsp; 
+                                                    </span>
+                                                </template>    
+                                                <lightning-formatted-date-time 
+                                                    value={gptResponseDate} 
+                                                    year="numeric"
+                                                    day="2-digit"
+                                                    month="short"
+                                                    hour="2-digit"
+                                                    minute="2-digit"
+                                                    time-zone={timeZone}
+                                                ></lightning-formatted-date-time>
+                                                <template if:true={howItWorks}>
+                                                    <span class="slds-m-right_xx-small" onclick={handleHowItWorks}>
+                                                        &nbsp;|&nbsp;<a href="#" style="color:gray;">How it Works?</a>
+                                                    </span>
+                                                </template>
+                                            </h2>
+                                        </div>
+                                    </span>
+                                </div-->
+                            
+                                <div class="slds-col">
+                                    <br>
+                                    <div class="slds-grid slds-grid_vertical">
+                                        <div class="slds-col slds-p-left_x-small slds-p-right_x-small slds-p-bottom_x-small" style="max-height: 400px; overflow-y:auto;">
+                                            <span lwc:if={responseLoaded}>
+                                                <c-gpt-response 
+                                                    canvas-config={canvasConfig}
+                                                    gpt-ans-param={gptAns}
+                                                    onparentresponsecreated={handleParentResponseCreated}
+                                                    onbodychange={handleBodyChange}
+                                                    onhidefooter={handleHideFooter}
+                                                    onparentresponseupdated={handleParentResponseUpdated}
+                                                    oncanvaserror={handleCanvasError}>
+                                                </c-gpt-response>
+                                            </span>
+                                        </div>
+                                        <div class="slds-col slds-p-left_x-small slds-p-right_x-small" style="background-color: rgb(250,250,250); border-radius:0.3rem;margin-top: 8px;">
+                                            <span>
+                                                <div>
+                                                    <h2 style="display:inline-block; float:left; padding-top: 5px;">
+                                                        <b>
+                                                            <template if:false={hasAdminUser}>
+                                                                <div>
+                                                                    <lightning-formatted-text value={gptResponseName}></lightning-formatted-text>
+                                                                </div>
+                                                            </template>
+                                                            <template if:true={hasAdminUser}>
+                                                                <a href={gptResponseUrl} target="_blank">
+                                                                    <lightning-formatted-text value={gptResponseName}></lightning-formatted-text>
+                                                                </a>
+                                                            </template>
+                                                        </b>
+                                                    </h2>
+                                                    <h2 style="display:inline-block; float:right; color:gray;">
+                                                        <template if:true={timeSaved}>
+                                                            <span class="slds-m-right_xx-small">
+                                                                {timeSaved} seconds Saved&nbsp;|&nbsp; 
+                                                            </span>
+                                                        </template>    
+                                                        <lightning-formatted-date-time 
+                                                            value={gptResponseDate} 
+                                                            year="numeric"
+                                                            day="2-digit"
+                                                            month="short"
+                                                            hour="2-digit"
+                                                            minute="2-digit"
+                                                            time-zone={timeZone}
+                                                        ></lightning-formatted-date-time>
+                                                    </h2>
+                                                </div>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </template>
+                        </template>
+                    
+                </div>
+    <template if:true={showAttachModal}>
+
+            <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-02" aria-modal="true" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__header">
+                        <lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large" icon-name="utility:close" variant="bare" alternative-text="Close" title="Close" onclick={handleAttachCancel}></lightning-button-icon>
+                        <h1 id="modal-heading-02" class="slds-modal__title slds-hyphenate">Attach Files</h1>
+                    </div>
+                    <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-2" style="min-height:500px;">
+                        <template if:true={showSpinner}>
+                            <div style="height:19rem;position:relative">
+                                <div class="slds-spinner_container">
+                                    <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                                        <span class="slds-assistive-text">Loading</span>
+                                        <div class="slds-spinner__dot-a"></div>
+                                        <div class="slds-spinner__dot-b"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <template if:false={showSpinner}>
+                            <template if:true={attachmentData}>
+                                <lightning-accordion 
+                                    allow-multiple-sections-open
+                                    active-section-name={attachActiveSessions}>
+                                    <template for:each={attachmentData} for:item="rec">
+                                        <lightning-accordion-section name={rec.recId} label={rec.name} key={rec.recId}>
+                                            <lightning-datatable
+                                                key-field="docId"
+                                                data={rec.files}
+                                                data-recid={rec.recId}
+                                                columns={attachColumns}
+                                                max-row-selection={maxFileCount}>
+                                            </lightning-datatable>
+                                        </lightning-accordion-section>
+                                    </template>
+                                </lightning-accordion>
+                            </template>
+                        </template>
+                    </div>
+                    <div class="slds-modal__footer">
+                        <lightning-button label="Cancel" title="Cancel" onclick={handleAttachCancel}></lightning-button>
+                        <lightning-button label="Attach" title="Attach" onclick={handleAttach} variant="brand" class="slds-m-left_x-small"></lightning-button>
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+        
+    </template>
+
+    <template if:true={showFeedbackModal}>
+            <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-02" aria-modal="true" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__header">
+                        <lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large" icon-name="utility:close" variant="bare" alternative-text="Close" title="Close" onclick={handleFeedbackCancel}></lightning-button-icon>
+                        <h1 id="modal-heading-04" class="slds-modal__title slds-hyphenate">Provide Additional Feedback</h1>
+                    </div>
+                    <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-4">
+                        <div class="slds-grid slds-grid_vertical">
+                            <div class="slds-col">
+                                <span>
+                                    <lightning-textarea 
+                                        name="feedbackDetail" 
+                                        label="Feedback Detail" 
+                                        variant="label-hidden"
+                                        placeholder={feedbackDetailPlaceholder}
+                                        value={feedbackDetail}
+                                        onchange={handleFeedbackDetailChange}
+                                    ></lightning-textarea>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-modal__footer">
+                        <lightning-button label="Submit feedback" title="Submit feedback" onclick={handleSubmitFeedback} variant="brand" class="slds-m-left_x-small"></lightning-button>
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+    </template>
+
+    <template if:true={showFileAlertModal}>
+            <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-02" aria-modal="true" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__header">
+                        <lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large" icon-name="utility:close" variant="bare" alternative-text="Close" title="Close" onclick={handleFileAlertCancel}></lightning-button-icon>
+                        <h1 id="modal-heading-05" class="slds-modal__title slds-hyphenate">Alert</h1>
+                    </div>
+                    <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-5">
+                        <div class="slds-grid slds-grid_vertical slds-align_absolute-center" style="height:5rem">
+                            Oops! Looks like you missed attaching a file. Are you sure you want to continue?
+                        </div>
+                    </div>
+                    <div class="slds-modal__footer">
+                        <lightning-button label="No" title="No" onclick={handleFileAlertCancel} variant="brand" class="slds-m-left_x-small"></lightning-button>
+                        <lightning-button label="Yes" title="Yes" onclick={handleFileAlertConfirm} variant="brand" class="slds-m-left_x-small"></lightning-button>
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+    </template>
+
+    <template if:true={showOpenFormModal}>
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-02" aria-modal="true" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <div class="slds-modal__header">
+                    <lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large" icon-name="utility:close" variant="bare" alternative-text="Close" title="Close" onclick={handleOpenFormClick}></lightning-button-icon>
+                    <h1 id="modal-heading-06" class="slds-modal__title slds-hyphenate">Create Record</h1>
+                </div>
+                <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-6">
+                    <!--template if:true={selectedFormAction}>
+                        {selectedFormAction.objectLabel}
+                    </template>
+                    <template if:false={selectedFormAction}-->
+                        <template if:true={openFormActions}>
+                            <fieldset class="slds-form-element" role="radiogroup">
+                                <div class="slds-form-element__control">
+                                    <template for:each={openFormActions} for:item="ofa" for:index="ofaIndex">
+                                        <div class="slds-visual-picker slds-visual-picker_vertical" key={ofa.actionId} style="width: 100%;" data-id={ofa.actionId} data-index={ofaIndex} onclick={handleOpenFormOptionSelect}>
+                                            <input type="radio" value="visual-picker-94" name="example-unique-name-36" data-id={ofa.actionId} data-index={ofaIndex}/>
+                                            <label for="visual-picker-94" style="width: 100%;" data-id={ofa.actionId} data-index={ofaIndex}>
+                                                <span class="slds-visual-picker__figure slds-visual-picker__text" style="width: 100%;" data-id={ofa.actionId} data-index={ofaIndex}>
+                                                    <span data-id={ofa.actionId} data-index={ofaIndex}>
+                                                        <span class="slds-text-heading_medium slds-m-bottom_x-small" data-id={ofa.actionId} data-index={ofaIndex}>{ofa.objectLabel}</span>
+                                                        <span class="slds-text-title" data-id={ofa.actionId} data-index={ofaIndex}>{ofa.description}</span>
+                                                    </span>
+                                                </span>
+                                            </label>
+                                          </div>
+                                    </template>
+                                </div>
+                            </fieldset>
+                        </template>
+                    <!--/template-->
+                </div>
+                <div class="slds-modal__footer">
+                    <lightning-button label="Cancel" title="Cancel" onclick={handleOpenFormClick} variant="brand" class="slds-m-left_x-small"></lightning-button>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+    </template>
+
+</template>
+    <template if:true={showPopOutContent}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1">
+            <div class="slds-modal__container">
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-8">
+                    <c-gpt-response 
+                        canvas-config={popoutCanvasConfig}
+                        gpt-ans-param={gptAns}
+                        onparentresponsecreated={handleParentResponseCreated}
+                        onbodychange={handleBodyChange}
+                        onhidefooter={handleHideFooter}
+                        onparentresponseupdated={handleParentResponseUpdated}>
+                    </c-gpt-response>
+                </div>
+                <div class="slds-modal__footer">
+                    <lightning-button label="Close" title="Close" onclick={handlePopOutContent}></lightning-button>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

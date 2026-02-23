@@ -1,0 +1,103 @@
+<template>
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template if:false={showSpinner}>
+        
+        <template if:true={readOnly}>
+            <!--p class="slds-p-left_xx-small slds-p-bottom_xx-small" style="color: #444444;">Prompt Command</p-->
+            <template if:true={promptCommand}>
+                <p class="slds-p-left_xx-small slds-p-right_xx-small"  style="padding-bottom:10px;">
+                    <lightning-formatted-text style="word-wrap: break-word;" value={promptCommand}></lightning-formatted-text>
+                </p>  
+            </template>
+            <template if:false={promptCommand}>
+                <div style="padding-bottom:30px;"></div>
+            </template>
+        </template>
+
+        <template if:false={readOnly}>
+            <template if:true={isJsonPrompt}>
+                <c-a-i-prompt-related-component
+                    record-id={recordId}
+                ></c-a-i-prompt-related-component>
+            </template>
+    
+            <div class="slds-p-around_x-small">
+                <template if:false={isJsonPrompt}>
+                    <lightning-textarea 
+                        name="promptCommand" 
+                        label="Prompt Command" 
+                        variant="label-hidden"
+                        value={promptCommand} 
+                        class="promptCommand"
+                        style="--slds-c-textarea-sizing-min-height: 400px; --slds-c-textarea-color-border: #c9c9c9; --slds-c-textarea-color-border-focus: #c9c9c9;"
+                        onchange={handlePromptCommandChange}
+                    ></lightning-textarea>
+                    <template if:true={mergeFieldObjectOptions}>
+                        <div style="text-align:left;justify-content:left;" class="slds-p-top_xx-small slds-p-bottom_xx-small">
+                            <div>
+                                <div>
+                                    <h2 style="width:44.5%; display:inline-block;">
+                                        <lightning-combobox
+                                            name="Object"
+                                            variant="label-hidden"
+                                            label="Object"
+                                            value={selectedMergeFieldObjectOption}
+                                            placeholder="Select Merge Field Object"
+                                            options={mergeFieldObjectOptions}
+                                            onchange={handleMergeFieldObjectChange}
+                                            style="--slds-c-input-color-border: #c9c9c9; --slds-c-input-color-border-focus: #c9c9c9;"
+                                        ></lightning-combobox>
+                                    </h2>
+                                    <h2 style="width:0.5%; display:inline-block;"></h2>
+                                    <h2 style="width:49.5%; display:inline-block;">
+                                        <lightning-combobox
+                                            name="Field"
+                                            variant="label-hidden"
+                                            label="Field"
+                                            value={selectedMergeFieldOption}
+                                            placeholder="Select Merge Field"
+                                            options={mergeFieldOptions}
+                                            onchange={handleMergeFieldChange}
+                                            style="--slds-c-input-color-border: #c9c9c9; --slds-c-input-color-border-focus: #c9c9c9;"
+                                            disabled={disabledFieldOptions}
+                                        ></lightning-combobox>
+                                    </h2>
+                                    <h2 style="width:0.5%; display:inline-block;"></h2>
+                                    <h2 style="width:5%; display:inline-block; float:right;">
+                                        <lightning-button-icon 
+                                            icon-name="utility:copy_to_clipboard"   
+                                            variant="container" 
+                                            alternative-text="Copy to clipboard"
+                                            title="Copy to clipboard"
+                                            onclick={handleCopy}
+                                            disabled={disabledCopyButton}
+                                        ></lightning-button-icon>
+                                    </h2>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <template if:true={showSaveButton}>
+                        <div class="slds-align_absolute-center slds-modal__footer">
+                            <button type="button" class="slds-button slds-button_neutral" onclick={handleCancel}>Cancel</button>
+                            <button type="button" class="slds-button slds-button_brand" onclick={handleSave}>Save</button>
+                        </div>
+                    </template>
+                </template>
+    
+            </div>
+        </template>
+
+        
+    </template>
+</template>

@@ -1,0 +1,3 @@
+<aura:component implements="lightning:isUrlAddressable,flexipage:availableForRecordHome,force:hasRecordId" access="global" >
+    <c:aIAudioRecorderPubSubUtil aura:id="util" onready="{!c.handleReceiveMessage}" />
+</aura:component>

@@ -1,0 +1,364 @@
+<template>
+    <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" class="slds-modal slds-fade-in-open">
+        <div class="slds-modal__container">
+            <div class="slds-modal__header">
+                <lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large" icon-name="utility:close" variant="bare" alternative-text="Close" title="Close" onclick={handleCancel}></lightning-button-icon>
+                <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">{modalHeader}</h1>
+            </div>
+            <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1" style="min-height:550px;">
+                <template if:true={showSpinner}>
+                    <div style="height:19rem;position:relative">
+                        <div class="slds-spinner_container">
+                            <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                                <span class="slds-assistive-text">Loading</span>
+                                <div class="slds-spinner__dot-a"></div>
+                                <div class="slds-spinner__dot-b"></div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <template if:false={showSpinner}>
+                    <template if:true={objects}>
+
+                        <lightning-input 
+                            type="text" 
+                            name="promptName" 
+                            label="Prompt Name" 
+                            value={promptName} 
+                            onchange={handleNameChange}
+                            required 
+                            class="promptName"
+                            field-level-help={helpText_PromptName}
+                        ></lightning-input>
+
+                        <template if:true={recordId}>
+                            <lightning-combobox
+                                name="targetObject"
+                                label="Select Object"
+                                value={targetObject}
+                                placeholder="Select Object"
+                                options={objects}
+                                required
+                                disabled
+                                field-level-help={helpText_TargetObject}
+                            ></lightning-combobox>
+                            <lightning-combobox
+                                name="aiConnection"
+                                label="Select AI Model"
+                                value={aiConnection}
+                                placeholder="Select AI Model"
+                                options={connectOptions}
+                                required
+                                disabled
+                                field-level-help={helpText_Connection}
+                            ></lightning-combobox>
+                            <template if:true={targetObject}>
+                                <lightning-input 
+                                    type="text" 
+                                    name="mapping" 
+                                    label="Data Context Mapping" 
+                                    value={extractionMappingName}
+                                    required 
+                                    class="mapping"
+                                    disabled
+                                    field-level-help={helpText_Mapping}
+                                ></lightning-input>
+                            </template>
+                        </template>
+
+                        <template if:false={recordId}>
+                            <lightning-combobox
+                                name="targetObject"
+                                label="Target Object"
+                                value={targetObject}
+                                placeholder="Select Target Object"
+                                options={objects}
+                                onchange={handleObjectChange}
+                                required
+                                field-level-help={helpText_TargetObject}
+                            ></lightning-combobox>
+                            <lightning-combobox
+                                name="aiConnection"
+                                label="Select AI Model"
+                                value={aiConnection}
+                                placeholder="Select AI Model"
+                                options={connectOptions}
+                                onchange={handleConnectionChange}
+                                required
+                                field-level-help={helpText_Connection}
+                            ></lightning-combobox>
+                            <template if:true={targetObject}>
+                                <lightning-combobox
+                                    name="mapping"
+                                    label="Data Context Mapping"
+                                    value={extractionMappingId}
+                                    placeholder="Select Mapping"
+                                    options={extractOptions}
+                                    onchange={handleMappingChange}
+                                    required
+                                    field-level-help={helpText_Mapping}
+                                ></lightning-combobox>
+                            </template>
+                        </template>
+                        
+                        <lightning-combobox
+                            name="selectedType"
+                            label="Type"
+                            value={selectedType}
+                            placeholder="Select Type"
+                            options={typeOptions}
+                            onchange={handleTypeChange}
+                            required
+                            field-level-help={helpText_type}
+                        ></lightning-combobox>
+
+                        <!--lightning-input 
+                            type="checkbox" 
+                            label="Allow User Input" 
+                            name="allowUserInput"
+                            checked={allowUserInput}
+                            onchange={handleAllowUserInputChange}
+                            variant="label-stacked"
+                            field-level-help={helpText_AllowUserInput}
+                        ></lightning-input>
+
+                        <template if:true={showIncludeFiles}>
+                            <lightning-input 
+                                type="checkbox" 
+                                label="Include Files?" 
+                                name="includeFiles"
+                                checked={includeFiles}
+                                onchange={handleIncludeFilesChange}
+                                variant="label-stacked"
+                                field-level-help={helpText_IncludeFiles}
+                            ></lightning-input>
+                        </template>
+
+                        <lightning-input 
+                            type="text"
+                            name="description" 
+                            label="Description" 
+                            value={description} 
+                            class="description"
+                            onchange={handleDescChange}
+                            field-level-help={helpText_description}
+                        ></lightning-input>
+
+                        <lightning-accordion allow-multiple-sections-open>
+                            <lightning-accordion-section name="A" label="Advanced Settings">
+                                
+                                <template if:true={targetFieldOptions}>
+                                    <lightning-combobox
+                                        name="targetField"
+                                        label="Target Field"
+                                        value={targetField}
+                                        placeholder="Select Field"
+                                        options={targetFieldOptions}
+                                        onchange={handleTargetFieldChange}
+                                        field-level-help={helpText_TargetField}
+                                    ></lightning-combobox>
+                                </template>   
+
+                                <lightning-dual-listbox 
+                                    name="groundingEthical"
+                                    label="Grounding - Ethical"
+                                    options={groundingEthicalOptions}
+                                    onchange={handleGroundingEthicalChange}
+                                    value={groundingEthical}
+                                    size="4"
+                                    disable-reordering
+                                    field-level-help={helpText_GroundingEthical}
+                                ></lightning-dual-listbox>
+
+                                <lightning-dual-listbox 
+                                    name="groundingContent"
+                                    label="Grounding - Content"
+                                    options={groundingContentOptions}
+                                    onchange={handleGroundingContentChange}
+                                    value={groundingContent}
+                                    size="4"
+                                    disable-reordering
+                                    field-level-help={helpText_GroundingContent}
+                                ></lightning-dual-listbox>
+
+                                <lightning-combobox 
+                                    name="localeAutomation"
+                                    label="Locale - Automation"
+                                    options={localeAutomationContentOptions}
+                                    onchange={handleLocaleAutomationChange}
+                                    value={localeAutomation}
+                                    field-level-help={helpText_LocaleAutomation}
+                                ></lightning-combobox>
+
+                                <lightning-combobox 
+                                    name="localeGptfyConsole"
+                                    label="Locale - GPTfy Console"
+                                    options={localeGptfyConsoleContentOptions}
+                                    onchange={handleLocaleGptfyConsoleChange}
+                                    value={localeGptfyConsole}
+                                    field-level-help={helpText_LocaleGPTfyConsole}
+                                ></lightning-combobox>
+
+                                <lightning-input 
+                                    type="number" 
+                                    name="maxOutputTokens" 
+                                    label="Max Output Tokens" 
+                                    value={maxOutputTokens} 
+                                    onchange={handleMaxOutputTokensChange}
+                                    class="maxOutputTokens"
+                                    field-level-help={helpText_MaxOutputTokens}
+                                ></lightning-input>
+
+                                <lightning-input 
+                                    type="number" 
+                                    name="temprature" 
+                                    label="Temperature" 
+                                    value={temprature} 
+                                    onchange={handleTempratureChange}
+                                    class="temprature"
+                                    field-level-help={helpText_Temprature}
+                                    step="0.01"
+                                ></lightning-input>
+
+                                <lightning-input 
+                                    type="number" 
+                                    name="topP" 
+                                    label="Top P" 
+                                    value={topP} 
+                                    onchange={handleTopPChange}
+                                    class="topP"
+                                    field-level-help={helpText_TopP}
+                                    step="0.01"
+                                ></lightning-input>
+                                
+                                <template if:true={showAppendTimestampField}>
+                                    <lightning-input 
+                                        type="checkbox" 
+                                        name="appendTimestamp" 
+                                        label="Append Timestamp" 
+                                        checked={appendTimestamp} 
+                                        onchange={handleAppendTimestamp}
+                                        variant="label-stacked"
+                                    ></lightning-input>
+                                </template>
+
+                                <template if:true={siteOptions}>
+                                    <lightning-dual-listbox 
+                                        name="expSite"
+                                        label="Experience Sites"
+                                        options={siteOptions}
+                                        onchange={handleSiteChange}
+                                        value={selectedSites}
+                                        size="3"
+                                        disable-reordering
+                                        field-level-help={helpText_ExpSite}
+                                    ></lightning-dual-listbox>
+                                </template>
+
+                                <template if:true={usageOptions}>
+                                    <lightning-dual-listbox 
+                                        name="usage"
+                                        label="Usage"
+                                        options={usageOptions}
+                                        onchange={handleUsageChange}
+                                        value={selectedUsage}
+                                        size="3"
+                                        disable-reordering
+                                        field-level-help={helpText_Usage}
+                                    ></lightning-dual-listbox>
+                                </template>
+
+                                <template if:true={recordTypeOptions}>
+                                    <lightning-dual-listbox 
+                                        name="recordType"
+                                        label="Record Types"
+                                        options={recordTypeOptions}
+                                        onchange={handleRecordTypeChange}
+                                        value={recordTypeIds}
+                                        size="4"
+                                        disable-reordering
+                                        field-level-help={helpText_RecordType}
+                                    ></lightning-dual-listbox>
+                                </template>
+
+                                <lightning-dual-listbox 
+                                    name="profiles"
+                                    label="Profiles"
+                                    options={profileOptions}
+                                    onchange={handleProfileChange}
+                                    value={profileIds}
+                                    size="4"
+                                    disable-reordering
+                                    field-level-help={helpText_Profile}
+                                ></lightning-dual-listbox>
+
+                                <div class="slds-grid">
+                                    <div class="slds-col" style="width: 94%;">
+                                        <span>
+                                            <lightning-input 
+                                                type="text" 
+                                                name="visibilityCondition" 
+                                                label="Visibility Condition" 
+                                                value={visibilityCondition}
+                                                onchange={handleVisibilityConditionChange}
+                                                field-level-help={helpText_VisibilityCondition}
+                                            ></lightning-input>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col" style="width: 1%;"><span></span></div>
+                                    <div class="slds-col" style="width: 5%; padding-top: 24px;">
+                                        <span>
+                                            <template if:true={targetObject}>
+                                                <lightning-button-icon 
+                                                    icon-name="utility:edit"  
+                                                    alternative-text="Edit" 
+                                                    title="Edit" 
+                                                    onclick={handleOpenVisibilityCondition}
+                                                ></lightning-button-icon>
+                                            </template>
+                                            <template if:false={targetObject}>
+                                                <lightning-button-icon 
+                                                    icon-name="utility:edit"  
+                                                    alternative-text="Edit" 
+                                                    title="Edit" 
+                                                    disabled
+                                                ></lightning-button-icon>
+                                            </template>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <lightning-dual-listbox 
+                                    name="purposes"
+                                    label="Purpose"
+                                    options={purposeOptions}
+                                    onchange={handlePurposeChange}
+                                    value={selectedPurpose}
+                                    size="4"
+                                    disable-reordering
+                                    field-level-help={helpText_Purpose}
+                                ></lightning-dual-listbox>
+
+                                <lightning-input-rich-text
+                                    name="howItWorks"
+                                    label="How it works?"
+                                    label-visible
+                                    value={howItWorks}
+                                    field-level-help={helpText_HowItWorks}
+                                    onchange={handleHowItWorksChange}>
+                                </lightning-input-rich-text>
+                                
+                            </lightning-accordion-section>
+                        </lightning-accordion-->
+
+                    </template>
+                </template>
+            </div>
+            <div class="slds-modal__footer">
+                <lightning-button label="Cancel" title="Cancel" onclick={handleCancel}></lightning-button>
+                <lightning-button label="Save" title="Save" onclick={handleSave} variant="brand" class="slds-m-left_x-small"></lightning-button>
+            </div>
+        </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+</template>

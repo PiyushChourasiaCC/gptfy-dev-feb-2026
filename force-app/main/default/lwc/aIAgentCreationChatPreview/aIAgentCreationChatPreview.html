@@ -1,0 +1,101 @@
+<!-- aiFileProcessingChat.html -->
+<template>
+    <div class={chatContainerCSS}>
+        <template if:true={showSpinner}>
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+        </template>
+        <!-- Messages Area - Scrollable -->
+        <div class="chat-messages-area" lwc:ref="messagesContainer">
+            <div class="chat-messages-list" if:true={chatList.length}>
+                <template for:each={chatList} for:item="c">
+                    <div key={c.question} class="message-item">
+                        <!-- User Messages - Right Aligned -->
+                        <template if:true={c.question}>
+                            <div class="message-wrapper user-message">
+                                <div class="message-content">
+                                    <div class="message-bubble user-bubble">
+                                        <lightning-formatted-rich-text value={c.question}></lightning-formatted-rich-text>
+                                    </div>
+                                </div>
+                                <div class="message-avatar">
+                                    <div class="user-avatar">
+                                        <span class="user-initial">M</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <!-- AI Messages - Left Aligned -->
+                        <template if:true={c.answer}>
+                            <div class="message-wrapper ai-message">
+                                <div class="message-avatar">
+                                    <!-- <img src={svgURL} class="avatar-image" alt="AI" /> -->
+                                    <lightning-icon icon-name="standard:bot" class="avatar-image"></lightning-icon>
+                                </div>
+                                
+                                <div class="message-content">
+                                    <div class="message-bubble ai-bubble">
+                                        <lightning-formatted-rich-text value={c.answer}></lightning-formatted-rich-text>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Typing Indicator -->
+                <template if:true={isInProgress}>
+                    <div class="message-item">
+                        <div class="message-wrapper ai-message">
+                            <div class="message-avatar">
+                                <lightning-icon icon-name="standard:bot" class="avatar-image"></lightning-icon>
+                            </div>
+                            <div class="message-content">
+                                <div class="message-bubble ai-bubble typing-indicator-bubble">
+                                    <div class="typing-dots">
+                                        <span class="dot"></span>
+                                        <span class="dot"></span>
+                                        <span class="dot"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="chat-messages-list" if:false={chatList.length}>
+                <div class="empty-state">
+                    <lightning-icon 
+                        icon-name="standard:bot" 
+                        class="empty-bot-icon"
+                        size="large"
+                        alternative-text="Bot">
+                    </lightning-icon>
+                    <div class="empty-message">You’re all set. Let’s start a new chat!</div>
+                </div>
+            </div>
+        </div>
+       
+        <!-- Input Area - Fixed -->
+        <div class={inputAreaCSS} if:false={expiredChatMessage}>
+            <div class="input-container">
+                <lightning-input 
+                    type="text" 
+                    placeholder="Type your message..." 
+                    variant="label-hidden" 
+                    value={userInput} 
+                    onkeypress={handleKeyPress} 
+                    class="message-input">
+                </lightning-input>
+                <lightning-icon 
+                    icon-name="utility:send" 
+                    alternative-text="send" 
+                    variant="brand" 
+                    title="send"
+                    class="send-button slds-top-m_x-small custom-icon-send"
+                    onclick={handleSendbtn}
+                    disabled={isInProgress}>
+                </lightning-icon>              
+            </div>
+        </div>
+    </div>
+</template>

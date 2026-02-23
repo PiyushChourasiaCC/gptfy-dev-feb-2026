@@ -1,0 +1,576 @@
+/* Container Layout - 3/4 and 1/4 split */
+.container {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    min-height: calc(100vh - 100px);
+    background-color: #f3f3f3;
+    padding: 1rem;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.main-content {
+    flex: 1;
+    max-width: calc(100% - 420px);
+    background-color: #ffffff;
+    border-radius: 0.25rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    overflow-y: auto;
+    margin-right: 0;
+}
+
+.preview-panel {
+    background-color: #ffffff;
+    border-radius: 0.25rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: fixed;
+    right: 1rem;
+    width: 410px;
+    height: calc(75vh);
+    max-height: calc(100vh - 120px);
+    box-sizing: border-box;
+}
+
+
+.preview-content {
+    color: #706e6b;
+    font-style: italic;
+}
+
+/* Header Section */
+.header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #dddbda;
+}
+
+.header-content h1 {
+    margin: 0;
+    color: #181818;
+    font-weight: 700;
+}
+
+/* Agent Name Display with Edit Icon */
+.agent-name-display {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.name-edit-icon {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.agent-name-display:hover .name-edit-icon {
+    opacity: 1;
+}
+
+/* Agent Name Input Field */
+.agent-name-input {
+    max-width: 800px;
+    width: 100%;
+}
+
+.agent-name-input input {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #181818;
+    border: none;
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Description Section */
+.description-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #dddbda;
+}
+
+/* Section Styling */
+.section {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+    background-color: #fafaf9;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.section-icon {
+    flex-shrink: 0;
+}
+
+.section-header h2 {
+    margin: 0;
+    color: #181818;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.skill-count {
+    margin-left: auto;
+    color: #706e6b;
+    font-size: 0.875rem;
+    background-color: #e5e5e5;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+}
+
+.section-content {
+    background-color: #ffffff;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+}
+
+/* Read-only Text Display */
+.read-only-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    min-height: 2rem;
+    padding: 0.5rem;
+    background-color: #f3f3f3;
+    border-radius: 0.25rem;
+}
+
+/* Formatted HTML Content Display */
+.formatted-content {
+    min-height: 2rem;
+    padding: 0.5rem;
+    background-color: #f3f3f3;
+    border-radius: 0.25rem;
+}
+
+/* Formatted content styling for HTML elements */
+.formatted-content h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #181818;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.formatted-content h3:first-child {
+    margin-top: 0;
+}
+
+.formatted-content p {
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+    color: #3e3e3c;
+}
+
+.formatted-content ul {
+    margin-left: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.formatted-content li {
+    margin-bottom: 0.25rem;
+    line-height: 1.5;
+}
+
+.formatted-content strong {
+    font-weight: 600;
+    color: #181818;
+}
+
+/* Selected Items Display (for skills in read mode) */
+.selected-items-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.selected-item-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    background-color: #ecebea;
+    border: 1px solid #c9c7c5;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+}
+
+.pill-label {
+    color: #181818;
+}
+
+/* Security Grid */
+.security-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.security-column {
+    min-width: 0;
+}
+
+/* Dual Listbox Customization */
+lightning-dual-listbox {
+    display: block;
+}
+
+/* Form Element Spacing */
+.slds-form-element {
+    margin-bottom: 0.75rem;
+}
+
+.slds-form-element:last-child {
+    margin-bottom: 0;
+}
+
+.slds-form-element__label {
+    font-weight: 600;
+    color: #3e3e3c;
+    margin-bottom: 0.25rem;
+}
+
+/* List Styling for Read Mode */
+.slds-list_dotted {
+    margin-left: 1.5rem;
+    color: #3e3e3c;
+}
+
+.slds-list_dotted li {
+    margin-bottom: 0.25rem;
+}
+
+/* Collapsible Header */
+.collapsible-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+    padding: 0.5rem;
+    margin: -0.5rem;
+    border-radius: 0.25rem;
+}
+
+.collapsible-header:hover {
+    background-color: #f3f3f3;
+}
+
+.toggle-icon {
+    margin-left: auto;
+    transition: transform 0.3s ease;
+}
+
+/* Loading Spinner */
+.slds-spinner_container {
+    position: relative;
+    min-height: 200px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .container {
+        flex-direction: column;
+    }
+    
+    .main-content {
+        flex: 1 1 100%;
+    }
+    
+    .preview-panel {
+        flex: 1 1 100%;
+        min-height: 150px;
+    }
+    
+    .security-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-section {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .header-actions {
+        margin-top: 1rem;
+        width: 100%;
+    }
+    
+    .header-actions lightning-button {
+        flex: 1;
+    }
+}
+
+/* Custom Scrollbar for Dual Listboxes */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c9c7c5;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #706e6b;
+}
+
+/* Textarea in Edit Mode */
+lightning-textarea textarea {
+    min-height: 80px;
+}
+
+/* Combobox in Edit Mode */
+lightning-combobox {
+    max-width: 100%;
+}
+
+/* Button Styling */
+lightning-button {
+    margin-right: 0;
+}
+
+/* Empty State Text */
+.slds-text-color_weak {
+    color: #706e6b;
+    font-style: italic;
+}
+
+/* Form Element Control Spacing */
+.slds-form-element__control {
+    margin-top: 0.25rem;
+}
+
+/* Section Hover Effect */
+.section:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s ease;
+}
+
+/* Icons in Pills */
+.selected-item-pill lightning-icon {
+    margin-right: 0.25rem;
+}
+
+/* Status Badge Styling */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background-color: #4bca81;
+    color: #ffffff;
+}
+
+.status-draft {
+    background-color: #ffb75d;
+    color: #181818;
+}
+
+/* Disabled State */
+lightning-button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Focus States - Remove blue outlines */
+lightning-input:focus-within,
+lightning-textarea:focus-within,
+lightning-combobox:focus-within,
+lightning-dual-listbox:focus-within {
+    outline: none;
+}
+
+/* Remove blue outline from all Lightning component inputs */
+lightning-input input:focus,
+lightning-textarea textarea:focus,
+lightning-combobox input:focus,
+lightning-dual-listbox select:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Remove blue border from Lightning components */
+lightning-input,
+lightning-textarea,
+lightning-combobox,
+lightning-dual-listbox {
+    --sds-c-input-shadow-focus: none;
+    --sds-c-input-color-border-focus: #dddbda;
+    --sds-c-textarea-shadow-focus: none;
+    --sds-c-textarea-color-border-focus: #dddbda;
+}
+
+/* Section Content Transition */
+.section-content {
+    transition: all 0.3s ease;
+}
+
+/* Textarea Rows */
+lightning-textarea[rows="3"] textarea {
+    min-height: 4.5rem;
+}
+
+lightning-textarea[rows="6"] textarea {
+    min-height: 9rem;
+}
+
+/* Channel Section Styles */
+.channel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+
+.channel-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    border: 2px solid #dddbda;
+    border-radius: 8px;
+    background-color: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 110px;
+    position: relative;
+}
+
+.channel-option:hover {
+    border-color: #0176d3;
+    background-color: #f3f3f3;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.channel-option:active {
+    transform: translateY(0);
+}
+
+/* Selected state styles */
+.channel-option-selected {
+    border-color: #0176d3;
+    background-color: #e8f4ff;
+    box-shadow: 0 0 0 1px #0176d3;
+}
+
+.channel-option-selected .channel-icon-wrapper {
+    background-color: transparent;
+    border: none;
+}
+
+.channel-option-selected .channel-logo {
+    transform: scale(1.05);
+}
+
+.channel-option-selected .channel-name {
+    color: #0176d3;
+    font-weight: 600;
+}
+
+.channel-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+    padding: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.channel-logo {
+    height: 48px;
+    width: 48px;
+    object-fit: cover;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    filter: 
+        contrast(1)
+        saturate(1.8)
+        brightness(1.1);
+}
+
+.channel-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #181818;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.channel-check-icon {
+    position: absolute;
+    top: 0.375rem;
+    right: 0.375rem;
+    background-color: #0176d3;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(1, 118, 211, 0.3);
+    border: 2px solid #ffffff;
+}
+
+/* Force white color for the lightning-icon checkmark */
+.channel-check-icon lightning-icon {
+    --slds-c-icon-color-foreground: #ffffff !important;
+    --slds-c-icon-color-foreground-default: #ffffff !important;
+    color: #ffffff !important;
+}
+
+/* Target all SVG elements within the icon */
+.channel-check-icon svg,
+.channel-check-icon lightning-icon svg,
+.channel-check-icon lightning-icon::part(icon) svg {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+}
+
+/* Target SVG paths specifically */
+.channel-check-icon svg path,
+.channel-check-icon lightning-icon svg path {
+    fill: #ffffff !important;
+}

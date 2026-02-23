@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Parent_Response__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>AI Parent Response</label>
+    <referenceTo>AI_Response__c</referenceTo>
+    <relationshipLabel>Security Audits (AI Parent Response)</relationshipLabel>
+    <relationshipName>Parent_Security_Audits</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

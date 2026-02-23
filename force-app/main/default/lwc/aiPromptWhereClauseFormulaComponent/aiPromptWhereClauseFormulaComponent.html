@@ -1,0 +1,126 @@
+<template>
+  <lightning-modal-body>
+    <div class="slds-expression">
+      <div class="slds-expression__options">
+        <div class="slds-form-element">
+          <div class="slds-form-element__control">
+            <div class="slds-combobox_container">
+              <lightning-combobox name="Condition" label="Condition" value={selectedCondition}
+                placeholder="Select Condition" options={conditionOptions}
+                onchange={handleConditionChange}></lightning-combobox>
+            </div>
+          </div>
+        </div>
+      </div>
+      <template if:true={isCustomLogicSelected}>
+        <div class="slds-expression__custom-logic">
+          <div class="slds-form-element">
+            <lightning-input type="text" value={customLogicText} label="Custom Logic"
+              onchange={handleChangeCustomLogic}></lightning-input>
+          </div>
+        </div>
+      </template>
+      <div style="height:450px;" class="slds-scrollable">
+        <div>
+      <table aria-multiselectable="true"
+        class="slds-table slds-table_fixed-layout slds-table_cell-buffer slds-table--header-fixed">
+        <tbody>
+          <template for:each={conditionsArray} for:item="c" for:index="i">
+            <tr class="slds-hint-parent" key={c.key}>
+              <td style="width:60px">
+                <legend class="slds-expression__legend">
+                  <span>{c.conditionValue}</span>
+                  <span class="slds-assistive-text">Condition 1</span>
+                </legend>
+              </td>
+              <td class="slds-cell-wrap">
+                <lightning-combobox dropdown-alignment="auto" name="field" value={c.field} data-index={i} placeholder="Select Field"
+                  options={fieldOptions} onchange={handleFieldChange}></lightning-combobox>
+              </td>
+              <td>
+                <lightning-combobox name="operator" data-index={i} value={c.operator} placeholder="Select Operator"
+                  options={c.operatorOptions} onchange={handleOperatorChange}>
+                </lightning-combobox>
+              </td>
+              <td>
+                <template if:true={c.isTextField}>
+                  <lightning-input type="text" data-index={i} value={c.value}
+                    onchange={handleValueChange}></lightning-input>
+                </template>
+                <template if:true={c.isPicklistField}>
+                  <lightning-combobox name="Value" data-index={i} value={c.value} placeholder="Select Value"
+                    options={c.fieldValueOptions} onchange={handleValueChange}></lightning-combobox>
+                  <template if:true={c.isMultiPicklistField}>
+                    <div class="slds-p-around_xx-small">
+                      <template for:each={c.selectedMultipicklistValues} for:item="val">
+                        <lightning-pill key={val.key} data-index={i} label={val.label} name={val.value}
+                          onremove={handleRemoveMultiPicklist}></lightning-pill>
+                      </template>
+                    </div>
+                  </template>
+                </template>
+                <template if:true={c.isDateField}>
+                  <lightning-input type="date" data-index={i} name="value" value={c.value}
+                    onchange={handleValueChange}></lightning-input>
+                </template>
+                <template if:true={c.isDateTimeField}>
+                  <lightning-input type="datetime" data-index={i} name="value" value={c.value}
+                    onchange={handleValueChange}></lightning-input>
+                </template>
+                <template if:true={c.isTimeField}>
+                  <lightning-input type="time" data-index={i} name="value" value={c.value}
+                    onchange={handleValueChange}></lightning-input>
+                </template>
+              </td>
+              <td style="width:40px;vertical-align: bottom">
+                <lightning-button-icon icon-name="utility:delete" title="Delete"
+                  data-index={i} onclick={handleDeleteButton}></lightning-button-icon>
+              </td>
+              <td style="width:40px;vertical-align: bottom">
+                <template if:true={c.isAddButtonVisible}>
+                  <lightning-button-icon icon-name="utility:add" title="Add"
+                            data-index={i} onclick={handleAddConditionChange}></lightning-button-icon>
+                </template>
+                      
+              </td>
+            </tr>
+            
+          </template>
+            <tr>
+            <td colspan="6">
+              <div class="slds-grid slds-gutters">
+                <div class="slds-col">
+                  <lightning-combobox  label="Order By" name="OrderByField" value={orderByField} placeholder="Select Field"
+                          options={orderByFieldOptions} onchange={handleOrderByFieldChange}></lightning-combobox>
+                </div>
+                <div class="slds-col">
+                  <lightning-combobox style="margin-top: 5px" name="OrderByDirection" value={orderByDirection} placeholder="Select Option"
+                          options={orderByDirectionOptions} onchange={handleOrderByDirectionChange}></lightning-combobox> 
+                </div>
+                
+              </div> 
+            </td>
+          </tr>
+            
+            <tr>
+              <td  colspan="6">
+                <div class="slds-grid slds-gutters" >
+                  <div class="slds-col">
+                    <lightning-input type="number" label="Record Limit" name="recordLimit" value={recordLimit} onchange={handleRecordLimitChange}></lightning-input>
+                </div>
+                </div>
+                 
+              </td>
+           </tr>
+        </tbody>
+
+      </table>
+      </div>
+      </div>
+    </div>
+  </lightning-modal-body>
+  <lightning-modal-footer>
+    <lightning-button label="Save" onclick={handleMergeChange}></lightning-button>
+    <lightning-button label="Cancel" class="slds-m-left_x-small" onclick={handleCancel}></lightning-button>
+  </lightning-modal-footer>
+</template>

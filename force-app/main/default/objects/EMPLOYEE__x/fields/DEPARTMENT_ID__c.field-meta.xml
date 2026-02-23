@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DEPARTMENT_ID__c</fullName>
+    <externalDeveloperName>DEPARTMENT_ID</externalDeveloperName>
+    <isFilteringDisabled>false</isFilteringDisabled>
+    <isNameField>false</isNameField>
+    <isSortingDisabled>false</isSortingDisabled>
+    <label>DEPARTMENT_ID</label>
+    <length>255</length>
+    <referenceTo>DEPARTMENT__x</referenceTo>
+    <relationshipName>EMPLOYEE</relationshipName>
+    <type>ExternalLookup</type>
+</CustomField>

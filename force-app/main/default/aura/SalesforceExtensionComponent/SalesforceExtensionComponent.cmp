@@ -1,0 +1,28 @@
+<aura:component implements="clients:availableForMailAppAppPage,clients:hasItemContext">
+    
+    <aura:handler name="change" value="{!v.subject}" action="{!c.handleSubjectChange}" />
+    <aura:handler name="change" value="{!v.people}" action="{!c.handlePeopleChange}" />
+    <aura:handler name="change" value="{!v.messageBody}" action="{!c.handleMessageBodyChange}" />
+	
+    <div>
+        <h1>To:</h1>
+        <aura:iteration items="{!v.people.to}" var="to">
+            {!to.name} - {!to.email} <br/>
+        </aura:iteration>
+
+        <h1>From:</h1>
+        {!v.people.from.name} - {!v.people.from.email}
+
+        <h1>CC:</h1>
+        <aura:iteration items="{!v.people.cc}" var="cc">
+            {!cc.name} - {!cc.email} <br/>
+        </aura:iteration>
+    </div>
+    <div>
+    	Subject: {!v.subject}
+    </div>
+    <div>
+    	Body: {!v.messageBody}	
+    </div>
+
+</aura:component>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>WS_Outlook_Enabled__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Enable Outlook/Microsoft 365 workspace sync for emails, calendar, and tasks</description>
+    <inlineHelpText>When enabled, users can sync their Outlook emails, calendar events, and tasks</inlineHelpText>
+    <label>Outlook Enabled</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

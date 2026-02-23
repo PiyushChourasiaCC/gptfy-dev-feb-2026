@@ -1,0 +1,126 @@
+<template>
+
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template if:false={showSpinner}>
+
+        <lightning-card title="Cross-Object Filters" icon-name="standard:filter_criteria">
+            <lightning-button-group slot="actions">   
+               
+                <lightning-input 
+                    class="cofiCondition"
+                    name="cofiCondition" 
+                    label="Cross-Object Filter Condition"
+                    value={cofiCondition}
+                    disabled={cofiConditionEdited}
+                    variant="label-hidden"
+                    placeholder="Filter Condition"
+                ></lightning-input>
+                <template if:false={cofiConditionEdited}>
+                    <lightning-button-icon icon-name="utility:save"  alternative-text="Modify Condition" title="Modify Condition" onclick={handleSaveCondition}></lightning-button-icon>
+                </template>
+                <template if:true={cofiConditionEdited}>
+                    <lightning-button-icon icon-name="utility:edit"  alternative-text="Modify Condition" title="Modify Condition" onclick={handleModifyCondition}></lightning-button-icon>
+                </template>
+                <lightning-button-icon icon-name="utility:add"  alternative-text="Add Filter" title="Add Filter" onclick={handleAddRelatedFilter}></lightning-button-icon>
+
+                <!--
+                <lightning-button-icon icon-name="utility:expand_all"  alternative-text="Expand All" title="Expand All" onclick={handleExpandAll}></lightning-button-icon>
+                <lightning-button-icon icon-name="utility:collapse_all"  alternative-text="Collapse All" title="Collapse All" onclick={handleCollapseAll}></lightning-button-icon>
+                -->
+                <template if:false={showObjectLabel}>
+                    <lightning-button-icon icon-name="utility:preview"  alternative-text="Show Object Label" title="Show Object Label" onclick={handleShowObjectLabel}></lightning-button-icon>
+                </template>
+                <template if:true={showObjectLabel}>
+                    <lightning-button-icon icon-name="utility:hide"  alternative-text="Hide Object Label" title="Hide Object Label" onclick={handleHideObjectLabel}></lightning-button-icon>
+                </template>
+                <lightning-button-icon icon-name="utility:refresh"  alternative-text="Refresh" title="Refresh" onclick={refreshParent}></lightning-button-icon>
+            </lightning-button-group>
+
+            <template if:true={targetObject}>
+                <p class="slds-var-p-horizontal_small">
+                    <lightning-tree-grid 
+                        columns={columns}
+                        data={filters}
+                        key-field="filterId"
+                        expanded-rows={expandedRows}
+                        hide-checkbox-column=true
+                        onrowaction={handleRowAction}
+                    ></lightning-tree-grid>
+                </p>
+            </template>
+
+        </lightning-card>
+    </template>
+
+    <!-- Delete Related Object Component -->
+    <template if:true={showDeleteComponent}>
+        <template if:true={deleteFilterId}>
+            <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__header">
+                        <lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large" icon-name="utility:close" variant="bare" alternative-text="Close" title="Close" onclick={handleDeleteModalState}></lightning-button-icon>
+                        <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Delete Filter</h1>
+                    </div>
+                    <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1">
+                        <div class="slds-align_absolute-center" style="height:5rem">
+                            Do you really want to delete filter? Press Yes to continue.
+                        </div>
+                    </div>
+                    <div class="slds-modal__footer">
+                        <lightning-button label="No" title="No" onclick={handleDeleteModalState}></lightning-button>
+                        <lightning-button label="Yes" title="Yes" onclick={handleMappingDelete} variant="brand" class="slds-m-left_x-small"></lightning-button>
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+        </template>
+    </template>
+
+     <!-- Add Related Filter Component -->
+     <template if:true={showAddComponent}>
+        <template if:true={addComponentDetails}>
+            <c-a-i-add-cross-object-filter-component
+                parent-id={addComponentDetails.filterId}
+                parent-object={addComponentDetails.objectName}
+                operator-options={operatorOptions}
+                onclose={handleAddModalState}
+                master-id={recordId}
+                onrefresh={refreshParent}
+            ></c-a-i-add-cross-object-filter-component>
+        </template>
+    </template>
+
+     <!-- Modify Related Filter Component -->
+     <template if:true={showModifyComponent}>
+        <template if:true={modifyComponentDetails}>
+            <c-a-i-add-cross-object-filter-component
+                parent-id={modifyComponentDetails.parentId}
+                parent-object={modifyComponentDetails.objectName}
+                operator-options={operatorOptions}
+                filter-id={modifyComponentDetails.filterId}
+                object-name={modifyComponentDetails.objectName}
+                relationship-field-options={modifyComponentDetails.relationshipOptions}
+                selected-relationship-field={modifyComponentDetails.relationshipField}
+                where-clause={modifyComponentDetails.whereClause}
+                operator={modifyComponentDetails.operator}
+                filter-value={modifyComponentDetails.filterValue}
+                sequence={modifyComponentDetails.sequence}
+                onclose={handleModifyModalState}
+                master-id={recordId}
+                onrefresh={refreshParent}
+            ></c-a-i-add-cross-object-filter-component>
+        </template>
+    </template>
+
+</template>

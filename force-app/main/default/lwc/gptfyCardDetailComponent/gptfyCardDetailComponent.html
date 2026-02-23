@@ -1,0 +1,111 @@
+<template>
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template if:false={showSpinner}>
+        <div class="slds-grid slds-wrap slds-p-around_xx-small">
+            <template if:true={metadata}>
+                <template for:each={metadata} for:item="p" for:index="i">
+                    <div class="slds-col slds-size_1-of-3 slds-p-around_xxx-small" key={p.mdtRecord.Id}
+                        data-id={p.mdtRecord.Id} data-name={p.mdtRecord.MasterLabel}>
+                        <span data-id={p.mdtRecord.Id} data-name={p.mdtRecord.MasterLabel}>
+                            <div class="slds-box slds-box_link slds-box_x-small slds-media" data-id={p.mdtRecord.Id}
+                                data-name={p.mdtRecord.MasterLabel} style="max-height: 8rem; min-height: 8rem;">
+                                <div class="slds-media__figure slds-media__figure_fixed-width slds-align_absolute-center slds-m-left_xx-small"
+                                    data-id={p.mdtRecord.Id} data-name={p.mdtRecord.MasterLabel} data-index={i}
+                                    onclick={handleNavigate} style="width: 9%;">
+                                    <span class="slds-icon_container slds-icon-utility-knowledge_base"
+                                        data-id={p.mdtRecord.Id} data-name={p.mdtRecord.MasterLabel} data-index={i}
+                                        onclick={handleNavigate}>
+                                        <template if:true={p.hasStaticResource}>
+                                            <img src={p.mdtRecord.Icon_Details} data-id={p.mdtRecord.Id}
+                                                data-name={p.mdtRecord.MasterLabel} alt={p.mdtRecord.Id} data-index={i}>
+                                        </template>
+                                        <template if:false={p.hasStaticResource}>
+                                            <lightning-icon icon-name={p.mdtRecord.Icon_Details}
+                                                title={p.mdtRecord.MasterLabel} size="large" data-id={p.mdtRecord.Id}
+                                                data-name={p.mdtRecord.MasterLabel} data-index={i}
+                                                onclick={handleNavigate}></lightning-icon>
+                                        </template>
+                                    </span>
+                                </div>
+                                <div class="slds-media__body slds-border_left slds-p-around_x-small"
+                                    style="position:relative;min-height: 7rem;" data-id={p.mdtRecord.Id}
+                                    data-name={p.mdtRecord.MasterLabel} data-index={i} onclick={handleNavigate}>
+                                    <template if:true={catalog}>
+                                        <div style="display: flex;justify-content: flex-end;float:right;">
+                                            <lightning-button-icon icon-name="utility:edit" alternative-text="edit"
+                                                title="Edit" variant="bare" name={p.mdtRecord.Id}
+                                                onclick={handleEditCard}></lightning-button-icon>
+                                        </div>
+                                    </template>
+                                    <template if:false={catalog}>
+                                        <template if:true={p.mdtRecord.Enabled}>
+                                            <span style="position: absolute; top: 0; right: 0; font-size: 10px;">
+                                                <lightning-icon icon-name="utility:check"
+                                                    alternative-text={p.mdtRecord.MasterLabel} title={p.mdtRecord.MasterLabel} size="small"
+                                                    variant="success"></lightning-icon>
+                                            </span>
+                                        </template>
+                                    </template>
+                                    <h2 class="slds-truncate slds-text-heading_small" title={p.mdtRecord.MasterLabel}
+                                        data-id={p.mdtRecord.Id} data-name={p.mdtRecord.MasterLabel} data-index={i}
+                                        onclick={handleNavigate}>
+                                        {p.mdtRecord.MasterLabel}</h2>
+                                    <p class="slds-m-top_small" data-id={p.mdtRecord.Id}
+                                        data-name={p.mdtRecord.MasterLabel} data-index={i} onclick={handleNavigate}>
+                                        {p.mdtRecord.Description}</p>
+                                    <template if:true={catalog}>
+                                        <div style="display: flex; margin-top: 0.25rem; margin-bottom: 0.25rem; position: absolute; bottom: 0; width: 95%;"
+                                            data-id={p.mdtRecord.Id} data-name={p.mdtRecord.MasterLabel} data-index={i}
+                                            onclick={handleNavigate}>
+                                            <div style="font-size: smaller; font-weight: bold; color: green;"
+                                                data-id={p.mdtRecord.Id} data-name={p.mdtRecord.MasterLabel}
+                                                data-index={i} onclick={handleNavigate}>
+                                                {p.matrics1}
+                                            </div>
+                                            <div style="margin-left: auto; font-size: smaller; font-weight: bold; color: green;"
+                                                data-id={p.mdtRecord.Id} data-name={p.mdtRecord.MasterLabel}
+                                                data-index={i} onclick={handleNavigate}>
+                                                {p.matrics2}
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </span>
+                    </div>
+                </template>
+            </template>
+            <div class="slds-col slds-size_1-of-3 slds-p-around_xxx-small" onclick={handleCreateYourOwn}>
+                <span onclick={handleCreateYourOwn}>
+                    <div class="slds-box slds-box_link slds-box_x-small slds-media" onclick={handleCreateYourOwn}
+                        style="max-height: 8rem; min-height: 8rem;">
+                        <div class="slds-media__figure slds-media__figure_fixed-width slds-align_absolute-center slds-m-left_xx-small"
+                            onclick={handleCreateYourOwn}>
+                            <span class="slds-icon_container slds-icon-utility-knowledge_base"
+                                onclick={handleCreateYourOwn}>
+                                <lightning-icon icon-name="utility:add" title="Create your own" size="large"
+                                    onclick={handleCreateYourOwn}></lightning-icon>
+                            </span>
+                        </div>
+                        <div class="slds-media__body slds-border_left slds-p-around_small"
+                            style="position:relative;min-height: 7rem;display: flex;align-items: center;"
+                            onclick={handleCreateYourOwn}>
+                            <h2 class="slds-truncate slds-text-heading_small" title="Create your own"
+                                onclick={handleCreateYourOwn}>Create your own</h2>
+                        </div>
+                    </div>
+                </span>
+            </div>
+        </div>
+    </template>
+</template>

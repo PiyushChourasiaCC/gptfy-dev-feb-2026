@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Model_File_Upload__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>AI Model (File Upload)</label>
+    <referenceTo>AI_Connection__c</referenceTo>
+    <relationshipLabel>Voice Configurations (AI Model (File Upload))</relationshipLabel>
+    <relationshipName>Voice_Configurations1</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

@@ -1,0 +1,23 @@
+<template>
+    <template if:true={isEdit}>
+        <lightning-input type="text" 
+            label="Field" 
+            variant="label-hidden" 
+            class="slds-popover slds-popover_edit slds-popover__body navfield" 
+            onchange={handleChange} 
+            onblur={handleCloseInput}
+            value={value}>
+        </lightning-input>
+    </template>
+    <template if:false={isEdit}>
+        <div class="slds-hint-parent">
+            <div aria-selected="true" class="slds-cell-edit" role="gridcell">
+                <span class="slds-grid slds-grid_align-spread">
+                    <a onclick={navigateToRecordViewPage}>{label}</a>
+                    <lightning-button-icon icon-name="utility:edit" icon-class="slds-button__icon_edit" variant="bare"
+                        class="slds-cell-edit__button slds-m-left_x-small" onclick={handleEdit}></lightning-button-icon>
+                </span>
+            </div>
+        </div>
+    </template>
+</template>

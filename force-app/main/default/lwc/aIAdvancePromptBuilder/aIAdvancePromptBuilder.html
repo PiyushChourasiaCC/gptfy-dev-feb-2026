@@ -1,0 +1,157 @@
+<template>
+    <template if:false={showPromptOverride}>
+        <div class="prompt-builder-container">
+            <!-- Hero Section -->
+            <div class="hero-section">
+                <!-- Navigation Buttons Container -->
+                <div class="build-your-own-button-container">
+                    <!-- Back Button -->
+                    <lightning-button 
+                        label="Back" 
+                        variant="neutral" 
+                        onclick={handleBack}
+                        icon-name="utility:back"
+                        class="back-btn"
+                    ></lightning-button>
+                    
+                    <!-- Build Your Own Button -->
+                    <lightning-button 
+                        label="Build Your Own" 
+                        variant="neutral" 
+                        onclick={handleBuildYourOwn}
+                        icon-name="utility:builder"
+                        class="build-your-own-btn"
+                    ></lightning-button>
+                </div>
+                
+                <div class="hero-content">
+                    <!-- Header Text -->
+                    <div class="header-text">
+                        Describe your prompt to create it
+                    </div>
+                    
+                    <!-- Search Bar Container -->
+                    <div class="search-bar-container">
+                        <div class="search-icon">
+                            <img src={gptfyLogoUrl} alt="GPTfy" class="gptfy-logo" />
+                        </div>
+                        <textarea 
+                            class="search-input"
+                            rows="3"
+                            placeholder={currentPlaceholder}
+                            oninput={handleInputChange}
+                            onkeydown={handleKeyDown}
+                            disabled={isProcessing}
+                        >{userInput}</textarea>
+                        <button 
+                            class="search-submit-button" 
+                            onclick={handleSubmit} 
+                            disabled={isProcessing}
+                            title="Send"
+                        >
+                            <svg class="send-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M22 2L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Pill Suggestions -->
+                    <div class="pill-container">
+                        <template for:each={pillSuggestions} for:item="pill">
+                            <span key={pill.key}>
+                                <button 
+                                    class="pill-button" 
+                                    onclick={handlePillClick}
+                                    data-label={pill.label}
+                                    disabled={isProcessing}
+                                >
+                                    {pill.label}
+                                </button>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <template if:true={isProcessing}>
+                <div class="slds-spinner_container slds-is-relative spinner-overlay">
+                    <div role="status" class="slds-spinner slds-spinner_large slds-spinner_bare">
+                        <span class="slds-assistive-text">Processing your request...</span>
+                        <div class="slds-spinner__dot-a"></div>
+                        <div class="slds-spinner__dot-b"></div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Information Section -->
+            <template if:false={isProcessing}>
+                <div class="info-section">
+                    <div class="slds-grid slds-wrap slds-gutters">
+                        <!-- How it Works -->
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <div class="info-card">
+                                <div class="info-icon-container">
+                                    <lightning-icon 
+                                        icon-name="utility:knowledge_base" 
+                                        alternative-text="How it Works" 
+                                        size="medium"
+                                        class="info-icon"
+                                    ></lightning-icon>
+                                </div>
+                                <h3 class="info-title">How It Works</h3>
+                                <p class="info-description">
+                                    Simply describe what you want your prompt to do. Our AI analyzes your request 
+                                    and generates a complete prompt configuration including data context mapping.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- What You Get -->
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <div class="info-card">
+                                <div class="info-icon-container">
+                                    <lightning-icon 
+                                        icon-name="utility:check" 
+                                        alternative-text="What You Get" 
+                                        size="medium"
+                                        class="info-icon"
+                                    ></lightning-icon>
+                                </div>
+                                <h3 class="info-title">What You Get</h3>
+                                <p class="info-description">
+                                    A production-ready prompt with intelligent field selection, proper data relationships, 
+                                    and comprehensive instructions - all automatically configured.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Save Time -->
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <div class="info-card">
+                                <div class="info-icon-container">
+                                    <lightning-icon 
+                                        icon-name="utility:clock" 
+                                        alternative-text="Save Time" 
+                                        size="medium"
+                                        class="info-icon"
+                                    ></lightning-icon>
+                                </div>
+                                <h3 class="info-title">Save Time</h3>
+                                <p class="info-description">
+                                    Create complex prompts in seconds instead of minutes. Focus on your use case, 
+                                    not on technical configuration details.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </template>
+        </div>
+    </template>
+    <template if:true={showPromptOverride}>
+        <c-a-i-prompt-override object-api-name={aiPromptObjectApiName} oncancel={handlePromptOverrideCancel}></c-a-i-prompt-override>
+    </template>
+</template>

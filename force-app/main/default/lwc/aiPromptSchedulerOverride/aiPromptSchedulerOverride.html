@@ -1,0 +1,116 @@
+<template >
+	<section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true"
+			class="slds-modal slds-fade-in-open">
+			<div class="slds-modal__container">
+				<div class="slds-modal__header">
+					<lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large"
+						icon-name="utility:close" variant="bare" alternative-text="Close" title="Close"
+						onclick={handleCancel}></lightning-button-icon>
+					<h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Prompt Scheduler</h1>
+				</div>
+				<div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1"
+					style="min-height:550px;">
+					<template if:true={showSpinner}>
+						<div style="height:19rem;position:relative">
+							<div class="slds-spinner_container">
+								<div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+									<span class="slds-assistive-text">Loading</span>
+									<div class="slds-spinner__dot-a"></div>
+									<div class="slds-spinner__dot-b"></div>
+								</div>
+							</div>
+						</div>
+					</template>
+					<template if:false={showSpinner}>
+
+						<template if:true={schedulerData}>
+							<template if:true={schedulerData.id}>
+								<lightning-input 
+									type="text" 
+									name="prompt" 
+									label="Prompt" 
+									value={schedulerData.promptName}
+									disabled
+									field-level-help={helpText_Prompt}
+								></lightning-input>
+							</template>
+							<template if:false={schedulerData.id}>
+								<lightning-combobox
+									name="prompt"
+									label="Select Prompt"
+									value={schedulerData.promptId}
+									placeholder="Select Prompt"
+									options={promptOptions}
+									onchange={handlePromptChange}
+									required
+									field-level-help={helpText_Prompt}
+								></lightning-combobox>
+							</template>
+
+							<div class="slds-grid">
+								<div class="slds-col" style="width: 94%;">
+									<span>
+										<lightning-input 
+											type="text" 
+											name="whereClause" 
+											label="Where Clause" 
+											value={schedulerData.whereClause}
+											onchange={handleWhereClauseChange}
+											field-level-help={helpText_WhereClause}
+										></lightning-input>
+									</span>
+								</div>
+								<div class="slds-col" style="width: 1%;"><span></span></div>
+								<div class="slds-col" style="width: 5%; padding-top: 24px;">
+									<span>
+										<template if:true={selectedObjectName}>
+											<lightning-button-icon 
+												icon-name="utility:edit"  
+												alternative-text="Edit" 
+												title="Edit" 
+												onclick={handleOpenVisibilityCondition}
+											></lightning-button-icon>
+										</template>
+										<template if:false={selectedObjectName}>
+											<lightning-button-icon 
+												icon-name="utility:edit"  
+												alternative-text="Edit" 
+												title="Edit" 
+												disabled
+											></lightning-button-icon>
+										</template>
+									</span>
+								</div>
+							</div>
+
+							
+
+							<!--template if:true={selectedObjectName}>
+								<div class="slds-m-top_xx-small slds-m-left_xx-small">
+									<lightning-button label="Create Condition" title="Create Condition" onclick={handleOpenVisibilityCondition}></lightning-button>
+								</div>
+							</template-->
+
+							<!-- <lightning-input 
+								type="number"
+								name="recordLimit" 
+								label="Record Limit" 
+								value={schedulerData.recordLimit} 
+								onchange={handleRecordLimitChange}
+								field-level-help={helpText_RecordLimit}
+							></lightning-input> -->
+
+						</template>
+
+					</template>
+				</div>
+				<div class="slds-modal__footer">
+					<lightning-button label="Cancel" title="Cancel" onclick={handleCancel}></lightning-button>
+					<lightning-button label="Save" title="Save" onclick={handleSave} variant="brand"
+						class="slds-m-left_x-small"></lightning-button>
+				</div>
+			</div>
+		</section>
+		<div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+
+</template>

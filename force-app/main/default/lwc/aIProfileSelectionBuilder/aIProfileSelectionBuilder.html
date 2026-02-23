@@ -1,0 +1,34 @@
+<template>
+    <template if:true={profileOptions} >
+        <template if:true={profileOptions.length}>
+            <template if:true={readOnly}>
+                <p class="slds-p-left_xx-small slds-p-bottom_xx-small" style="color: #444444;">{fieldLabel}</p>
+                <template if:true={selectedValues.length}>
+                    <ul class="slds-p-left_xx-small slds-p-right_xx-small slds-list_dotted"  style="padding-bottom:10px;">
+                        <template for:each={selectedValues} for:item="val">
+                            <li key={val}>{val}</li>
+                        </template>
+                    </ul>
+                </template>
+                <template if:false={selectedValues.length}>
+                    <div style="padding-bottom:30px;"></div>
+                </template>
+            </template>
+            <template if:false={readOnly}>
+                <lightning-dual-listbox
+                    style="margin-right: 8px;"
+                    name={fieldLabel}
+                    label={fieldLabel}
+                    source-label="Available"
+                    selected-label="Chosen"
+                    options={profileOptions}
+                    onchange={handleProfileChange}
+                    value={selectedValues}
+                    required={required}
+                    disable-reordering
+                    size="4"
+                ></lightning-dual-listbox>
+            </template>
+        </template>
+    </template>
+</template>

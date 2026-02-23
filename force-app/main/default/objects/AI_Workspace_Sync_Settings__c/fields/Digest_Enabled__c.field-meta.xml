@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Digest_Enabled__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Enable digest email notifications</description>
+    <inlineHelpText>Enable digest notifications for synced items</inlineHelpText>
+    <label>Digest Enabled</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>All</fullName>
+    <columns>AI_Technology__c</columns>
+    <columns>Infrastructure__c</columns>
+    <columns>CREATED_DATE</columns>
+    <columns>NAME</columns>
+    <columns>Model__c</columns>
+    <columns>Security_Layer__c</columns>
+    <columns>Connector_Class__c</columns>
+    <columns>Named_Credential__c</columns>
+    <filterScope>Everything</filterScope>
+    <label>All</label>
+</ListView>

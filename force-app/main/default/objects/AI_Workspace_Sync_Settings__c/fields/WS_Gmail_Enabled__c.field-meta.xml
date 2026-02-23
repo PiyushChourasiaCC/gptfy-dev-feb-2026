@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>WS_Gmail_Enabled__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Enable Gmail/Google Workspace sync for emails, calendar, and tasks</description>
+    <inlineHelpText>When enabled, users can sync their Gmail emails, calendar events, and tasks</inlineHelpText>
+    <label>Gmail Enabled</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

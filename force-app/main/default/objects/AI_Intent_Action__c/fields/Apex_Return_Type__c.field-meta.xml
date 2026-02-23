@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Apex_Return_Type__c</fullName>
+    <description>Determines how the Apex class result is handled. &quot;Replace Message&quot; replaces the AI response entirely. &quot;Append to Message&quot; adds the Apex result after the AI response.</description>
+    <inlineHelpText>Choose how the Apex result should be combined with the AI response message.</inlineHelpText>
+    <label>Apex Return Type</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Replace Message</fullName>
+                <default>true</default>
+                <label>Replace Message</label>
+            </value>
+            <value>
+                <fullName>Append to Message</fullName>
+                <default>false</default>
+                <label>Append to Message</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

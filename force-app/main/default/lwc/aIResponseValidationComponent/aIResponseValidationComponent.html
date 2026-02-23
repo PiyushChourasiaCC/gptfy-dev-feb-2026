@@ -1,0 +1,118 @@
+<template>
+
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template if:false={showSpinner}>
+
+        <lightning-card title="Response Validation" icon-name="standard:filter_criteria">
+            <lightning-button-group slot="actions">   
+               
+                <lightning-input 
+                    class="responseValidationCondition"
+                    name="responseValidationCondition" 
+                    label="Response Validation Condition"
+                    value={responseValidationCondition}
+                    disabled={conditionEdited}
+                    variant="label-hidden"
+                    placeholder="Condition"
+                ></lightning-input>
+                <template if:false={isPromptActive}>
+                    <template if:false={conditionEdited}>
+                        <lightning-button-icon icon-name="utility:save"  alternative-text="Modify Condition" title="Modify Condition" onclick={handleSaveCondition}></lightning-button-icon>
+                    </template>
+                    <template if:true={conditionEdited}>
+                        <lightning-button-icon icon-name="utility:edit"  alternative-text="Modify Condition" title="Modify Condition" onclick={handleModifyCondition}></lightning-button-icon>
+                    </template>
+                    <lightning-button-icon icon-name="utility:add"  alternative-text="Add Filter" title="Add Filter" onclick={handleAddResponseValidation}></lightning-button-icon>
+                </template>
+                <lightning-button-icon icon-name="utility:refresh"  alternative-text="Refresh" title="Refresh" onclick={getAllResponseValidations}></lightning-button-icon>
+            </lightning-button-group>
+
+            <p class="slds-var-p-horizontal_small slds-p-bottom_small">
+                <lightning-textarea 
+                    variant="label-hidden"
+                    name="errorMessage" 
+                    label="Error Message"
+                    class="responseValidationMessage"
+                    value={responseValidationMessage}
+                    disabled={conditionEdited}
+                    placeholder="Error Message"
+                ></lightning-textarea>
+            </p>
+
+            <p class="slds-var-p-horizontal_small">
+                <lightning-datatable
+                    key-field="id"
+                    data={responseValidations}
+                    columns={columns}
+                    hide-checkbox-column=true
+                    onrowaction={handleRowAction}
+                ></lightning-datatable>
+            </p>
+
+        </lightning-card>
+    </template>
+
+    <!-- Delete Related Object Component -->
+    <template if:true={showDeleteComponent}>
+        <template if:true={deleteResponseValidationId}>
+            <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__header">
+                        <lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large" icon-name="utility:close" variant="bare" alternative-text="Close" title="Close" onclick={handleDeleteModalState}></lightning-button-icon>
+                        <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Delete Filter</h1>
+                    </div>
+                    <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1">
+                        <div class="slds-align_absolute-center" style="height:5rem">
+                            Do you really want to delete? Press Yes to continue.
+                        </div>
+                    </div>
+                    <div class="slds-modal__footer">
+                        <lightning-button label="No" title="No" onclick={handleDeleteModalState}></lightning-button>
+                        <lightning-button label="Yes" title="Yes" onclick={handleValidationDelete} variant="brand" class="slds-m-left_x-small"></lightning-button>
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+        </template>
+    </template>
+
+     <!-- Add Related Filter Component -->
+     <template if:true={showAddComponent}>
+        <template if:true={addComponentDetails}>
+            <c-a-i-add-response-validation-component
+                action-options={actionOptions}
+                onclose={handleAddModalState}
+                prompt-id={recordId}
+                onrefresh={getAllResponseValidations}
+            ></c-a-i-add-response-validation-component>
+        </template>
+    </template>
+
+     <!-- Modify Related Filter Component -->
+     <template if:true={showModifyComponent}>
+        <template if:true={modifyComponentDetails}>
+            <c-a-i-add-response-validation-component
+                action-options={actionOptions}
+                response-validation-id={modifyComponentDetails.responseValidationId}
+                validation-action={modifyComponentDetails.action}
+                validation-value={modifyComponentDetails.value}
+                sequence={modifyComponentDetails.sequence}
+                onclose={handleModifyModalState}
+                prompt-id={recordId}
+                onrefresh={getAllResponseValidations}
+            ></c-a-i-add-response-validation-component>
+        </template>
+    </template>
+
+</template>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Last_60_Days_Rank__c</fullName>
+    <description>User&apos;s ranking in the last 60 Days. Based on how many calls made.</description>
+    <externalId>false</externalId>
+    <label>Last 60 Days Rank</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

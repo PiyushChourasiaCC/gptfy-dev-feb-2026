@@ -1,0 +1,269 @@
+<template>
+    <article class="slds-card">
+        <div class="slds-card__body slds-card__body_inner">
+            <template if:true={showSpinner}>
+                <div style="height:19rem;position:relative">
+                    <div class="slds-spinner_container">
+                        <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                            <span class="slds-assistive-text">Loading</span>
+                            <div class="slds-spinner__dot-a"></div>
+                            <div class="slds-spinner__dot-b"></div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <template if:false={showSpinner}>
+                <template if:true={data}>
+
+                    <lightning-tabset active-tab-value={activeTabName}>
+                        <template for:each={data} for:item="tab" for:index="tindex">
+                            <lightning-tab label={tab.tabName} key={tab.tabName} value={tab.tabName} onactive={handleTabActive}>
+                                <template if:true={tab.sections}>
+                                    <template for:each={tab.sections} for:item="sect" for:index="sindex">
+
+                                        <div class="slds-section slds-is-open" key={sect.sectionName}>
+                                            <h3 class="slds-section__title">
+                                                <button aria-controls="expando-unique-id" aria-expanded="true" class="slds-button slds-section__title-action">
+                                                    <template if:true={sect.expanded}>
+                                                        <lightning-icon icon-name="utility:chevrondown" onclick={handleSectionExpand} data-sindex={sindex} data-tindex={tindex} size="xx-small" alternative-text="Expanded" title="Expanded"></lightning-icon>
+                                                    </template>
+                                                    <template if:false={sect.expanded}>
+                                                        <lightning-icon icon-name="utility:chevronright" onclick={handleSectionExpand} data-sindex={sindex} data-tindex={tindex} size="xx-small" alternative-text="Collapsed" title="Collapsed"></lightning-icon>
+                                                    </template>
+                                                    <span class="slds-truncate" title={sect.sectionName} onclick={handleSectionExpand} data-sindex={sindex} data-tindex={tindex}>&nbsp;{sect.sectionName}</span>
+                                                </button>
+                                            </h3>
+                                            <template if:true={sect.expanded}>
+                                                <div class="slds-section__content slds-p-around_x-small" id="expando-unique-id">
+                                                    <template if:true={sect.fields}>
+                                                        <lightning-record-edit-form
+                                                            object-api-name={promptObjectApi}
+                                                            record-id={recordId}>
+                                                            <div class="slds-grid slds-wrap">
+                                                                <template for:each={sect.fields} for:item="field">
+                                                                    <template if:false={field.hideField}>
+                                                                        <div class={field.sldsClass} key={field.apiName}>
+                                                                            <span>                                                                        
+                                                                                <template if:true={field.isMultiselect}>
+                                                                                    <c-a-i-multiselect-field-builder
+                                                                                        field-api-name={field.apiName}
+                                                                                        record-id={recordId}
+                                                                                        read-only={field.readOnly}
+                                                                                        required={field.required}
+                                                                                        field-label={field.label}
+                                                                                        field-value={field.fieldValue}
+                                                                                        onfieldchange={handleFieldChanges}
+                                                                                    ></c-a-i-multiselect-field-builder>
+                                                                                </template>
+                                                                                <template if:false={field.isMultiselect}>
+                                                                                    <template if:true={field.isProfile}>
+                                                                                        <c-a-i-profile-selection-builder
+                                                                                            field-api-name={field.apiName}
+                                                                                            record-id={recordId}
+                                                                                            read-only={field.readOnly}
+                                                                                            required={field.required}
+                                                                                            field-label={field.label}
+                                                                                            field-value={field.fieldValue}
+                                                                                            onfieldchange={handleFieldChanges}
+                                                                                        ></c-a-i-profile-selection-builder>
+                                                                                    </template>
+                                                                                    <template if:false={field.isProfile}>
+                                                                                        <template if:true={field.isPermissionSets}>
+                                                                                            <c-a-i-permission-sets-selection-builder
+                                                                                                field-api-name={field.apiName}
+                                                                                                record-id={recordId}
+                                                                                                read-only={field.readOnly}
+                                                                                                required={field.required}
+                                                                                                field-label={field.label}
+                                                                                                field-value={field.fieldValue}
+                                                                                                onfieldchange={handleFieldChanges}
+                                                                                            ></c-a-i-permission-sets-selection-builder>
+                                                                                        </template>
+                                                                                        <template if:false={field.isPermissionSets}>
+                                                                                            <template if:true={field.isTargetField}>
+                                                                                                <c-a-i-field-selection-builder
+                                                                                                    field-api-name={field.apiName}
+                                                                                                    record-id={recordId}
+                                                                                                    read-only={field.readOnly}
+                                                                                                    required={field.required}
+                                                                                                    field-label={field.label}
+                                                                                                    field-value={field.fieldValue}
+                                                                                                    onfieldchange={handleFieldChanges}
+                                                                                                ></c-a-i-field-selection-builder>
+                                                                                            </template>
+                                                                                            <template if:false={field.isTargetField}>
+                                                                                                <template if:true={field.isPromptCommand}>
+                                                                                                    <c-a-i-prompt-command-builder
+                                                                                                        record-id={recordId}
+                                                                                                        read-only={field.readOnly}
+                                                                                                        field-value={field.fieldValue}
+                                                                                                        invoked-from-child={isTrue}
+                                                                                                        onfieldchange={handleFieldChanges}
+                                                                                                    ></c-a-i-prompt-command-builder>
+                                                                                                    <!-- <template if:false={showActions}>
+                                                                                                        <div class="slds-p-top_medium">
+                                                                                                            <div class="slds-border_top">
+                                                                                                                <div class="slds-p-around_medium slds-text-title_caps slds-align_absolute-center">
+                                                                                                                    TEST THE PROMPT USING A SAMPLE RECORD
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                         <div class="slds-p-left_x-small slds-p-right_x-small">
+                                                                                                            <c-a-i-prompt-testing-console
+                                                                                                                record-id={recordId}
+                                                                                                            ></c-a-i-prompt-testing-console>
+                                                                                                        </div>
+                                                                                                    </template> -->
+                                                                                                </template>
+                                                                                                <template if:false={field.isPromptCommand}>
+                                                                                                    <template if:true={field.isVisibilityCondition}>
+                                                                                                        <c-a-i-visibility-condition-builder
+                                                                                                            field-api-name={field.apiName}
+                                                                                                            record-id={recordId}
+                                                                                                            read-only={field.readOnly}
+                                                                                                            required={field.required}
+                                                                                                            field-label={field.label}
+                                                                                                            field-value={field.fieldValue}
+                                                                                                            onfieldchange={handleFieldChanges}
+                                                                                                        ></c-a-i-visibility-condition-builder>
+                                                                                                    </template>
+                                                                                                    <template if:false={field.isVisibilityCondition}>
+                                                                                                        <template if:true={field.readOnly}>
+                                                                                                            <lightning-output-field 
+                                                                                                                field-name={field.apiName}
+                                                                                                            ></lightning-output-field>
+                                                                                                        </template>
+                                                                                                        <template if:false={field.readOnly}>
+                                                                                                            <lightning-input-field 
+                                                                                                                data-id={field.apiName}
+                                                                                                                data-type={field.type}
+                                                                                                                data-label={field.label}
+                                                                                                                data-hide={field.hideField}
+                                                                                                                field-name={field.apiName}
+                                                                                                                required={field.required}
+                                                                                                                value={field.fieldValue}
+                                                                                                                onchange={handleFieldChanges}
+                                                                                                            ></lightning-input-field>
+                                                                                                        </template>
+                                                                                                    </template>
+                                                                                                </template>
+                                                                                            </template>
+                                                                                        </template>
+                                                                                        
+                                                                                    </template>
+                                                                                </template>
+                                                                            </span>
+                                                                            
+                                                                            <div class="slds-p-right_xx-small slds-p-left_xx-small">
+                                                                                <template if:true={readOnly}>
+                                                                                    <div class="slds-border_bottom"></div>
+                                                                                </template>
+                                                                            </div>
+                                                                        </div>
+                                                                    </template>
+                                                                </template>
+                                                            </div>
+                                                        </lightning-record-edit-form>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+
+                                    </template>
+                                </template>
+                            </lightning-tab>
+                        </template>
+
+                        <lightning-tab label="Response Validation" value="Response Validation" onactive={handleTabActive} if:false={isAgenticPrompt}>
+                            <c-a-i-response-validation-component
+                                record-id={recordId}
+                            ></c-a-i-response-validation-component>
+                        </lightning-tab>
+                        
+                        <lightning-tab label="Actions" value="Actions" onactive={handleTabActive} if:false={isCanvasAndAgentic}>
+                            <c-a-i-prompt-action-component
+                                record-id={recordId}
+                            ></c-a-i-prompt-action-component>
+                        </lightning-tab>
+
+                        <lightning-tab label="Elements" value="Elements" onactive={handleTabActive} if:true={isCanvasPrompt}>
+                            <c-a-i-prompt-element-component
+                                prompt-id={recordId}
+                                object-api-name={objectApiName}
+                            ></c-a-i-prompt-element-component>
+                        </lightning-tab>
+
+                        <!--template if:true={showAgenticTab}>
+                            <lightning-tab label="Agentic" value="Agentic" onactive={handleTabActive}>
+                                <lightning-record-edit-form
+                                    object-api-name={promptObjectApi}
+                                    record-id={recordId}>
+                                    <div class="slds-grid slds-wrap">
+                                        <div class="slds-col slds-size_1-of-1 slds-p-top_x-small">
+                                            <span>
+                                                <template if:true={readOnly}>
+                                                    <lightning-output-field 
+                                                        field-name={agenticFinderFilterFieldApi}
+                                                    ></lightning-output-field>
+                                                    <div class="slds-p-right_xx-small slds-p-left_xx-small">
+                                                        <div class="slds-border_bottom"></div>
+                                                    </div>
+                                                </template>
+                                                <template if:false={readOnly}>
+                                                    <lightning-input-field 
+                                                        data-id={agenticFinderFilterFieldApi}
+                                                        field-name={agenticFinderFilterFieldApi}
+                                                        onchange={handleFieldChanges}
+                                                    ></lightning-input-field>
+                                                </template>
+                                            </span>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-1 slds-p-top_x-small">
+                                            <span>
+                                                <template if:true={readOnly}>
+                                                    <lightning-output-field 
+                                                        field-name={agenticFinderFieldsFieldApi}
+                                                    ></lightning-output-field>
+                                                    <div class="slds-p-right_xx-small slds-p-left_xx-small">
+                                                        <div class="slds-border_bottom"></div>
+                                                    </div>
+                                                </template>
+                                                <template if:false={readOnly}>
+                                                    <lightning-input-field 
+                                                        data-id={agenticFinderFieldsFieldApi}
+                                                        field-name={agenticFinderFieldsFieldApi}
+                                                        onchange={handleFieldChanges}
+                                                    ></lightning-input-field>
+                                                </template>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </lightning-record-edit-form>
+                            </lightning-tab>
+                        </template-->
+                        
+                    </lightning-tabset>
+
+                    <template if:false={readOnly}>
+                        <template if:true={showActions}>
+                            <div class="slds-docked-form-footer">
+                                <lightning-button
+                                    class="slds-button"
+                                    variant="neutral"
+                                    label="Cancel"
+                                    onclick={doInit}
+                                ></lightning-button>
+                                <lightning-button
+                                    class="slds-button slds-m-left_x-small"
+                                    variant="brand"
+                                    label="Save"
+                                    onclick={handleSave}
+                                ></lightning-button>
+                            </div>
+                        </template>
+                    </template>
+                </template>
+            </template>
+        </div>
+    </article>
+</template>

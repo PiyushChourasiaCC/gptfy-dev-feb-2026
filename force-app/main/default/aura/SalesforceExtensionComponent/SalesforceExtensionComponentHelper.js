@@ -1,0 +1,6 @@
+({
+	showDetails : function(people){
+        
+    },
+
+})

@@ -1,0 +1,74 @@
+/* Section header styling */
+.section-header {
+    background-color: #f3f3f3;
+    padding: 8px 12px;
+    margin-top: 16px;
+    margin-bottom: 0;
+    border-bottom: 1px solid #dddbda;
+    border-left: 3px solid #9e9e9e;
+}
+
+.section-title {
+    font-weight: 600;
+    color: #3e3e3c;
+    font-size: 0.875rem;
+}
+
+/* Subsection fields - indented OAuth fields without header */
+.subsection-fields {
+    margin-left: 24px;
+    margin-bottom: 0;
+}
+
+.subsection-field-label {
+    padding-left: 8px;
+}
+
+/* Spacer between provider sections */
+.provider-spacer {
+    height: 20px;
+    border-bottom: 1px solid #e5e5e5;
+    margin-bottom: 0;
+}
+
+.required-indicator {
+    color: #c23934;
+    font-weight: bold;
+    margin-left: 2px;
+}
+
+/* Field label styling - matches reference image */
+.field-label {
+    width: 400px;
+    font-weight: bold;
+    color: dimgray;
+}
+
+/* Field value container */
+.field-value {
+    width: 250px;
+}
+
+/* Table styling to match reference */
+.slds-table {
+    margin-bottom: 0;
+}
+
+.slds-table tbody tr {
+    border-bottom: 1px solid #f3f3f3;
+}
+
+.slds-table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Password field styling */
+lightning-input[type="password"] {
+    --slds-c-input-text-color: #080707;
+}
+
+/* Ensure toggle aligns right */
+lightning-input[type="toggle"] {
+    display: flex;
+    justify-content: flex-end;
+}

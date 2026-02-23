@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Action_Label__c</fullName>
+    <externalId>false</externalId>
+    <formula>CASE(
+TEXT(Action__c),
+&apos;Update Field&apos;, &apos;Field: &apos;&amp; Field_API_Name__c,
+&apos;Create Record&apos;, &apos;Object: &apos;&amp; Object_Name__c,
+&apos;Invoke Flow&apos;, &apos;Flow: &apos;&amp; Flow_API_Name__c,
+&apos;Invoke Apex&apos;, &apos;Apex Class: &apos;&amp; Apex_Class_Name__c,
+&apos;Open a Form&apos;, &apos;Object: &apos;&amp; Object_Name__c,
+&apos;&apos;
+)</formula>
+    <label>Action Label</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

@@ -1,0 +1,630 @@
+<template>
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template if:false={showSpinner}>
+        <div class="slds-page-header">
+            <div class="slds-page-header__row">
+                <div class="slds-page-header__col-title">
+                    <div class="slds-media">
+                        <div class="slds-media__figure">
+                            <span class="slds-icon_container slds-icon-standard-opportunity" title="opportunity">
+                                <lightning-icon icon-name="standard:record_delete" title="AI Settings" size="large" style="--slds-c-icon-color-background:#FFA500;"></lightning-icon>
+                                <span class="slds-assistive-text">AI Settings</span>
+                            </span>
+                        </div>
+                        <div class="slds-media__body">
+                            <div class="slds-page-header__name">
+                                <div class="slds-page-header__name-title">
+                                    <h1>
+                                        <span class="slds-page-header__title slds-truncate" title="AI Settings">AI Settings</span>
+                                    </h1>
+                                </div>
+                            </div>
+                            <p class="slds-page-header__name-meta">
+                                <lightning-formatted-rich-text value={label.AI_Settings_Header_Label}></lightning-formatted-rich-text>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="height: 5px;"></div>
+
+        
+            <!-- ... existing code ... -->
+        
+            <!-- Modal for scheduling -->
+            <template if:true={isModalOpen}>
+                <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+                    <div class="slds-modal__container">
+                        <header class="slds-modal__header">
+                            <h2 id="modal-heading-01" class="slds-text-heading_medium">Schedule Daily Job</h2>
+                            <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeModal}>
+                                <lightning-icon icon-name="utility:close"
+                                                alternative-text="Close"
+                                                variant="inverse"
+                                                size="small"
+                                                aria-label="Close"></lightning-icon>
+                                <span class="slds-assistive-text">Close</span>
+                            </button>
+                        </header>
+                        <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1">
+                            <lightning-input type="time" label="Time to run daily" value={scheduledTime} onchange={handleTimeChange}></lightning-input>
+                        </div>
+                        <footer class="slds-modal__footer">
+                            <lightning-button variant="neutral"
+                                              label="Cancel"
+                                              onclick={closeModal}
+                                              class="slds-var-p-around_x-small">
+                            </lightning-button>
+                            <lightning-button variant="brand"
+                                              label="Schedule"
+                                              onclick={scheduleJob}
+                                              class="slds-var-p-around_x-small">
+                            </lightning-button>
+                        </footer>
+                    </div>
+                </section>
+                <div class="slds-backdrop slds-backdrop_open"></div>
+            </template>
+        
+        
+
+        <article class="slds-card">
+            <div class="slds-card__body slds-card__body_inner">
+
+                <lightning-tabset active-tab-value={activeTab}>
+                    
+                    <lightning-tab label="Data Retention" value="1" onactive={handleActiveTab}>
+                        <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                            <tbody>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Status">
+                                        <div class="slds-truncate" title="Status" style="width:400px; font-weight: bold; color:dimgray">Status</div>
+                                    </td>
+                                    <td data-label="Status">
+                                        <div class="slds-truncate" title="Status" style="width:250px;">
+                                            <lightning-input 
+                                                type="toggle" 
+                                                label="Status" 
+                                                name="status" 
+                                                message-toggle-active="Active" 
+                                                message-toggle-inactive="Inactive" 
+                                                variant="label-hidden"
+                                                checked={setupInfo.status}
+                                                onchange={handleStatusChange}
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Delete Security Records After (Days)">
+                                        <div class="slds-truncate" title="Delete Security Records After (Days)" style="width:400px; font-weight: bold; color:dimgray">Delete Security Records After (Days)</div>
+                                    </td>
+                                    <td data-label="Delete Security Records After (Days)">
+                                        <div class="slds-truncate" title="Delete Security Records After (Days)" style="width:250px;">
+                                            <lightning-input 
+                                                type="number" 
+                                                name="noOfDays" 
+                                                label="Delete Security Records After (Days)"
+                                                value={setupInfo.noOfDays}
+                                                onblur={handleDaysUpdate}
+                                                variant="label-hidden"
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Where Clause">
+                                        <div class="slds-truncate" title="Where Clause" style="width:400px; font-weight: bold; color:dimgray">Where Clause</div>
+                                    </td>
+                                    <td data-label="Where Clause" style="display:flex;">
+                                        
+                                        <div class="slds-truncate" title="Where Clause" style="width:250px;">
+                                            <lightning-input 
+                                                name="whereClause" 
+                                                label="Where Clause"
+                                                value={setupInfo.whereClause}
+                                                onblur={handleWhereClauseChange}
+                                                variant="label-hidden"
+                                            ></lightning-input>
+                                                        
+                                        </div>
+
+                                        <lightning-button-icon style="padding-left:5px"
+                                                            icon-name="utility:edit"  
+                                                            alternative-text="Edit" 
+                                                            title="Edit" 
+                                                            onclick={handleOpenVisibilityCondition}
+                                                        ></lightning-button-icon>
+                                    </td>
+                                        
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Total Records Purged">
+                                        <div class="slds-truncate" title="Total Records Purged" style="width:400px; font-weight: bold; color:dimgray">Total Records Purged</div>
+                                    </td>
+                                    <td data-label="Total Records Purged">
+                                        <div class="slds-truncate" title="Total Records Purged" style="width:250px;">{setupInfo.recordsPurged} Records</div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Last Ran (Date/Time)">
+                                        <div class="slds-truncate" title="Last Ran (Date/Time)" style="width:400px; font-weight: bold; color:dimgray">Last Ran (Date/Time)</div>
+                                    </td>
+                                    <td data-label="Last Ran (Date/Time)">
+                                        <div class="slds-truncate" title="Last Ran (Date/Time)" style="width:250px;">
+                                            <lightning-formatted-date-time 
+                                                value={setupInfo.lastRunDateTime} 
+                                                year="numeric" 
+                                                month="numeric" 
+                                                day="numeric" 
+                                                hour="2-digit"
+                                                minute="2-digit" 
+                                                time-zone-name="short"
+                                            ></lightning-formatted-date-time>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Next Run (Date/Time)">
+                                        <div class="slds-truncate" title="Next Run (Date/Time)" style="width:400px; font-weight: bold; color:dimgray">Next Run (Date/Time)</div>
+                                    </td>
+                                    <td data-label="Next Run (Date/Time)">
+                                        <div class="slds-truncate" title="Next Run (Date/Time)" style="width:250px;">
+                                            <lightning-formatted-date-time 
+                                                value={setupInfo.nextFireTime} 
+                                                year="numeric" 
+                                                month="numeric" 
+                                                day="numeric" 
+                                                hour="2-digit"
+                                                minute="2-digit" 
+                                                time-zone-name="short"
+                                            ></lightning-formatted-date-time>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </lightning-tab>
+
+                    <lightning-tab label="Preferences" value="2" onactive={handleActiveTab}>
+                        <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                            <tbody>
+                                
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Adding Prefix/Suffix">
+                                        <div class="slds-truncate" title="Adding Prefix/Suffix" style="width:400px; font-weight: bold; color:dimgray">
+                                            Adding Prefix/Suffix
+                                            <template if:true={helpText_PrefixSuffix}>
+                                                &nbsp;<lightning-helptext content={helpText_PrefixSuffix}></lightning-helptext>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td data-label="Adding Prefix/Suffix">
+                                        <div class="slds-truncate" title="Adding Prefix/Suffix" style="width:250px;">
+                                            <lightning-input 
+                                                type="toggle" 
+                                                label="Adding Prefix/Suffix" 
+                                                name="AddingPrefixSuffix"
+                                                variant="label-hidden"
+                                                checked={setupInfo.prefixSuffix}
+                                                onchange={handlePrefixSuffixChange}
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Typewriter Effect">
+                                        <div class="slds-truncate" title="Typewriter Effect" style="width:400px; font-weight: bold; color:dimgray">
+                                            Typewriter Effect
+                                            <template if:true={helpText_TypewriterEffect}>
+                                                &nbsp;<lightning-helptext content={helpText_TypewriterEffect}></lightning-helptext>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td data-label="Typewriter Effect">
+                                        <div class="slds-truncate" title="Typewriter Effect" style="width:250px;">
+                                            <lightning-input 
+                                                type="toggle" 
+                                                label="Typewriter Effect" 
+                                                name="TypewriterEffect" 
+                                                variant="label-hidden"
+                                                checked={setupInfo.typeEffect}
+                                                onchange={handleTypewriterEffectChange}
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Enable Exception Log">
+                                        <div class="slds-truncate" title="Exception Log" style="width:400px; font-weight: bold; color:dimgray">
+                                            Exception Log
+                                            <template if:true={helpText_ExceptionLog}>
+                                                &nbsp;<lightning-helptext content={helpText_ExceptionLog}></lightning-helptext>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td data-label="Enable Exception Log">
+                                        <div class="slds-truncate" title="Exception Log" style="width:250px;">
+                                            <lightning-input 
+                                                type="toggle" 
+                                                label="Exception Log" 
+                                                name="EnableExceptionLog"
+                                                variant="label-hidden"
+                                                checked={setupInfo.enableExceptionLog}
+                                                onchange={handleExceptionLogChange}
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Enable Prompt Versioning">
+                                        <div class="slds-truncate" title="Prompt Versioning" style="width:400px; font-weight: bold; color:dimgray">
+                                            Prompt Versioning
+                                            <template if:true={helpText_PromptVersion}>
+                                                &nbsp;<lightning-helptext content={helpText_PromptVersion}></lightning-helptext>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td data-label="Enable Prompt Versioning">
+                                        <div class="slds-truncate" title="Prompt Versioning" style="width:250px;">
+                                            <lightning-input 
+                                                type="toggle" 
+                                                label="Prompt Versioning" 
+                                                name="EnablePromptVersioning"
+                                                variant="label-hidden"
+                                                checked={setupInfo.enablePromptVersion}
+                                                onchange={handlePromptVersionChange}
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <tr class="slds-hint-parent">
+                                    <td data-label="File Processing">
+                                        <div class="slds-truncate" title="File Processing" style="width:400px; font-weight: bold; color:dimgray">
+                                            File Processing
+                                            <template if:true={helpText_FileProcessing}>
+                                                &nbsp;<lightning-helptext content={helpText_FileProcessing}></lightning-helptext>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td data-label="File Processing">
+                                        <div class="slds-truncate" title="File Processing" style="width:250px;">
+                                            <lightning-input 
+                                                type="toggle" 
+                                                label="File Processing" 
+                                                name="FileProcessing"
+                                                variant="label-hidden"
+                                                checked={setupInfo.fileProcessing}
+                                                onchange={handleFileProcessingChange}
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <template if:true={setupInfo.fileProcessing}>
+                                    <tr class="slds-hint-parent">
+                                        <td data-label="Max File Size (in MB)">
+                                            <div class="slds-truncate" title="Max File Size (in MB)" style="width:400px; font-weight: bold; color:dimgray">
+                                                Max File Size (in MB)
+                                                <template if:true={helpText_MaxFileSize}>
+                                                    &nbsp;<lightning-helptext content={helpText_MaxFileSize}></lightning-helptext>
+                                                </template>
+                                            </div>
+                                        </td>
+                                        <td data-label="Max File Size (in MB)">
+                                            <div class="slds-truncate" title="Max File Size" style="width:250px;">
+                                                <lightning-input 
+                                                    type="number" 
+                                                    label="Max File Size (in MB)" 
+                                                    name="MaxFileSize"
+                                                    variant="label-hidden"
+                                                    value={setupInfo.maxFileSize}
+                                                    onchange={handleMaxFileSizeChange}
+                                                ></lightning-input>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="slds-hint-parent">
+                                        <td data-label="File Type">
+                                            <div class="slds-truncate" title="File Type" style="width:400px; font-weight: bold; color:dimgray">
+                                                File Type
+                                                <template if:true={helpText_FileType}>
+                                                    &nbsp;<lightning-helptext content={helpText_FileType}></lightning-helptext>
+                                                </template>
+                                            </div>
+                                        </td>
+                                        <td data-label="File Type">
+                                            <div class="slds-truncate" title="File Type" style="width:250px;">
+                                                <lightning-input 
+                                                    type="text" 
+                                                    label="File Type" 
+                                                    name="MaxFileSize"
+                                                    variant="label-hidden"
+                                                    value={setupInfo.fileType}
+                                                    onblur={handleFileTypeChange}
+                                                ></lightning-input>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="slds-hint-parent">
+                                        <td data-label="Max File Count">
+                                            <div class="slds-truncate" title="Max File Count" style="width:400px; font-weight: bold; color:dimgray">
+                                                Max File Count
+                                                <template if:true={helpText_MaxFileCount}>
+                                                    &nbsp;<lightning-helptext content={helpText_MaxFileCount}></lightning-helptext>
+                                                </template>
+                                            </div>
+                                        </td>
+                                        <td data-label="Max File Count">
+                                            <div class="slds-truncate" title="Max File Count" style="width:250px;">
+                                                <lightning-input 
+                                                    type="text" 
+                                                    label="Max File Count" 
+                                                    name="MaxFileSize"
+                                                    variant="label-hidden"
+                                                    value={setupInfo.maxFileCount}
+                                                    onchange={handleMaxFileCountChange}
+                                                ></lightning-input>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    
+                                </template>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Reporting Period (in Months)">
+                                        <div class="slds-truncate" title="Reporting Period (in Months)" style="width:400px; font-weight: bold; color:dimgray">
+                                            Reporting Period (in Months)
+                                            <template if:true={helpText_PromptVersion}>
+                                                &nbsp;<lightning-helptext content={helpText_PromptVersion}></lightning-helptext>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td data-label="Reporting Period (in Months)">
+                                        <div class="slds-truncate" title="Reporting Period (in Months)" style="width:250px;">
+                                            <lightning-input 
+                                                type="number" 
+                                                label="Reporting Period (in Months)" 
+                                                name="ReportingPeriod"
+                                                variant="label-hidden"
+                                                value={setupInfo.reportingPeriod}
+                                                onchange={handleReportingPeriodChange}
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Hourly Cost">
+                                        <div class="slds-truncate" title="Hourly Cost" style="width:400px; font-weight: bold; color:dimgray">
+                                            Hourly Cost
+                                            <template if:true={helpText_Hourly_Cost}>
+                                                &nbsp;<lightning-helptext content={helpText_Hourly_Cost}></lightning-helptext>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td data-label="Hourly Cost">
+                                        <div class="slds-truncate" title="Hourly Cost" style="width:250px;">
+                                            <lightning-input 
+                                                type="number"
+                                                label="Hourly Cost" 
+                                                name="HourlyCost"
+                                                variant="label-hidden"
+                                                value={setupInfo.hourlyCost}
+                                                onblur={handleHourlyCostChange}
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Allow User Input Prefix">
+                                        <div class="slds-truncate" title="Allow User Input Prefix" style="width:400px; font-weight: bold; color:dimgray">
+                                            Allow User Input Prefix
+                                        </div>
+                                    </td>
+                                    <td data-label="Allow User Input Prefix">
+                                        <div class="slds-truncate" title="Allow User Input Prefix" style="width:250px;">
+                                            <lightning-input 
+                                                type="text"
+                                                label="Allow User Input Prefix" 
+                                                name="additionalInstructions"
+                                                variant="label-hidden"
+                                                value={setupInfo.additionalInstructions}
+                                                onblur={handleAdditionalInstructions}
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Enable for Data Cloud">
+                                        <div class="slds-truncate" title="Enable for Data Cloud" style="width:400px; font-weight: bold; color:dimgray">
+                                            Enable for Data Cloud
+                                            <template if:true={helpText_EnableForDataCloud}>
+                                                &nbsp;<lightning-helptext content={helpText_EnableForDataCloud}></lightning-helptext>
+                                            </template>
+                                        </div>
+                                    </td>
+                                    <td data-label="Enable for Data Cloud">
+                                        <div class="slds-truncate" title="Enable for Data Cloud" style="width:250px;">
+                                            <lightning-input 
+                                                type="toggle" 
+                                                label="Enable for Data Cloud" 
+                                                name="enalbeForDataCloud"
+                                                variant="label-hidden"
+                                                checked={setupInfo.enableForDataCloud}
+                                                onchange={handleEnableForDataCloudChange}
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <template if:true={setupInfo.enableForDataCloud}>
+                                    <tr class="slds-hint-parent">
+                                        <td data-label="Salesforce Domain URL">
+                                            <div class="slds-truncate" title="Salesforce Domain URL" style="width:400px; font-weight: bold; color:dimgray">
+                                                Salesforce Domain URL
+                                                <template if:true={helpText_SalesforceDomainUrl}>
+                                                    &nbsp;<lightning-helptext content={helpText_SalesforceDomainUrl}></lightning-helptext>
+                                                </template>
+                                            </div>
+                                        </td>
+                                        <td data-label="Salesforce Domain URL">
+                                            <div class="slds-truncate" title="Salesforce Domain URL" style="width:250px;">
+                                                <lightning-input 
+                                                    type="text" 
+                                                    label="Salesforce Domain URL" 
+                                                    name="salesforceDomainUrl"
+                                                    variant="label-hidden"
+                                                    value={setupInfo.salesforceDomainUrl}
+                                                    onblur={handleSalesforceDomainUrlChange}
+                                                ></lightning-input>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="slds-hint-parent">
+                                        <td data-label="Salesforce Client Id">
+                                            <div class="slds-truncate" title="Salesforce Client Id" style="width:400px; font-weight: bold; color:dimgray">
+                                                Salesforce Client Id
+                                                <template if:true={helpText_SalesforceClientId}>
+                                                    &nbsp;<lightning-helptext content={helpText_SalesforceClientId}></lightning-helptext>
+                                                </template>
+                                            </div>
+                                        </td>
+                                        <td data-label="Salesforce Client Id">
+                                            <div class="slds-truncate" title="Salesforce Client Id" style="width:250px;">
+                                                <lightning-input 
+                                                    type="text" 
+                                                    label="Salesforce Client Id" 
+                                                    name="salesforceClientId"
+                                                    variant="label-hidden"
+                                                    value={setupInfo.salesforceClientId}
+                                                    onblur={handleSalesforceClientIdChange}
+                                                ></lightning-input>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="slds-hint-parent">
+                                        <td data-label="Salesforce Admin User Name">
+                                            <div class="slds-truncate" title="Salesforce Admin User Name" style="width:400px; font-weight: bold; color:dimgray">
+                                                Salesforce Admin User Name
+                                                <template if:true={helpText_SalesforceAdminEmail}>
+                                                    &nbsp;<lightning-helptext content={helpText_SalesforceAdminEmail}></lightning-helptext>
+                                                </template>
+                                            </div>
+                                        </td>
+                                        <td data-label="Salesforce Admin User Name">
+                                            <div class="slds-truncate" title="Salesforce Admin User Name" style="width:250px;">
+                                                <lightning-input 
+                                                    type="text" 
+                                                    label="Salesforce Admin User Name" 
+                                                    name="salesforceAdminEmail"
+                                                    variant="label-hidden"
+                                                    value={setupInfo.salesforceAdminEmail}
+                                                    onblur={handleSalesforceAdminEmailChange}
+                                                ></lightning-input>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="slds-hint-parent">
+                                        <td data-label="Salesforce Private Key File Id">
+                                            <div class="slds-truncate" title="Salesforce Private Key File Id" style="width:400px; font-weight: bold; color:dimgray">
+                                                Salesforce Private Key File Id
+                                                <template if:true={helpText_SalesforcePrivateKeyFileId}>
+                                                    &nbsp;<lightning-helptext content={helpText_SalesforcePrivateKeyFileId}></lightning-helptext>
+                                                </template>
+                                            </div>
+                                        </td>
+                                        <td data-label="Salesforce Private Key File Id">
+                                            <div class="slds-truncate" title="Salesforce Private Key File Id" style="width:250px;">
+                                                <lightning-input 
+                                                    type="text" 
+                                                    label="Salesforce Private Key File Id" 
+                                                    name="salesforcePrivateKeyFileId"
+                                                    variant="label-hidden"
+                                                    value={setupInfo.salesforcePrivateKeyFileId}
+                                                    onblur={handleSalesforcePrivatekeyFileIdChange}
+                                                ></lightning-input>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="slds-hint-parent">
+                                        <td data-label="Salesforce Auth Named Credential">
+                                            <div class="slds-truncate" title="Salesforce Auth Named Credential" style="width:400px; font-weight: bold; color:dimgray">
+                                                Salesforce Auth Named Credential
+                                                <template if:true={helpText_SalesforceAuthNamedCredential}>
+                                                    &nbsp;<lightning-helptext content={helpText_SalesforceAuthNamedCredential}></lightning-helptext>
+                                                </template>
+                                            </div>
+                                        </td>
+                                        <td data-label="Salesforce Auth Named Credential">
+                                            <div class="slds-truncate" title="Salesforce Auth Named Credential" style="width:250px;">
+                                                <lightning-input 
+                                                    type="text" 
+                                                    label="Salesforce Auth Named Credential" 
+                                                    name="salesforceAuthNamedCredential"
+                                                    variant="label-hidden"
+                                                    value={setupInfo.salesforceAuthNamedCredential}
+                                                    onblur={handleSalesforceAuthNamedCredentialChange}
+                                                ></lightning-input>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="slds-hint-parent">
+                                        <td data-label="Data Cloud Named Credential">
+                                            <div class="slds-truncate" title="Data Cloud Named Credential" style="width:400px; font-weight: bold; color:dimgray">
+                                                Data Cloud Named Credential
+                                                <template if:true={helpText_DataCloudNamedCredential}>
+                                                    &nbsp;<lightning-helptext content={helpText_DataCloudNamedCredential}></lightning-helptext>
+                                                </template>
+                                            </div>
+                                        </td>
+                                        <td data-label="Data Cloud Named Credential">
+                                            <div class="slds-truncate" title="Data Cloud Named Credential" style="width:250px;">
+                                                <lightning-input 
+                                                    type="text" 
+                                                    label="Data Cloud Named Credential" 
+                                                    name="dataCloudNamedCredential"
+                                                    variant="label-hidden"
+                                                    value={setupInfo.dataCloudNamedCredential}
+                                                    onblur={handleDataCloudNamedCredentialChange}
+                                                ></lightning-input>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </lightning-tab>
+
+                    <lightning-tab label="Voice Configuration" value="3" onactive={handleActiveTab}>
+                        <c-a-i-voice-configuration-component></c-a-i-voice-configuration-component>
+                    </lightning-tab>
+
+                    <lightning-tab label="Workspace Sync" value="4" onactive={handleActiveTab}>
+                        <c-ai-workspace-sync-settings></c-ai-workspace-sync-settings>
+                    </lightning-tab>
+
+                    <lightning-tab label="Licenses" value="5" onactive={handleActiveTab}>
+                        <c-a-i-license-manager-component></c-a-i-license-manager-component>
+                    </lightning-tab>
+
+                </lightning-tabset>
+
+            </div>
+        </article>
+
+    </template>
+
+    
+
+</template>

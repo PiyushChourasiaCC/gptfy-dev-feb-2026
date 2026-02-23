@@ -1,0 +1,231 @@
+<template>
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template if:false={showSpinner}>
+        <template if:true={configInfo}>
+            <div class="slds-grid slds-gutters">
+                <div class="slds-col">
+                    <span>
+                        <lightning-combobox
+                            name="aiModel"
+                            label="Audio Processing Model"
+                            value={configInfo.aiModelId}
+                            placeholder="Audio Processing Model"
+                            options={configInfo.modelOptions}
+                            onchange={handleAIModelChange}
+                            variant="label-stacked"
+                            required
+                        ></lightning-combobox>
+                    </span>
+                </div>
+                <div class="slds-col">
+                    <span>
+                        <lightning-input 
+                            type="number" 
+                            name="duration" 
+                            label="Duration (Minutes)" 
+                            value={configInfo.duration} 
+                            onchange={handleDurationChange}
+                            variant="label-stacked"
+                            step="0.01"
+                        ></lightning-input>
+                    </span>
+                </div>
+            </div>
+
+            <lightning-accordion allow-multiple-sections-open>
+                <lightning-accordion-section name="A" label="Advanced Settings">
+                    <div class="slds-grid slds-wrap slds-p-top_small">
+                        <div class="slds-col slds-size_1-of-2">
+                            <span>
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Async Request" 
+                                    name="asyncRequest"
+                                    variant="label-stacked"
+                                    onchange={handleAsyncToggle}
+                                    checked={configInfo.asyncRequest}
+                                    message-toggle-active=""
+                                    message-toggle-inactive=""
+                                ></lightning-input>
+                            </span>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <span>    
+                            </span>
+                        </div>
+                    </div>
+                    <template if:true={configInfo.asyncRequest}>
+                        <div class="slds-grid slds-wrap">
+                            <div class="slds-col slds-size_1-of-2">
+                                <span>
+                                    <lightning-combobox
+                                        name="aiModel"
+                                        label="Audio File Upload Model"
+                                        value={configInfo.fileUploadModelId}
+                                        placeholder="Audio File Upload Model"
+                                        options={configInfo.modelOptions}
+                                        onchange={handleFileUploadModelChange}
+                                        variant="label-stacked"
+                                    ></lightning-combobox>
+                                    <lightning-input 
+                                        type="number" 
+                                        name="pollingTimeframe" 
+                                        label="Polling Timeframe (Minutes)" 
+                                        value={configInfo.pollingTimeframe} 
+                                        onchange={handlePollingTimeframeChange}
+                                        variant="label-stacked"
+                                    ></lightning-input>
+                                </span>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <span>
+                                    <lightning-combobox
+                                        name="aiModel"
+                                        label="Audio Polling Model"
+                                        value={configInfo.pollingModelId}
+                                        placeholder="Audio Polling Model"
+                                        options={configInfo.modelOptions}
+                                        onchange={handlePollingModelChange}
+                                        variant="label-stacked"
+                                    ></lightning-combobox>
+                                    <lightning-input 
+                                        type="number" 
+                                        name="pollingCounter" 
+                                        label="Maximum Polling Counter" 
+                                        value={configInfo.pollingCounter} 
+                                        onchange={handlePollingCounterChange}
+                                        variant="label-stacked"
+                                    ></lightning-input>
+                                </span>
+                            </div>
+                        </div>
+                    </template>   
+                </lightning-accordion-section>
+            </lightning-accordion> 
+
+            <template if:true={showSaveButon}>
+                <div class="slds-align_absolute-center" style="height:5rem">
+                    <button type="button" class="slds-button slds-button_neutral" onclick={doInit}>Cancel</button>
+                    <button type="button" class="slds-button slds-button_brand" onclick={handleSave}>Save</button>
+                </div>
+            </template>
+
+            <div class="slds-p-top_medium"></div>
+            
+            <article class="slds-card slds-card_boundary">
+                <div class="slds-card__header slds-grid">
+                    <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                        <div class="slds-media__body">
+                            <h2 class="slds-card__header-title">
+                                <a href="#" class="slds-card__header-link slds-truncate" title="Details">
+                                    <span>Details</span>
+                                </a>
+                            </h2>
+                        </div>
+                        <div class="slds-no-flex">
+                            <button class="slds-button slds-button_neutral" onclick={handleAddModal}>New</button>
+                        </div>
+                    </header>
+                </div>
+                <div class="slds-card__body slds-card__body_inner">
+                    <p class="slds-p-horizontal_small">
+                        <template if:true={configInfo.details}>
+                            <lightning-datatable 
+                                key-field="detailId" 
+                                data={configInfo.details} 
+                                columns={columns} 
+                                hide-checkbox-column
+                                show-row-number-column 
+                                default-sort-direction={defaultSortDirection}
+                                sorted-direction={sortDirection} 
+                                sorted-by={sortedBy} 
+                                onsort={onHandleSort}
+                                onrowaction={handleRowAction}
+                            ></lightning-datatable>
+                        </template>
+                        <template if:false={configInfo.details}>
+                            <div class="slds-align_absolute-center" style="height:5rem">
+                                No records present.
+                            </div>
+                        </template>
+                    </p>
+                </div>
+            </article>
+
+        </template>
+    </template>
+
+    <template if:true={showAddModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-01" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <div class="slds-modal__header">
+                    <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate" tabindex="-1">Voice Configuration Detail</h1>
+                </div>
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                    <div class="slds-grid slds-grid_vertical">
+                        <div class="slds-col">
+                            <span>
+                                <lightning-combobox
+                                    name="aiPromptId"
+                                    label="Prompt"
+                                    value={detailData.aiPromptId}
+                                    placeholder="Select Prompt"
+                                    options={configInfo.promptOptions}
+                                    onchange={handleDetailChange}
+                                    variant="label-stacked"
+                                    data-name="aiPromptId"
+                                    required
+                                ></lightning-combobox>
+                            </span>
+                        </div>
+                        <div class="slds-col">
+                            <span>
+                                <lightning-combobox
+                                    name="profile"
+                                    label="Profile"
+                                    value={detailData.profile}
+                                    placeholder="Select Profile"
+                                    options={configInfo.profileOptions}
+                                    onchange={handleDetailChange}
+                                    variant="label-stacked"
+                                    data-name="profile"
+                                ></lightning-combobox>
+                            </span>
+                        </div>
+                        <div class="slds-col">
+                            <span>
+                                <lightning-combobox
+                                    name="objectName"
+                                    label="Related To Object"
+                                    value={detailData.objectName}
+                                    placeholder="Select Related To Object"
+                                    options={configInfo.objects}
+                                    onchange={handleDetailChange}
+                                    variant="label-stacked"
+                                    data-name="objectName"
+                                ></lightning-combobox>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" aria-label="Cancel and close" onclick={handleAddModal}>Cancel</button>
+                    <button class="slds-button slds-button_brand" onclick={handleSaveDetail}>Save</button>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+    </template>
+
+</template>

@@ -1,0 +1,268 @@
+/* ========================================
+   AI Agentic Chat Console Container
+   Dynamic Theming with CSS Custom Properties
+   ======================================== */
+
+/* Floating Chat Button - Uses CSS custom properties for theming */
+.floating-chat-button {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 60px;
+    height: 60px;
+    background: var(--chat-primary-color, #5B21B6);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--chat-primary-color, #5B21B6) 40%, transparent);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.floating-chat-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--chat-primary-color, #5B21B6) 60%, transparent);
+}
+
+.floating-chat-button lightning-icon {
+    --slds-c-icon-color-foreground-default: var(--chat-header-text-color, white);
+}
+
+/* Parent Component Styles - Clean Layout */
+.chat-panel-container {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    height: 50vh;
+    width: 400px;
+    z-index: 1000;
+}
+
+.chat-panel-wrapper {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+/* @JIRA V2-7339 - Chat Header with dynamic theming */
+.chat-header {
+    flex-shrink: 0;
+    background: var(--chat-primary-color, #5B21B6); 
+    color: var(--chat-header-text-color, white);
+    border-bottom: 1px solid color-mix(in srgb, var(--chat-header-text-color, white) 20%, transparent);
+}
+
+.chat-header .slds-panel__header-title {
+    color: var(--chat-header-text-color, white);
+    font-weight: 600;
+}
+
+.chat-header .slds-button_icon-small {
+    background: color-mix(in srgb, var(--chat-header-text-color, white) 10%, transparent);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.chat-header .slds-button_icon-small:hover {
+    background: color-mix(in srgb, var(--chat-header-text-color, white) 20%, transparent);
+}
+
+/* Icon color in header buttons */
+.chat-header lightning-icon {
+    --slds-c-icon-color-foreground-default: var(--chat-header-text-color, white);
+}
+
+/* Critical: Clean panel body with NO conflicting overflow or height */
+.chat-body-container {
+    flex: 1;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: var(--chat-background-color, #f8f9fa);
+    min-height: 0; /* Essential for flexbox */
+}
+
+/* Remove SLDS panel body defaults that conflict */
+.chat-body-container.slds-panel__body {
+    max-height: none !important;
+    padding: 0 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .chat-panel-container {
+        width: 100vw;
+        left: 0;
+        right: 0;
+    }
+    
+    .floating-chat-button {
+        bottom: 16px;
+        right: 16px;
+        width: 56px;
+        height: 56px;
+    }
+}
+
+@media (max-width: 480px) {
+    .chat-panel-wrapper {
+        height: 50vh;
+    }
+    
+    .floating-chat-button {
+        width: 52px;
+        height: 52px;
+    }
+}
+
+/* @JIRA V2-7339 */
+/* Brand border for icon action button on click/keyboard focus - dynamic theming */
+.actionButton {
+    --slds-c-button-color-border: transparent;
+}
+
+/* @JIRA V2-7339 */
+/* mouse down (active/pressed) */
+.actionButton:active,
+.actionButton.slds-is-selected {
+    outline: none;
+    border-color: var(--chat-primary-color, #5B21B6);
+    box-shadow: 0 0 0 2px var(--chat-primary-color, #5B21B6);
+}
+
+/* @JIRA V2-7339 */
+/* keyboard focus ring */
+.actionButton:focus-visible {
+    outline: none;
+    border-color: var(--chat-primary-color, #5B21B6);
+    box-shadow: 0 0 0 2px var(--chat-primary-color, #5B21B6);
+}
+
+/* @JIRA V2-7339 */
+/* SLDS token override so internal styles do not revert it */
+.actionButton {
+    --slds-c-button-outline-color: var(--chat-primary-color, #5B21B6);
+    --slds-c-button-shadow-focus: 0 0 0 2px var(--chat-primary-color, #5B21B6);
+}
+
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(80, 80, 80, 0.20);
+    z-index: 998;
+}
+
+
+.agent-tooltip {
+    border: 1.5px solid lightgray;
+    position: fixed;
+    top: 50px;
+    /* left: 20%; */
+    transform: translateX(-50%);
+    width: 410px;
+    background: #fff;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+    z-index: 999;
+    padding: 18px;
+}
+
+
+.close-btn {
+    position: absolute;
+    right: 16px;
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    color: #888;
+    cursor: pointer;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.agent-list {
+    max-height: 223px; /* Approximately 5 items at ~60px each */
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-bottom: 10px;
+}
+
+/* Custom scrollbar styling */
+.agent-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.agent-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.agent-list::-webkit-scrollbar-thumb {
+    background: #5B21B6;
+    border-radius: 3px;
+}
+
+.agent-list::-webkit-scrollbar-thumb:hover {
+    background: #4a1a94;
+}
+
+.agent-option {
+    display: block;
+    padding: 9px 0 9px 0;
+    border-bottom: 1px solid #f3f3f3;
+    cursor: pointer;
+}
+
+.agent-option:last-child {
+    border-bottom: none;
+}
+
+.agent-label {
+    font-size: 17px;
+    font-weight: 500;
+    margin-left: 11px;
+    color: #222;
+    vertical-align: middle;
+}
+
+.agent-desc {
+    display: block;
+    font-size: 15px;
+    color: #899;
+    margin-left: 36px;
+    margin-top: 2px;
+    margin-bottom: 4px;
+    font-weight: 400;
+}
+
+.button-row {
+    text-align: right;
+}
+/* @JIRA V2-7339 */
+.select-btn {
+    background: var(--chat-dialog-background-color, #5B21B6);
+    color: #fff;
+    font-weight: 600;
+    padding: 9px 20px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    margin-top: 7px;
+    box-shadow: 0 2px 6px var(--chat-dialog-background-color, #5B21B6);
+}
+/* @JIRA V2-7339 */
+.select-btn:hover {
+    background: var(--chat-dialog-background-color, #5B21B6);
+}

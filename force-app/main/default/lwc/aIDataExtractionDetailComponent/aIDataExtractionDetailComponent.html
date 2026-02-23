@@ -1,0 +1,131 @@
+<template>
+    <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" class="slds-modal slds-fade-in-open">
+        <div class="slds-modal__container">
+            <div class="slds-modal__header">
+                <lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large" icon-name="utility:close" variant="bare" alternative-text="Close" title="Close" onclick={handleCancel}></lightning-button-icon>
+                <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Related Object</h1>
+            </div>
+            <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1" style="min-height:500px;">
+                <template if:true={showSpinner}>
+                    <div style="height:19rem;position:relative">
+                        <div class="slds-spinner_container">
+                            <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                                <span class="slds-assistive-text">Loading</span>
+                                <div class="slds-spinner__dot-a"></div>
+                                <div class="slds-spinner__dot-b"></div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <template if:false={showSpinner}>
+                    <div class="slds-grid slds-grid_vertical">
+                        <div class="slds-col">
+                            <template if:false={disableSelectedObject}>
+                                <lightning-combobox
+                                    name="objectOptions"
+                                    label="Related Object"
+                                    value={selectedObject}
+                                    placeholder="Select Object"
+                                    options={relatedObjectOptions}
+                                    onchange={handleObjectChange}
+                                    dropdown-alignment="auto"
+                                    required
+                                    field-level-help={helpText_ObjectName}
+                                ></lightning-combobox>
+                            </template>
+                            <template if:true={disableSelectedObject}>
+                                <lightning-input
+                                    value={selectedObject}
+                                    name="selectedObject"
+                                    label="Related Object"
+                                    disabled
+                                    required
+                                    field-level-help={helpText_ObjectName}
+                                ></lightning-input>
+                            </template>
+                        </div>
+                        <template if:true={selectedObject}>
+                            <div class="slds-col">
+                                <lightning-input
+                                    value={selectedObjectLabel}
+                                    name="selectedObjectLabel"
+                                    label="Object Label"
+                                    onchange={handleObjectLabelChange}
+                                    required
+                                    field-level-help={helpText_ObjectName}
+                                ></lightning-input>
+                            </div>
+                            <div class="slds-col">
+                                <lightning-combobox
+                                    name="relationshipFieldOptions"
+                                    label="Relationship Field"
+                                    value={selectedRelationshipField}
+                                    placeholder="Select Relationship Field"
+                                    options={relationshipFieldOptions}
+                                    onchange={handleRelationshipFieldChange}
+                                    dropdown-alignment="auto"
+                                    required
+                                    field-level-help={helpText_RelationField}
+                                ></lightning-combobox>
+                            </div>
+                            <div class="slds-col">
+                                
+                                <div class="slds-grid">
+                                    <div class="slds-col" style="width: 94%;">
+                                        <span>
+                                            <lightning-textarea 
+                                                    name="filterField" 
+                                                    label="Where Clause" 
+                                                    value={filterField} 
+                                                    onchange={handleFilterFieldChange}
+                                                    field-level-help={helpText_WhereClause}
+                                                ></lightning-textarea>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col" style="width: 1%;"><span></span></div>
+                                    <div class="slds-col" style="width: 5%; padding-top: 24px;">
+                                        <span>
+                                             <lightning-button-icon 
+                                                    icon-name="utility:edit"  
+                                                    alternative-text="Edit" 
+                                                    title="Edit" 
+                                                    onclick={handleOpenVisibilityCondition}
+                                              ></lightning-button-icon>
+                                        </span>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <!--div class="slds-col">
+                                <lightning-combobox
+                                    name="orderBy"
+                                    label="Order By (Created Date)"
+                                    value={orderBy}
+                                    options={orderByOptions}
+                                    onchange={handleOrderByChange}
+                                    dropdown-alignment="auto"
+                                    field-level-help={helpText_OrderBy}
+                                ></lightning-combobox>
+                            </div>
+                            <div class="slds-col">
+                                <lightning-input 
+                                    type="number"
+                                    name="recordLimit" 
+                                    label="Record Limit" 
+                                    value={recordLimit} 
+                                    onchange={handleRecordLimitChange}
+                                    field-level-help={helpText_RecordLimit}
+                                ></lightning-input>
+                            </div-->
+                        </template>
+                    </div>
+                </template>
+            </div>
+            <div class="slds-modal__footer">
+                <lightning-button label="Cancel" title="Cancel" onclick={handleCancel}></lightning-button>
+                <lightning-button label="Save" title="Save" onclick={handleSave} variant="brand" class="slds-m-left_x-small"></lightning-button>
+            </div>
+        </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+</template>

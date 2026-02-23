@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>External_Account__c</fullName>
+    <externalDeveloperName>AccountId</externalDeveloperName>
+    <isFilteringDisabled>false</isFilteringDisabled>
+    <isNameField>false</isNameField>
+    <isSortingDisabled>false</isSortingDisabled>
+    <label>External Account</label>
+    <length>255</length>
+    <referenceTo>Account__x</referenceTo>
+    <relationshipLabel>External Cases</relationshipLabel>
+    <relationshipName>External_Cases</relationshipName>
+    <type>ExternalLookup</type>
+</CustomField>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Auto_Refresh_musr_be_a_Positive_Integer</fullName>
+    <active>true</active>
+    <errorConditionFormula>OR(
+    Auto_Refresh_Duration__c &lt; 0,
+    Auto_Refresh_Duration__c &lt;&gt; FLOOR(Auto_Refresh_Duration__c)
+)</errorConditionFormula>
+    <errorDisplayField>Auto_Refresh_Duration__c</errorDisplayField>
+    <errorMessage>Auto Refresh Duration must be a positive whole number with no decimal places.</errorMessage>
+</ValidationRule>

@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Product__c</fullName>
+    <label>Product</label>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>GC1040</fullName>
+                <default>false</default>
+                <label>GC1040</label>
+            </value>
+            <value>
+                <fullName>GC1060</fullName>
+                <default>false</default>
+                <label>GC1060</label>
+            </value>
+            <value>
+                <fullName>GC3020</fullName>
+                <default>false</default>
+                <label>GC3020</label>
+            </value>
+            <value>
+                <fullName>GC3040</fullName>
+                <default>false</default>
+                <label>GC3040</label>
+            </value>
+            <value>
+                <fullName>GC3060</fullName>
+                <default>false</default>
+                <label>GC3060</label>
+            </value>
+            <value>
+                <fullName>GC5020</fullName>
+                <default>false</default>
+                <label>GC5020</label>
+            </value>
+            <value>
+                <fullName>GC5040</fullName>
+                <default>false</default>
+                <label>GC5040</label>
+            </value>
+            <value>
+                <fullName>GC5060</fullName>
+                <default>false</default>
+                <label>GC5060</label>
+            </value>
+            <value>
+                <fullName>GC1020</fullName>
+                <default>false</default>
+                <label>GC1020</label>
+            </value>
+            <value>
+                <fullName>Nest Learning Thermostat</fullName>
+                <default>false</default>
+                <label>Nest Learning Thermostat</label>
+            </value>
+            <value>
+                <fullName>Nest Thermostat</fullName>
+                <default>false</default>
+                <label>Nest Thermostat</label>
+            </value>
+            <value>
+                <fullName>Nest Temperature Sensor</fullName>
+                <default>false</default>
+                <label>Nest Temperature Sensor</label>
+            </value>
+            <value>
+                <fullName>Nest Thermostat Trim Kit</fullName>
+                <default>false</default>
+                <label>Nest Thermostat Trim Kit</label>
+            </value>
+            <value>
+                <fullName>Nest Power Connector</fullName>
+                <default>false</default>
+                <label>Nest Power Connector</label>
+            </value>
+            <value>
+                <fullName>AUTOGEN EL ICD</fullName>
+                <default>false</default>
+                <label>AUTOGEN EL ICD</label>
+            </value>
+            <value>
+                <fullName>DYNAGEN ELICD</fullName>
+                <default>false</default>
+                <label>DYNAGEN ELICD</label>
+            </value>
+            <value>
+                <fullName>DYNAGEN MINI ICD</fullName>
+                <default>false</default>
+                <label>DYNAGEN MINI ICD</label>
+            </value>
+            <value>
+                <fullName>INOGEN EL ICD</fullName>
+                <default>false</default>
+                <label>INOGEN EL ICD</label>
+            </value>
+            <value>
+                <fullName>INOGEN MINI ICD</fullName>
+                <default>false</default>
+                <label>INOGEN MINI ICD</label>
+            </value>
+            <value>
+                <fullName>ORIGEN EL ICD</fullName>
+                <default>false</default>
+                <label>ORIGEN EL ICD</label>
+            </value>
+            <value>
+                <fullName>ORIGEN MINI ICD</fullName>
+                <default>false</default>
+                <label>ORIGEN MINI ICD</label>
+            </value>
+            <value>
+                <fullName>INCEPTA ICD</fullName>
+                <default>false</default>
+                <label>INCEPTA ICD</label>
+            </value>
+            <value>
+                <fullName>I ENERGEN ICD</fullName>
+                <default>false</default>
+                <label>I ENERGEN ICD</label>
+            </value>
+            <value>
+                <fullName>PUNCTUA ICD</fullName>
+                <default>false</default>
+                <label>PUNCTUA ICD</label>
+            </value>
+            <value>
+                <fullName>TELIGEN 100 ICD</fullName>
+                <default>false</default>
+                <label>TELIGEN 100 ICD</label>
+            </value>
+            <value>
+                <fullName>Elecsys β-Amyloid (1-42) CSF II</fullName>
+                <default>false</default>
+                <label>Elecsys β-Amyloid (1-42) CSF II</label>
+            </value>
+            <value>
+                <fullName>DYNAGEN EL ICD</fullName>
+                <default>false</default>
+                <label>DYNAGEN EL ICD</label>
+            </value>
+            <value>
+                <fullName>ANTHEM PS/CR Total Knee System</fullName>
+                <default>false</default>
+                <label>ANTHEM PS/CR Total Knee System</label>
+            </value>
+            <value>
+                <fullName>Square D 9420 CT Switch</fullName>
+                <default>false</default>
+                <label>Square D 9420 CT Switch</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

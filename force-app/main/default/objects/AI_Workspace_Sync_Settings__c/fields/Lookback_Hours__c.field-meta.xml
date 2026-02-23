@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Lookback_Hours__c</fullName>
+    <description>Number of hours to look back when syncing emails</description>
+    <externalId>false</externalId>
+    <inlineHelpText>How many hours back to sync emails</inlineHelpText>
+    <label>Lookback Hours</label>
+    <precision>4</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

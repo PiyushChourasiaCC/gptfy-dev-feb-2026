@@ -1,0 +1,137 @@
+<template>
+    <template if:true={isOpen}>
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading" aria-modal="true" aria-describedby="modal-content" class="slds-modal slds-fade-in-open slds-modal_large">
+            <div class="slds-modal__container">
+                <!-- Modal header -->
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                        <div class="slds-align_absolute-center slds-grid slds-grid_align-end">
+                            <h2 id="modal-heading" class="slds-modal__title slds-hyphenate slds-truncate">
+                                <lightning-icon icon-name={iconName} size="small" class="slds-m-right_x-small"></lightning-icon>
+                                {title}
+                            </h2>
+                        </div>
+                        <div class="slds-grid slds-grid_align-end">
+                            <c-a-i-canvas-action-buttons
+                                record-id={recordId}
+                                settings={buttonComponentSettings}
+                                body-content={bodyContent}
+                                email-action-name={emailActionName}
+                                user-signature={userSignature}
+                                namespace={namespace}>
+                            </c-a-i-canvas-action-buttons>
+                        </div>
+                    </div>
+                </header>
+                
+                <!-- Modal body -->
+                <div class="slds-modal__content" id="modal-content">
+                    <div class="slds-col">
+                        <div class="slds-grid">
+                            <div class="slds-col slds-p-left_x-small slds-p-right_x-small slds-p-bottom_x-small">
+                                <span>
+                                    <div class="slds-text-long-form">
+                                        <c-gpt-response 
+                                            canvas-config={canvasConfig}
+                                            gpt-ans-param={bodyContent}>
+                                        </c-gpt-response>
+                                    </div>
+                                </span>
+                            </div>
+                            <template if:true={showHowItWorksDocked}>
+                                <div class="slds-col">
+                                    <span>
+                                        <div class="slds-panel slds-size_large slds-panel_docked slds-panel_docked-right slds-is-open">
+                                            <div class="slds-panel__header">
+                                                <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="How it is Generated?">How it is Generated?</h2>
+                                                <div class="slds-panel__header-actions">
+                                                    <button class="slds-button slds-button_icon slds-button_icon-small slds-panel__close" title="Collapse" onclick={handleHowItWorks}>
+                                                        <lightning-icon icon-name="utility:close" alternative-text="Collapse" title="Collapse" size="x-small"></lightning-icon>
+                                                        <span class="slds-assistive-text">Collapse</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="slds-panel__body" style="max-height: 350px; overflow-y:auto;">
+                                                <lightning-formatted-rich-text
+                                                    value={selectedComponent.responseDetails.howItWorks}
+                                                ></lightning-formatted-rich-text>
+                                            </div>
+                                        </div>
+                                    </span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Modal footer -->
+                <footer class="slds-modal__footer" lwc:if={showFooter}>
+                    <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                        <template if:false={hasAdminUser}>
+                            <div class="slds-col">
+                                <lightning-formatted-text value={selectedComponent.responseDetails.name}></lightning-formatted-text>
+                            </div>
+                        </template>
+                        <template if:true={hasAdminUser}>
+                            <div class="slds-col">
+                                <lightning-formatted-url value={linkTotheRecord} label={selectedComponent.responseDetails.name} target="_blank" ></lightning-formatted-url>
+                            </div>
+                        </template>
+                        <div class="slds-col slds-text-align_right slds-text-color-gray">
+                            <span class="slds-text-body_small slds-m-right_xx-small">
+                                <template lwc:if={timeSaved}>
+                                    <span class="slds-m-right_xx-small">
+                                        {timeSaved} seconds Saved&nbsp;|&nbsp; 
+                                    </span>
+                                </template>    
+                                <lightning-formatted-date-time 
+                                    value={lastRefreshDate} 
+                                    year="numeric"
+                                    day="2-digit"
+                                    month="short"
+                                    hour="2-digit"
+                                    minute="2-digit"
+                                    time-zone={timeZone}
+                                ></lightning-formatted-date-time>
+                            </span>
+                            <span>
+                                <template lwc:if={showHowItWorksLink}>
+                                    <span class="slds-m-right_xx-small" onclick={handleHowItWorks}>
+                                        &nbsp;|&nbsp;<a href="#" style="color:gray;">How it Works?</a>
+                                    </span>
+                                </template>
+                            </span>
+                            <span title={feedbackTitle}>
+                                &nbsp;|&nbsp;
+                                <lightning-button-stateful
+                                    label-when-off=""
+                                    label-when-on=""
+                                    icon-name-when-off="utility:dislike"
+                                    icon-name-when-on="utility:dislike"
+                                    variant="text"
+                                    disabled={dislikeState}
+                                    onclick={handleDislikeButtonClick}>
+                                </lightning-button-stateful>
+                            </span>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    
+    <template if:true={showFeedbackModal}>
+        <c-a-i--canvas-dislike-modal
+            category-options={categoryOptions}
+            onopenclose={handleFeedbackOpenClose}
+            response-id={selectedComponent.responseDetails.Id}
+            onfeedbackcaptured={fireFeedbackCaptured}>
+        </c-a-i--canvas-dislike-modal>
+    </template>
+</template>

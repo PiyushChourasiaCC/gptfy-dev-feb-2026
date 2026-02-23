@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Hourly_Cost__c</fullName>
+    <defaultValue>100</defaultValue>
+    <inlineHelpText>Average employee hourly cost. This is used by all of the ROI reports.</inlineHelpText>
+    <label>Hourly Cost</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <trackTrending>false</trackTrending>
+    <type>Currency</type>
+</CustomField>

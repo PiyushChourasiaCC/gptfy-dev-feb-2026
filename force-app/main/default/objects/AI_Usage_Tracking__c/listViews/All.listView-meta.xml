@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>All</fullName>
+    <columns>NAME</columns>
+    <columns>Object__c</columns>
+    <columns>RECORDTYPE</columns>
+    <columns>AI_Prompt__c</columns>
+    <columns>User__c</columns>
+    <columns>Profile__c</columns>
+    <columns>CREATED_DATE</columns>
+    <columns>LAST_UPDATE</columns>
+    <columns>Lifetime_Calls__c</columns>
+    <columns>Lifetime_Saving_Seconds__c</columns>
+    <columns>Money_Saved__c</columns>
+    <filterScope>Everything</filterScope>
+    <label>All</label>
+</ListView>

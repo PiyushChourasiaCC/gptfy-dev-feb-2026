@@ -1,0 +1,153 @@
+<template>
+    <template lwc:if={canvasConfig.showCanvas}>
+        <c-a-i-canvas
+            skip-wire-update={canvasConfig.skipWireUpdate}
+            prompt-id={canvasConfig.promptValue}
+            object-api-name={canvasConfig.objectApiName}
+            record-id={canvasConfig.recordId}
+            show-header={canvasConfig.showCanvasHeader}
+            parent-a-i-response-id={canvasConfig.parentAIResponseId}
+            is-not-initial-load={canvasConfig.notInitialLoad}
+            existing-parent-a-i-response={canvasConfig.existingParentAIResponse}>
+        </c-a-i-canvas>
+    </template>
+    <template lwc:else>
+        <template if:true={gptAnsParam}>
+            <template if:true={responseId}>
+                <article class="slds-card slds-m-left_small">
+                    <div class="slds-card__body slds-card__body_inner slds-m-left_x-small">
+                        <lightning-formatted-rich-text
+                            value={gptAnsParam}
+                        ></lightning-formatted-rich-text>
+                    </div>
+                </article>
+            </template>
+            <template if:false={responseId}>
+                <lightning-formatted-rich-text
+                    value={gptAnsParam}
+                ></lightning-formatted-rich-text>
+            </template>
+            
+        </template>
+        <template if:false={gptAnsParam}>
+            <template if:true={chatMessages}>
+
+            <div class="chat-messages-area" lwc:ref="messagesContainer">
+              <div class="chat-messages-list" if:true={chatMessages.length}>
+                <template for:each={chatMessages} for:item="c">
+                    <div key={c.sequence} class="message-item">
+                        <!-- User Messages - Right Aligned -->
+                        <template if:true={c.question}>
+                            <div class="message-wrapper user-message">
+                                <div class="message-content">
+                                    <div class="message-bubble user-bubble">
+                                        <lightning-formatted-rich-text value={c.question}></lightning-formatted-rich-text>
+                                    </div>
+                                    <!-- <div class="message-timestamp">Me</div> -->
+                                </div>
+                                <div class="message-avatar">
+                                    <div class="user-avatar">
+                                        <span class="user-initial">M</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <!-- AI Messages - Left Aligned -->
+                        <template if:true={c.answer}>
+                            <div class="message-wrapper ai-message">
+                                <div class="message-avatar">
+                                    <!-- <img src={svgURL} class="avatar-image" alt="AI" /> -->
+                                    <lightning-icon icon-name="standard:bot" class="avatar-image"></lightning-icon>
+                                </div>
+                                
+                                <div class="message-content">
+                                    <div class="message-bubble ai-bubble">
+                                        <lightning-formatted-rich-text value={c.answer}></lightning-formatted-rich-text>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+               </div>
+            </div>
+            </template>
+        </template>
+    
+    </template> 
+    <!-- <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template if:false={showSpinner} -->
+        <!-- <div class="slds-page-header">
+            <div class="slds-page-header__row">
+                <div class="slds-page-header__col-title">
+                    <div class="slds-media">
+                        <div class="slds-media__figure">
+                            <span class="slds-icon_container slds-icon-standard-opportunity" title="opportunity">
+                                <lightning-icon icon-name="standard:proposition" style="--slds-c-icon-color-background:#43A6C6;" title="Response" size="large"></lightning-icon>
+                                <span class="slds-assistive-text">Response</span>
+                            </span>
+                        </div>
+                        <div class="slds-media__body">
+                            <div class="slds-page-header__name">
+                                <div class="slds-page-header__name-title">
+                                    <h1>
+                                        <span class="slds-page-header__title slds-truncate" title="Response">Response</span>
+                                    </h1>
+                                </div>
+                            </div>
+                            <div class="slds-page-header__name-meta">
+                                <div>
+                                    <h2 style="display:inline-block; float:left;">
+                                        <b>
+                                            <a href={gptResponseUrl} target="_blank">
+                                                <lightning-formatted-text value={gptResponseName}></lightning-formatted-text>
+                                            </a>
+                                        </b>
+                                    </h2>
+                                    <h2 style="display:inline-block; float:right; color:gray;">
+                                        <span class="slds-m-right_small">
+                                            Time Saved: {timeSaved} seconds
+                                        </span>
+                                        <lightning-formatted-date-time 
+                                            value={gptResponseDate} 
+                                            year="numeric"
+                                            day="2-digit"
+                                            month="long"
+                                            hour="2-digit"
+                                            minute="2-digit"
+                                            time-zone={timeZone}
+                                        ></lightning-formatted-date-time>
+                                    </h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> -->
+
+        
+        <!-- <div style="font-size:medium;font-weight:400;" class="slds-section__title-action slds-var-p-around_x-small">
+                Response
+        </div> -->
+
+      <!--   <article class="slds-card slds-m-left_small">
+            <div class="slds-card__body slds-card__body_inner slds-m-left_x-small">
+                <lightning-formatted-rich-text
+                    value={gptAns}
+                ></lightning-formatted-rich-text>
+            </div>
+        </article>
+
+    </template> -->
+</template>

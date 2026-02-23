@@ -1,0 +1,166 @@
+<template>
+    <!-- Loading Spinner -->
+    <template lwc:if={isLoading}>
+        <div class="slds-align_absolute-center slds-p-around_large">
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+        </div>
+    </template>
+
+    <!-- Error Message -->
+    <template lwc:if={error}>
+        <div class="slds-notify slds-notify_alert slds-alert_error slds-m-around_medium" role="alert">
+            <lightning-icon icon-name="utility:error" size="x-small" variant="inverse" class="slds-m-right_x-small"></lightning-icon>
+            <span>{error}</span>
+        </div>
+    </template>
+
+    <!-- No Provider Configured Message -->
+    <template lwc:if={showNoProviderMessage}>
+        <div class="no-provider-state">
+            <div class="no-provider-content">
+                <div class="no-provider-icon">⚙️</div>
+                <h2>Scheduler Not Configured</h2>
+                <p>Please enable at least one email provider (Outlook or Gmail) from:</p>
+                <p class="settings-path"><strong>AI Settings → Workspace Sync</strong></p>
+            </div>
+        </div>
+    </template>
+
+    <!-- Main Content -->
+    <template lwc:if={showContent}>
+        <lightning-card title="Workspace Sync Scheduler" icon-name="standard:flow">
+            <!-- Header Actions -->
+            <div slot="actions">
+                <lightning-button-group>
+                    <template lwc:if={showStartButton}>
+                        <lightning-button
+                            variant="brand"
+                            label="Start Scheduler"
+                            icon-name="utility:play"
+                            onclick={handleStart}
+                            disabled={isLoading}>
+                        </lightning-button>
+                    </template>
+                    <template lwc:if={showStopButton}>
+                        <lightning-button
+                            variant="destructive"
+                            label="Stop Scheduler"
+                            icon-name="utility:stop"
+                            onclick={handleStop}
+                            disabled={isLoading}>
+                        </lightning-button>
+                    </template>
+                    <lightning-button
+                        variant="neutral"
+                        label="Run Now"
+                        icon-name="utility:sync"
+                        onclick={handleRunNow}
+                        disabled={isLoading}>
+                    </lightning-button>
+                    <lightning-button-icon
+                        icon-name="utility:refresh"
+                        alternative-text="Refresh"
+                        title="Refresh"
+                        onclick={handleRefresh}
+                        disabled={isLoading}>
+                    </lightning-button-icon>
+                </lightning-button-group>
+            </div>
+
+            <!-- Highlight Panel -->
+            <div class="slds-p-horizontal_medium slds-p-bottom_small slds-border_bottom">
+                <lightning-layout multiple-rows="true">
+                    <lightning-layout-item size="2" padding="around-small">
+                        <p class="slds-text-title_caps slds-m-bottom_xx-small">Status</p>
+                        <lightning-badge label={statusLabel} class={statusBadgeClass}></lightning-badge>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="2" padding="around-small">
+                        <p class="slds-text-title_caps slds-m-bottom_xx-small">Frequency</p>
+                        <p>{frequencyLabel}</p>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="2" padding="around-small">
+                        <p class="slds-text-title_caps slds-m-bottom_xx-small">Next Run</p>
+                        <p>
+                            <template lwc:if={nextRunTime}>
+                                <lightning-formatted-date-time value={nextRunTime} month="short" day="2-digit" hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                            </template>
+                            <template lwc:if={noNextRunTime}>Not scheduled</template>
+                        </p>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="2" padding="around-small">
+                        <p class="slds-text-title_caps slds-m-bottom_xx-small">Last Run</p>
+                        <p>
+                            <template lwc:if={lastRunTime}>
+                                <lightning-formatted-date-time value={lastRunTime} month="short" day="2-digit" hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                            </template>
+                            <template lwc:if={noLastRunTime}>Never</template>
+                        </p>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="2" padding="around-small">
+                        <p class="slds-text-title_caps slds-m-bottom_xx-small">Email Sync</p>
+                        <lightning-badge lwc:if={syncEnabled} label="Enabled" class="slds-badge_success"></lightning-badge>
+                        <lightning-badge lwc:if={notSyncEnabled} label="Disabled" class="slds-badge_lightest"></lightning-badge>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="2" padding="around-small">
+                        <p class="slds-text-title_caps slds-m-bottom_xx-small">Calendar Sync</p>
+                        <lightning-badge lwc:if={calendarSyncEnabled} label="Enabled" class="slds-badge_success"></lightning-badge>
+                        <lightning-badge lwc:if={notCalendarSyncEnabled} label="Disabled" class="slds-badge_lightest"></lightning-badge>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="2" padding="around-small">
+                        <p class="slds-text-title_caps slds-m-bottom_xx-small">Task Sync</p>
+                        <lightning-badge lwc:if={taskSyncEnabled} label="Enabled" class="slds-badge_success"></lightning-badge>
+                        <lightning-badge lwc:if={notTaskSyncEnabled} label="Disabled" class="slds-badge_lightest"></lightning-badge>
+                    </lightning-layout-item>
+                </lightning-layout>
+            </div>
+
+            <!-- Sync Logs Section -->
+            <div class="slds-p-around_medium">
+                <div class="slds-grid slds-m-bottom_small">
+                    <div class="slds-col slds-grow">
+                        <h3 class="slds-text-heading_small">Recent Sync Logs ({logCount})</h3>
+                    </div>
+                    <div class="slds-col slds-no-flex">
+                        <lightning-button-icon
+                            icon-name="utility:refresh"
+                            alternative-text="Refresh Logs"
+                            title="Refresh Logs"
+                            onclick={handleRefreshLogs}
+                            disabled={logsLoading}
+                            class="slds-m-right_x-small">
+                        </lightning-button-icon>
+                        <lightning-button label="View All" onclick={handleViewAllLogs}></lightning-button>
+                    </div>
+                </div>
+
+                <template lwc:if={logsLoading}>
+                    <div class="slds-align_absolute-center slds-p-around_medium">
+                        <lightning-spinner alternative-text="Loading logs" size="small"></lightning-spinner>
+                    </div>
+                </template>
+
+                <template lwc:if={hasLogs}>
+                    <lightning-datatable
+                        key-field="Id"
+                        data={syncLogs}
+                        columns={logColumns}
+                        hide-checkbox-column
+                        onrowaction={handleRowAction}>
+                    </lightning-datatable>
+                </template>
+
+                <template lwc:if={noLogs}>
+                    <template lwc:if={notLogsLoading}>
+                        <div class="slds-illustration slds-illustration_small slds-p-vertical_large">
+                            <div class="slds-text-align_center">
+                                <lightning-icon icon-name="utility:info" size="large" class="slds-m-bottom_small"></lightning-icon>
+                                <h3 class="slds-text-heading_medium slds-m-bottom_x-small">No Sync Logs Yet</h3>
+                                <p class="slds-text-body_regular slds-text-color_weak">Run a sync to see results here.</p>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+            </div>
+        </lightning-card>
+    </template>
+</template>

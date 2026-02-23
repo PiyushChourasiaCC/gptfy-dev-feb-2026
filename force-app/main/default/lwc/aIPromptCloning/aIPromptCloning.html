@@ -1,0 +1,24 @@
+<template>
+    <template if:true={showSpinner}>
+        <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+    </template>
+    
+    <lightning-quick-action-panel header="Clone with Related">
+        <lightning-layout multiple-rows="true">
+            <lightning-layout-item padding="around-small" size="12">
+                <lightning-input label="Name" class="validate" data-fieldname="Name" value={promptData.Name} required> </lightning-input>
+            </lightning-layout-item>
+            <lightning-layout-item padding="around-small" size="12">
+                <lightning-textarea label="Description" class="validate" data-fieldname="Description" value={promptData.Description}></lightning-textarea>
+            </lightning-layout-item>
+            <lightning-layout-item padding="around-small" size="12">
+                <lightning-input type="checkbox" class="validate" data-fieldname="DuplicateContextMapping" label="Duplicate Context Mapping"></lightning-input>
+            </lightning-layout-item>
+        </lightning-layout>
+        <div slot="footer">
+            <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+            <lightning-button variant="brand" label="Save" class="slds-m-left_x-small" onclick={handleSave}></lightning-button>
+        </div>
+        <div class="slds-hidden">{recordId}</div>
+    </lightning-quick-action-panel>
+</template>

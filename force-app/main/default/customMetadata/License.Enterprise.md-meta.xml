@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>Enterprise</label>
+    <protected>true</protected>
+    <values>
+        <field>End_Date__c</field>
+        <value xsi:type="xsd:date">2027-02-15</value>
+    </values>
+    <values>
+        <field>License_Type__c</field>
+        <value xsi:type="xsd:string">Enterprise</value>
+    </values>
+    <values>
+        <field>Start_Date__c</field>
+        <value xsi:type="xsd:date">2026-02-15</value>
+    </values>
+    <values>
+        <field>Trial__c</field>
+        <value xsi:type="xsd:boolean">false</value>
+    </values>
+    <values>
+        <field>Usage_Limit__c</field>
+        <value xsi:type="xsd:double">1000.0</value>
+    </values>
+</CustomMetadata>

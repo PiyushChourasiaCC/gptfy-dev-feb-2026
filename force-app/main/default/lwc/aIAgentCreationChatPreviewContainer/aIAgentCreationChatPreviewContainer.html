@@ -1,0 +1,90 @@
+<template>
+    <div class="chat-container">
+        <!-- Loading State -->
+        <template if:true={showSpinner}>
+            <div class="loading-container">
+                <lightning-spinner alternative-text="Loading agent..." size="medium"></lightning-spinner>
+                <p class="loading-text">Loading chat preview...</p>
+            </div>
+        </template>
+        
+        <!-- Chat Content -->
+        <template if:false={showSpinner}>
+            <div class="chat-wrapper" if:true={selectedAgent}>
+                <!-- Header -->
+                <div class="chat-header">
+                    <div class="header-title" if:true={hasMultipleAgents}>
+                        <span class="agent-name" onclick={toggleDropdown}>
+                            <lightning-icon icon-name="standard:bot" size="x-small" class="agent-icon"></lightning-icon>
+                            {selectedAgent}
+                        </span>
+                        <span class="dropdown-arrow">&#9662;</span>
+                    </div>
+                    
+                    <div class="header-title" if:false={hasMultipleAgents}>
+                        <span class="agent-name">
+                            <lightning-icon icon-name="standard:bot" size="x-small" class="agent-icon"></lightning-icon>
+                            {selectedAgent}
+                        </span>
+                    </div>
+                
+                <!-- Agent Selection Modal -->
+                <template if:true={open}>
+                    <div class="overlay" onclick={handleOverlayClick}></div>
+                    <div class="agent-modal">
+                        <div class="modal-header">
+                            <h3 class="modal-title">Select Agent</h3>
+                            <button class="close-btn" onclick={closeTooltip} title="Close">
+                                <lightning-icon icon-name="utility:close" size="x-small"></lightning-icon>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="agent-list">
+                                <template for:each={agents} for:item="agent">
+                                    <label class="agent-option" key={agent.value}>
+                                        <input
+                                            type="radio"
+                                            name={agent.label}
+                                            value={agent.value}
+                                            checked={agent.selected}
+                                            onchange={handleSelection}
+                                        />
+                                        <span class="agent-label">{agent.label}</span>
+                                    </label>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="cancel-btn" onclick={closeTooltip}>Cancel</button>
+                            <button class="select-btn" onclick={handleSelect}>Select</button>
+                        </div>
+                    </div>
+                </template>
+                
+                </div>
+                
+                <!-- Chat Body -->
+                <div class="chat-body" lwc:ref="panelBody">
+                    <c-a-i-agent-creation-chat-preview
+                        data-id="agentic-chat"
+                        response={aiResponse}
+                        container-height={availableHeight}
+                        record-id={currentRecordId}
+                        object-api-name={currentObjectApiName}
+                        agent-info={agentInfo}
+                        onchangeagent={handleChangeAgent}>
+                    </c-a-i-agent-creation-chat-preview>
+                </div>
+            </div>
+            
+            <!-- No Agent State -->
+            <template if:false={selectedAgent}>
+                <div class="no-agent-container">
+                    <lightning-icon icon-name="standard:bot" size="large" class="no-agent-icon"></lightning-icon>
+                    <p class="no-agent-text">No agent available</p>
+                    <p class="no-agent-subtext">Please configure an agent to use the chat preview</p>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>

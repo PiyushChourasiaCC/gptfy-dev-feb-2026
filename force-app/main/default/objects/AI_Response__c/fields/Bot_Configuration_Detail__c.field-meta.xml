@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Bot_Configuration_Detail__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Bot Configuration Detail</label>
+    <referenceTo>Bot_Configuration_Detail__c</referenceTo>
+    <relationshipLabel>Security Audits</relationshipLabel>
+    <relationshipName>Security_Audits</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

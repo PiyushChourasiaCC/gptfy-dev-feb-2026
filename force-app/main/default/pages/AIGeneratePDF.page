@@ -1,0 +1,30 @@
+<apex:page controller="AIGeneratePDF" renderAs="PDF" applyBodyTag="false" applyHtmlTag="false" showHeader="false" standardStylesheets="false">
+    
+<html>
+    <head>
+        <style>
+            @page {
+                size: 12in 9in; /* Custom page size in inches */
+                margin: 0.5in;
+            }
+            body {
+            	font-family: Arial;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="content-container">
+            <h1>PDF for Account: {!recentAccount.Name}</h1>
+            <pre>
+                <apex:outputPanel rendered="{!NOT(ISBLANK(recentAIResponse.AI_Processed_Data_PII_Added__c))}">
+                    <apex:outputText value="{!recentAIResponse.AI_Processed_Data_PII_Added__c}" escape="false"/>
+                </apex:outputPanel>
+                <apex:outputPanel rendered="{!ISBLANK(recentAIResponse.AI_Processed_Data_PII_Added__c)}">
+                    <p>No HTML content found.</p>
+                </apex:outputPanel>
+            </pre>
+            
+        </div>
+    </body>
+</html>
+</apex:page>

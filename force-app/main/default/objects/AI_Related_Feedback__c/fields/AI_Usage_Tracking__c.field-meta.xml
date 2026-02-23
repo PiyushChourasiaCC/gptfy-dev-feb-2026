@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Usage_Tracking__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Usage Tracking</label>
+    <referenceTo>AI_Usage_Tracking__c</referenceTo>
+    <relationshipLabel>Related Feedback</relationshipLabel>
+    <relationshipName>Related_Feedback</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

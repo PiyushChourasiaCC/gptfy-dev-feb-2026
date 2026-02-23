@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Parent_Filter__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Parent Filter</label>
+    <referenceTo>AI_Cross_Object_Filter__c</referenceTo>
+    <relationshipLabel>Cross Object Filters</relationshipLabel>
+    <relationshipName>Cross_Object_Filters</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

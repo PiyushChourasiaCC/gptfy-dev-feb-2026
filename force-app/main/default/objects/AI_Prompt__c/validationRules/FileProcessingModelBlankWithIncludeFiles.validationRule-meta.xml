@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>FileProcessingModelBlankWithIncludeFiles</fullName>
+    <active>true</active>
+    <errorConditionFormula>Include_Files__c &amp;&amp; 
+ISBLANK(AI_Model_File_Processing__c) &amp;&amp;
+NOT(Pre_Packaged__c) /*Skipping the validation for Pre-packaged prompt to avoid any installation issues*/</errorConditionFormula>
+    <errorDisplayField>AI_Model_File_Processing__c</errorDisplayField>
+    <errorMessage>&quot;AI Model - File Processing&quot; cannot be blank with Include Files checked.</errorMessage>
+</ValidationRule>

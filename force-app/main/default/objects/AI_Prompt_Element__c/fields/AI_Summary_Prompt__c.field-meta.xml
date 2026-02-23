@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Summary_Prompt__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Summary Prompt</label>
+    <lookupFilter>
+        <active>true</active>
+        <filterItems>
+            <field>AI_Prompt__c.Type__c</field>
+            <operation>notEqual</operation>
+            <value>Canvas</value>
+        </filterItems>
+        <isOptional>false</isOptional>
+    </lookupFilter>
+    <referenceTo>AI_Prompt__c</referenceTo>
+    <relationshipLabel>Prompt Elements (Summary Prompt)</relationshipLabel>
+    <relationshipName>Summary_Prompt_Elements</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

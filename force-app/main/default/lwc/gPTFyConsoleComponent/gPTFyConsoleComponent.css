@@ -1,0 +1,70 @@
+/* Parent Component Styles - Clean Layout */
+.chat-panel-container {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 50vh;
+    width: 400px;
+    z-index: 1000;
+}
+
+.chat-panel-wrapper {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+.chat-header {
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.chat-header .slds-panel__header-title {
+    color: white;
+    font-weight: 600;
+}
+
+.chat-header .slds-button_icon-small {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.chat-header .slds-button_icon-small:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Critical: Clean panel body with NO conflicting overflow or height */
+.chat-body-container {
+    flex: 1;
+    padding: 0 !important;
+    overflow: hidden !important;
+    background: #f8f9fa;
+    min-height: 0; /* Essential for flexbox */
+}
+
+/* Remove SLDS panel body defaults that conflict */
+.chat-body-container.slds-panel__body {
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding: 0 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .chat-panel-container {
+        width: 100vw;
+        left: 0;
+        right: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .chat-panel-wrapper {
+        height: 50vh;
+    }
+}

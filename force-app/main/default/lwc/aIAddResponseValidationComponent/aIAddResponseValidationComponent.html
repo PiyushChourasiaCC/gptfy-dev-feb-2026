@@ -1,0 +1,66 @@
+<template>
+    <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" class="slds-modal slds-fade-in-open">
+        <div class="slds-modal__container">
+            <div class="slds-modal__header">
+                <lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large" icon-name="utility:close" variant="bare" alternative-text="Close" title="Close" onclick={handleCancel}></lightning-button-icon>
+                <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Prompt Response Validation</h1>
+            </div>
+            <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1" style="min-height:500px;">
+                <template if:true={showSpinner}>
+                    <div style="height:19rem;position:relative">
+                        <div class="slds-spinner_container">
+                            <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                                <span class="slds-assistive-text">Loading</span>
+                                <div class="slds-spinner__dot-a"></div>
+                                <div class="slds-spinner__dot-b"></div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <template if:false={showSpinner}>
+
+                    <div class="slds-grid slds-grid_vertical">
+                        <div class="slds-col">
+                            <lightning-input 
+                                type="number" 
+                                name="sequence" 
+                                label="Sequence"
+                                value={sequence}
+                                onchange={handleSequenceChange}
+                                required
+                                field-level-help={sequenceHelpText}
+                            ></lightning-input>
+                        </div>
+                        <div class="slds-col ">
+                            <lightning-combobox
+                                name="actionOptions"
+                                label="Action"
+                                value={validationAction}
+                                placeholder="Select Action"
+                                options={actionOptions}
+                                onchange={handleValidationActionChange}
+                                dropdown-alignment="auto"
+                                required
+                            ></lightning-combobox>
+                        </div>
+                        <div class="slds-col">
+                            <lightning-input 
+                                name="validationValue" 
+                                label="Value"
+                                value={validationValue}
+                                onchange={handleValidationValueChange}
+                                required
+                            ></lightning-input>
+                        </div>
+                    </div>
+                   
+                </template>
+            </div>
+            <div class="slds-modal__footer">
+                <lightning-button label="Cancel" title="Cancel" onclick={handleCancel}></lightning-button>
+                <lightning-button label="Save" title="Save" onclick={handleSave} variant="brand" class="slds-m-left_x-small"></lightning-button>
+            </div>
+        </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+</template>

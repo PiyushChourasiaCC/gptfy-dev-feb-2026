@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Internal_Account__c</fullName>
+    <externalDeveloperName>Internal_Account__c</externalDeveloperName>
+    <isFilteringDisabled>false</isFilteringDisabled>
+    <isNameField>false</isNameField>
+    <isSortingDisabled>false</isSortingDisabled>
+    <label>Internal Account</label>
+    <length>255</length>
+    <referenceTargetField>Account.Target_Parent_Id__c</referenceTargetField>
+    <referenceTo>Account</referenceTo>
+    <relationshipLabel>Demo Opportunities</relationshipLabel>
+    <relationshipName>Demo_Opportunities</relationshipName>
+    <type>IndirectLookup</type>
+</CustomField>

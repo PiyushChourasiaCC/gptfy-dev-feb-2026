@@ -1,0 +1,22 @@
+<template>
+	<lightning-card>
+		<div class="container">
+			<lightning-textarea class="large-area" lwc:ref="inputArea" placeholder="Enter your JSON here..."
+				value={jsoninput}>
+			</lightning-textarea>
+			<div class="controls">
+				<!--<lightning-button class="controls__button" label="Format" type="submit" onclick={handleFormat}>
+				</lightning-button>-->
+				<lightning-button class="controls__button" label="Format" type="submit" onclick={handlePrettify}>
+				</lightning-button>
+				<!--<lightning-button class="controls__button" label="Minify" type="submit" onclick={handleMinify}>
+				</lightning-button>-->
+			</div>
+			<div
+				style="height: 75vh; overflow: auto; border: 1px solid black; padding: 0rem; margin: 1.5rem; border-radius: 0.25rem;">
+				<div class="json-container"></div>
+			</div>
+		</div>
+
+	</lightning-card>
+</template>

@@ -1,0 +1,34 @@
+<template>
+    <div style="background-color: white;">
+        <div class="slds-var-m-around_small">
+            <div class="slds-grid slds-var-m-bottom_medium">
+                <div class="slds-size_3-of-8">
+                    <lightning-input 
+                        variant="label-hidden" 
+                        placeholder="Enter Licence Key" 
+                        type="text" 
+                        label="Enter Activation Key" 
+                        slot="actions" 
+                        class="actKey"
+                    ></lightning-input>
+                </div>
+                <div class="slds-size_5-of-8 slds-var-p-left_large">
+                    <lightning-button 
+                        variant="brand"  
+                        label="Validate Key" 
+                        onclick={validateActivationKey}
+                    ></lightning-button>
+                </div>
+            </div>
+            <div>
+                <lightning-datatable
+                    key-field="uniqueId"
+                    data={licenses}
+                    columns={columns}
+                    hide-checkbox-column
+                    show-row-number-column
+                ></lightning-datatable>
+            </div>
+        </div>
+    </div>
+</template>

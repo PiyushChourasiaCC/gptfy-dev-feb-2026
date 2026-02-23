@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sync_Log__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Sync Log</label>
+    <referenceTo>AI_Workspace_Sync_Log__c</referenceTo>
+    <relationshipLabel>Staging Records</relationshipLabel>
+    <relationshipName>Staging_Records</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

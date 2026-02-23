@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>All</fullName>
+    <columns>NAME</columns>
+    <columns>Prompt_Command__c</columns>
+    <columns>Description__c</columns>
+    <columns>Object__c</columns>
+    <columns>Type__c</columns>
+    <columns>Purpose__c</columns>
+    <columns>Status__c</columns>
+    <columns>AI_Data_Extraction_Mapping__c</columns>
+    <columns>LAST_UPDATE</columns>
+    <columns>Prompt_Request_Id__c</columns>
+    <columns>AI_Connection__c</columns>
+    <columns>Profiles__c</columns>
+    <columns>Record_Type__c</columns>
+    <columns>Include_Files__c</columns>
+    <columns>Custom_Prompt__c</columns>
+    <filterScope>Everything</filterScope>
+    <label>All</label>
+</ListView>

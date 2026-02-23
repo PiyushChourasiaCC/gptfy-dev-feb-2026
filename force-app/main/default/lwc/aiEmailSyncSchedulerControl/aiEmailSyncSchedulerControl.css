@@ -1,0 +1,112 @@
+/* Status badge styling */
+.slds-badge_success {
+    background-color: #2e844a;
+    color: #fff;
+}
+
+.slds-badge_lightest {
+    background-color: #ecebea;
+    color: #514f4d;
+}
+
+/* Section title styling */
+.slds-section__title.slds-theme_shade {
+    background-color: #f3f3f3;
+    border-radius: 0.25rem;
+    padding: 0.5rem 0;
+}
+
+/* Form layout - 2 column grid */
+.slds-form {
+    display: block;
+}
+
+.slds-form__row {
+    display: flex;
+    margin-bottom: 0;
+}
+
+.slds-form__item {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    min-width: 0;
+}
+
+/* Form element styling */
+.slds-form-element_readonly .slds-form-element__label {
+    color: #706e6b;
+    font-size: 0.75rem;
+    margin-bottom: 0.125rem;
+}
+
+.slds-form-element_readonly .slds-form-element__static {
+    font-size: 0.8125rem;
+    color: #181818;
+}
+
+/* Section content padding */
+.slds-section__content {
+    padding: 0.5rem 0;
+}
+
+/* Info box styling */
+.slds-box.slds-theme_default {
+    background-color: #f3f3f3;
+    border: 1px solid #dddbda;
+}
+
+/* Make datatable expand to full width */
+lightning-datatable {
+    display: block;
+    width: 100%;
+}
+
+/* Remove card body padding constraints for tabs */
+:host {
+    display: block;
+    width: 100%;
+}
+
+/* No Provider Enabled State */
+.no-provider-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 4rem 2rem;
+    text-align: center;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #d8dde6;
+}
+
+.no-provider-content {
+    max-width: 450px;
+}
+
+.no-provider-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+}
+
+.no-provider-state h2 {
+    margin: 0 0 1rem;
+    color: #181818;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.no-provider-state p {
+    margin: 0 0 0.5rem;
+    color: #706e6b;
+    font-size: 0.95rem;
+}
+
+.settings-path {
+    margin-top: 1rem !important;
+    padding: 0.75rem 1.5rem;
+    background: #f3f3f3;
+    border-radius: 6px;
+    display: inline-block;
+}

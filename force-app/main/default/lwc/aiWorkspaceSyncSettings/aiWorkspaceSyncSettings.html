@@ -1,0 +1,799 @@
+<template>
+    <template if:true={showSpinner}>
+        <div style="height:10rem;position:relative">
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+        </div>
+    </template>
+
+    <template if:false={showSpinner}>
+        <div class="slds-p-around_small">
+            
+            <!-- Providers Section -->
+            <div class="section-header">
+                <span class="section-title">Providers</span>
+            </div>
+            <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                <tbody>
+                    <!-- Microsoft Outlook Enabled -->
+                    <tr class="slds-hint-parent">
+                        <td data-label="Microsoft Outlook Enabled">
+                            <div class="field-label">Microsoft Outlook Enabled</div>
+                        </td>
+                        <td data-label="Microsoft Outlook Enabled">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Microsoft Outlook Enabled" 
+                                    name="wsOutlookEnabled"
+                                    message-toggle-active="Active" 
+                                    message-toggle-inactive="Inactive"
+                                    variant="label-hidden"
+                                    checked={settings.wsOutlookEnabled}
+                                    onchange={handleToggleChange}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Microsoft OAuth Fields (Conditional - shown when Outlook enabled) -->
+            <template if:true={settings.wsOutlookEnabled}>
+                <table class="slds-table slds-table_cell-buffer slds-table_header-hidden subsection-fields">
+                    <tbody>
+                        <tr class="slds-hint-parent">
+                            <td data-label="Microsoft Client Id">
+                                <div class="field-label subsection-field-label">Microsoft Client Id <span class="required-indicator">*</span></div>
+                            </td>
+                            <td data-label="Microsoft Client Id">
+                                <div class="field-value">
+                                    <lightning-input 
+                                        type="password" 
+                                        label="Microsoft Client Id" 
+                                        name="microsoftClientId"
+                                        value={settings.microsoftClientId}
+                                        placeholder={microsoftClientIdPlaceholder}
+                                        onblur={handleSecureFieldBlur}
+                                        variant="label-hidden"
+                                        required
+                                    ></lightning-input>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="slds-hint-parent">
+                            <td data-label="Microsoft Client Secret">
+                                <div class="field-label subsection-field-label">Microsoft Client Secret <span class="required-indicator">*</span></div>
+                            </td>
+                            <td data-label="Microsoft Client Secret">
+                                <div class="field-value">
+                                    <lightning-input 
+                                        type="password" 
+                                        label="Microsoft Client Secret" 
+                                        name="microsoftClientSecret"
+                                        value={settings.microsoftClientSecret}
+                                        placeholder={microsoftClientSecretPlaceholder}
+                                        onblur={handleSecureFieldBlur}
+                                        variant="label-hidden"
+                                        required
+                                    ></lightning-input>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="slds-hint-parent">
+                            <td data-label="Microsoft Auth Endpoint">
+                                <div class="field-label subsection-field-label">Microsoft Auth Endpoint <span class="required-indicator">*</span></div>
+                            </td>
+                            <td data-label="Microsoft Auth Endpoint">
+                                <div class="field-value">
+                                    <lightning-input 
+                                        type="url" 
+                                        label="Microsoft Auth Endpoint" 
+                                        name="microsoftAuthEndpoint"
+                                        value={settings.microsoftAuthEndpoint}
+                                        onblur={handleFieldBlur}
+                                        variant="label-hidden"
+                                        required
+                                        placeholder="https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize"
+                                    ></lightning-input>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="slds-hint-parent">
+                            <td data-label="Microsoft Token Endpoint">
+                                <div class="field-label subsection-field-label">Microsoft Token Endpoint <span class="required-indicator">*</span></div>
+                            </td>
+                            <td data-label="Microsoft Token Endpoint">
+                                <div class="field-value">
+                                    <lightning-input 
+                                        type="url" 
+                                        label="Microsoft Token Endpoint" 
+                                        name="microsoftTokenEndpoint"
+                                        value={settings.microsoftTokenEndpoint}
+                                        onblur={handleFieldBlur}
+                                        variant="label-hidden"
+                                        required
+                                        placeholder="https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
+                                    ></lightning-input>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="slds-hint-parent">
+                            <td data-label="Microsoft Scope">
+                                <div class="field-label subsection-field-label">Microsoft Scope <span class="required-indicator">*</span></div>
+                            </td>
+                            <td data-label="Microsoft Scope">
+                                <div class="field-value">
+                                    <lightning-input 
+                                        type="text" 
+                                        label="Microsoft Scope" 
+                                        name="microsoftScope"
+                                        value={settings.microsoftScope}
+                                        onblur={handleFieldBlur}
+                                        variant="label-hidden"
+                                        required
+                                        placeholder="openid https://graph.microsoft.com/Mail.Read offline_access"
+                                    ></lightning-input>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </template>
+
+            <!-- Spacer between Outlook and Gmail sections -->
+            <div class="provider-spacer"></div>
+
+            <!-- Google Gmail Enabled (separate row after Outlook section) -->
+            <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                <tbody>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Google Gmail Enabled">
+                            <div class="field-label">Google Gmail Enabled</div>
+                        </td>
+                        <td data-label="Google Gmail Enabled">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Google Gmail Enabled" 
+                                    name="wsGmailEnabled"
+                                    message-toggle-active="Active" 
+                                    message-toggle-inactive="Inactive"
+                                    variant="label-hidden"
+                                    checked={settings.wsGmailEnabled}
+                                    onchange={handleToggleChange}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Google OAuth Fields (Conditional - shown when Gmail enabled) -->
+            <template if:true={settings.wsGmailEnabled}>
+                <table class="slds-table slds-table_cell-buffer slds-table_header-hidden subsection-fields">
+                    <tbody>
+                        <tr class="slds-hint-parent">
+                            <td data-label="Google Client Id">
+                                <div class="field-label subsection-field-label">Google Client Id <span class="required-indicator">*</span></div>
+                            </td>
+                            <td data-label="Google Client Id">
+                                <div class="field-value">
+                                    <lightning-input 
+                                        type="password" 
+                                        label="Google Client Id" 
+                                        name="googleClientId"
+                                        value={settings.googleClientId}
+                                        placeholder={googleClientIdPlaceholder}
+                                        onblur={handleSecureFieldBlur}
+                                        variant="label-hidden"
+                                        required
+                                    ></lightning-input>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="slds-hint-parent">
+                            <td data-label="Google Client Secret">
+                                <div class="field-label subsection-field-label">Google Client Secret <span class="required-indicator">*</span></div>
+                            </td>
+                            <td data-label="Google Client Secret">
+                                <div class="field-value">
+                                    <lightning-input 
+                                        type="password" 
+                                        label="Google Client Secret" 
+                                        name="googleClientSecret"
+                                        value={settings.googleClientSecret}
+                                        placeholder={googleClientSecretPlaceholder}
+                                        onblur={handleSecureFieldBlur}
+                                        variant="label-hidden"
+                                        required
+                                    ></lightning-input>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="slds-hint-parent">
+                            <td data-label="Google Auth Endpoint">
+                                <div class="field-label subsection-field-label">Google Auth Endpoint <span class="required-indicator">*</span></div>
+                            </td>
+                            <td data-label="Google Auth Endpoint">
+                                <div class="field-value">
+                                    <lightning-input 
+                                        type="url" 
+                                        label="Google Auth Endpoint" 
+                                        name="googleAuthEndpoint"
+                                        value={settings.googleAuthEndpoint}
+                                        onblur={handleFieldBlur}
+                                        variant="label-hidden"
+                                        required
+                                        placeholder="https://accounts.google.com/o/oauth2/v2/auth"
+                                    ></lightning-input>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="slds-hint-parent">
+                            <td data-label="Google Token Endpoint">
+                                <div class="field-label subsection-field-label">Google Token Endpoint <span class="required-indicator">*</span></div>
+                            </td>
+                            <td data-label="Google Token Endpoint">
+                                <div class="field-value">
+                                    <lightning-input 
+                                        type="url" 
+                                        label="Google Token Endpoint" 
+                                        name="googleTokenEndpoint"
+                                        value={settings.googleTokenEndpoint}
+                                        onblur={handleFieldBlur}
+                                        variant="label-hidden"
+                                        required
+                                        placeholder="https://oauth2.googleapis.com/token"
+                                    ></lightning-input>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="slds-hint-parent">
+                            <td data-label="Google Scope">
+                                <div class="field-label subsection-field-label">Google Scope <span class="required-indicator">*</span></div>
+                            </td>
+                            <td data-label="Google Scope">
+                                <div class="field-value">
+                                    <lightning-input 
+                                        type="text" 
+                                        label="Google Scope" 
+                                        name="googleScope"
+                                        value={settings.googleScope}
+                                        onblur={handleFieldBlur}
+                                        variant="label-hidden"
+                                        required
+                                        placeholder="openid email profile https://www.googleapis.com/auth/gmail.readonly"
+                                    ></lightning-input>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </template>
+
+            <!-- Email Sync Settings Section -->
+            <div class="section-header">
+                <span class="section-title">Frequency Setting</span>
+            </div>
+            <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                <tbody>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Sync Frequency (Minutes)">
+                            <div class="field-label">Sync Frequency (Minutes)</div>
+                        </td>
+                        <td data-label="Sync Frequency (Minutes)">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="number" 
+                                    label="Sync Frequency (Minutes)" 
+                                    name="syncFrequencyMinutes"
+                                    value={settings.syncFrequencyMinutes}
+                                    onblur={handleNumberFieldBlur}
+                                    variant="label-hidden"
+                                    min="1"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Email Sync Settings Section -->
+            <div class="section-header">
+                <span class="section-title">Email Sync Settings</span>
+            </div>
+            <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                <tbody>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Email Sync Enabled">
+                            <div class="field-label">Email Sync Enabled</div>
+                        </td>
+                        <td data-label="Email Sync Enabled">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Email Sync Enabled" 
+                                    name="syncEnabled"
+                                    message-toggle-active="Active" 
+                                    message-toggle-inactive="Inactive"
+                                    variant="label-hidden"
+                                    checked={settings.syncEnabled}
+                                    onchange={handleToggleChange}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Lookback Hours">
+                            <div class="field-label">Lookback Hours</div>
+                        </td>
+                        <td data-label="Lookback Hours">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="number" 
+                                    label="Lookback Hours" 
+                                    name="lookbackHours"
+                                    value={settings.lookbackHours}
+                                    onblur={handleNumberFieldBlur}
+                                    variant="label-hidden"
+                                    min="1"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Max Emails Per User">
+                            <div class="field-label">Max Emails Per User</div>
+                        </td>
+                        <td data-label="Max Emails Per User">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="number" 
+                                    label="Max Emails Per User" 
+                                    name="maxEmailsPerUser"
+                                    value={settings.maxEmailsPerUser}
+                                    onblur={handleNumberFieldBlur}
+                                    variant="label-hidden"
+                                    min="1"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Emails Per Batch">
+                            <div class="field-label">Emails Per Batch</div>
+                        </td>
+                        <td data-label="Emails Per Batch">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="number" 
+                                    label="Emails Per Batch" 
+                                    name="emailsPerBatch"
+                                    value={settings.emailsPerBatch}
+                                    onblur={handleNumberFieldBlur}
+                                    variant="label-hidden"
+                                    min="1"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Max Users Per Batch">
+                            <div class="field-label">Max Users Per Batch</div>
+                        </td>
+                        <td data-label="Max Users Per Batch">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="number" 
+                                    label="Max Users Per Batch" 
+                                    name="maxUsersPerBatch"
+                                    value={settings.maxUsersPerBatch}
+                                    onblur={handleNumberFieldBlur}
+                                    variant="label-hidden"
+                                    min="1"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Queueable Delay (Minutes)">
+                            <div class="field-label">Queueable Delay (Minutes)</div>
+                        </td>
+                        <td data-label="Queueable Delay (Minutes)">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="number" 
+                                    label="Queueable Delay (Minutes)" 
+                                    name="queueableDelayMinutes"
+                                    value={settings.queueableDelayMinutes}
+                                    onblur={handleNumberFieldBlur}
+                                    variant="label-hidden"
+                                    min="0"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Calendar Sync Settings Section -->
+            <div class="section-header">
+                <span class="section-title">Calendar Sync Settings</span>
+            </div>
+            <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                <tbody>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Calendar Sync Enabled">
+                            <div class="field-label">Calendar Sync Enabled</div>
+                        </td>
+                        <td data-label="Calendar Sync Enabled">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Calendar Sync Enabled" 
+                                    name="calendarSyncEnabled"
+                                    message-toggle-active="Active" 
+                                    message-toggle-inactive="Inactive"
+                                    variant="label-hidden"
+                                    checked={settings.calendarSyncEnabled}
+                                    onchange={handleToggleChange}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Calendar Lookback Days">
+                            <div class="field-label">Calendar Lookback Days</div>
+                        </td>
+                        <td data-label="Calendar Lookback Days">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="number" 
+                                    label="Calendar Lookback Days" 
+                                    name="calendarLookbackDays"
+                                    value={settings.calendarLookbackDays}
+                                    onblur={handleNumberFieldBlur}
+                                    variant="label-hidden"
+                                    min="0"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Calendar Lookahead Days">
+                            <div class="field-label">Calendar Lookahead Days</div>
+                        </td>
+                        <td data-label="Calendar Lookahead Days">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="number" 
+                                    label="Calendar Lookahead Days" 
+                                    name="calendarLookaheadDays"
+                                    value={settings.calendarLookaheadDays}
+                                    onblur={handleNumberFieldBlur}
+                                    variant="label-hidden"
+                                    min="0"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Max Calendar Events Per User">
+                            <div class="field-label">Max Calendar Events Per User</div>
+                        </td>
+                        <td data-label="Max Calendar Events Per User">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="number" 
+                                    label="Max Calendar Events Per User" 
+                                    name="maxCalendarEventsPerUser"
+                                    value={settings.maxCalendarEventsPerUser}
+                                    onblur={handleNumberFieldBlur}
+                                    variant="label-hidden"
+                                    min="1"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Task Sync Settings Section -->
+            <div class="section-header">
+                <span class="section-title">Task Sync Settings</span>
+            </div>
+            <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                <tbody>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Task Sync Enabled">
+                            <div class="field-label">Task Sync Enabled</div>
+                        </td>
+                        <td data-label="Task Sync Enabled">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Task Sync Enabled" 
+                                    name="taskSyncEnabled"
+                                    message-toggle-active="Active" 
+                                    message-toggle-inactive="Inactive"
+                                    variant="label-hidden"
+                                    checked={settings.taskSyncEnabled}
+                                    onchange={handleToggleChange}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Max Tasks Per User">
+                            <div class="field-label">Max Tasks Per User</div>
+                        </td>
+                        <td data-label="Max Tasks Per User">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="number" 
+                                    label="Max Tasks Per User" 
+                                    name="maxTasksPerUser"
+                                    value={settings.maxTasksPerUser}
+                                    onblur={handleNumberFieldBlur}
+                                    variant="label-hidden"
+                                    min="1"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Task Lookback Days">
+                            <div class="field-label">Task Lookback Days</div>
+                        </td>
+                        <td data-label="Task Lookback Days">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="number" 
+                                    label="Task Lookback Days" 
+                                    name="taskLookbackDays"
+                                    value={settings.taskLookbackDays}
+                                    onblur={handleNumberFieldBlur}
+                                    variant="label-hidden"
+                                    min="1"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Include Completed Tasks">
+                            <div class="field-label">Include Completed Tasks</div>
+                        </td>
+                        <td data-label="Include Completed Tasks">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Include Completed Tasks" 
+                                    name="includeCompletedTasks"
+                                    message-toggle-active="Active" 
+                                    message-toggle-inactive="Inactive"
+                                    variant="label-hidden"
+                                    checked={settings.includeCompletedTasks}
+                                    onchange={handleToggleChange}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Digest Settings Section -->
+            <div class="section-header">
+                <span class="section-title">Digest Settings</span>
+            </div>
+            <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                <tbody>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Digest Enabled">
+                            <div class="field-label">Digest Enabled</div>
+                        </td>
+                        <td data-label="Digest Enabled">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Digest Enabled" 
+                                    name="digestEnabled"
+                                    message-toggle-active="Active" 
+                                    message-toggle-inactive="Inactive"
+                                    variant="label-hidden"
+                                    checked={settings.digestEnabled}
+                                    onchange={handleToggleChange}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Notify Users">
+                            <div class="field-label">Notify Users</div>
+                        </td>
+                        <td data-label="Notify Users">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Notify Users" 
+                                    name="notifyUsers"
+                                    message-toggle-active="Active" 
+                                    message-toggle-inactive="Inactive"
+                                    variant="label-hidden"
+                                    checked={settings.notifyUsers}
+                                    onchange={handleToggleChange}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Digest Frequency">
+                            <div class="field-label">Digest Frequency</div>
+                        </td>
+                        <td data-label="Digest Frequency">
+                            <div class="field-value">
+                                <lightning-combobox
+                                    name="digestFrequency"
+                                    label="Digest Frequency"
+                                    value={settings.digestFrequency}
+                                    options={digestFrequencyOptions}
+                                    onchange={handleComboboxChange}
+                                    variant="label-hidden"
+                                ></lightning-combobox>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Digest Hour (0-23)">
+                            <div class="field-label">Digest Hour (0-23)</div>
+                        </td>
+                        <td data-label="Digest Hour (0-23)">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="number" 
+                                    label="Digest Hour (0-23)" 
+                                    name="digestHour"
+                                    value={settings.digestHour}
+                                    onblur={handleNumberFieldBlur}
+                                    variant="label-hidden"
+                                    min="0"
+                                    max="23"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Matching Precedence Section -->
+            <div class="section-header">
+                <span class="section-title">Matching Precedence</span>
+            </div>
+            <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                <tbody>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Sync Precedence (JSON)">
+                            <div class="field-label">Sync Precedence (JSON)</div>
+                        </td>
+                        <td data-label="Sync Precedence (JSON)">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="text" 
+                                    label="Sync Precedence (JSON)" 
+                                    name="syncPrecedence"
+                                    value={settings.syncPrecedence}
+                                    onblur={handleFieldBlur}
+                                    variant="label-hidden"
+                                    placeholder={syncPrecedencePlaceholder}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Exclusion Rules Section -->
+            <div class="section-header">
+                <span class="section-title">Exclusion Rules</span>
+            </div>
+            <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                <tbody>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Exclude Internal Emails">
+                            <div class="field-label">Exclude Internal Emails</div>
+                        </td>
+                        <td data-label="Exclude Internal Emails">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Exclude Internal Emails" 
+                                    name="excludeInternal"
+                                    message-toggle-active="Active" 
+                                    message-toggle-inactive="Inactive"
+                                    variant="label-hidden"
+                                    checked={settings.excludeInternal}
+                                    onchange={handleToggleChange}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Exclude Marketing Emails">
+                            <div class="field-label">Exclude Marketing Emails</div>
+                        </td>
+                        <td data-label="Exclude Marketing Emails">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Exclude Marketing Emails" 
+                                    name="excludeMarketing"
+                                    message-toggle-active="Active" 
+                                    message-toggle-inactive="Inactive"
+                                    variant="label-hidden"
+                                    checked={settings.excludeMarketing}
+                                    onchange={handleToggleChange}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Exclude Confidential Emails">
+                            <div class="field-label">Exclude Confidential Emails</div>
+                        </td>
+                        <td data-label="Exclude Confidential Emails">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Exclude Confidential Emails" 
+                                    name="excludeConfidential"
+                                    message-toggle-active="Active" 
+                                    message-toggle-inactive="Inactive"
+                                    variant="label-hidden"
+                                    checked={settings.excludeConfidential}
+                                    onchange={handleToggleChange}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Exclude Public Domains">
+                            <div class="field-label">Exclude Public Domains</div>
+                        </td>
+                        <td data-label="Exclude Public Domains">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="Exclude Public Domains" 
+                                    name="excludePublicDomains"
+                                    message-toggle-active="Active" 
+                                    message-toggle-inactive="Inactive"
+                                    variant="label-hidden"
+                                    checked={settings.excludePublicDomains}
+                                    onchange={handleToggleChange}
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Internal Domains">
+                            <div class="field-label">Internal Domains (comma-separated)</div>
+                        </td>
+                        <td data-label="Internal Domains">
+                            <div class="field-value">
+                                <lightning-input 
+                                    type="text" 
+                                    label="Internal Domains" 
+                                    name="internalDomains"
+                                    value={settings.internalDomains}
+                                    onblur={handleFieldBlur}
+                                    variant="label-hidden"
+                                    placeholder="company.com, subsidiary.com"
+                                ></lightning-input>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </div>
+    </template>
+</template>

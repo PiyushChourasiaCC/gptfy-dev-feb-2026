@@ -1,0 +1,567 @@
+<!--
+    @description Prompt Catalogue with consistent design pattern
+    @author      Salesforce Development Team
+    @date        2025-11-10
+-->
+<template>
+    <div class="container">
+        <div class="main-content">
+
+            <!-- Loading State -->
+            <template lwc:if={isLoading}>
+                <div class="slds-text-align_center slds-p-vertical_large">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- Content -->
+            <!-- Header Section - Always Visible -->
+            <div class="header-section">
+                <div class="header-content">
+                    <div>
+                        <lightning-icon icon-name="standard:catalog" title="Prompt Catalog"
+                                size="large"></lightning-icon>
+                    </div>
+                    <div class="slds-media__body">
+                        <div class="slds-page-header__name">
+                            <div class="slds-page-header__name-title">
+                                <h1>
+                                    <span class="slds-page-header__title slds-truncate"
+                                        title="Prompt Catalog">Prompt Catalog</span>
+                                </h1>
+                            </div>
+                        </div>
+                        <p class="header-subtitle">For details, refer the help article 
+                                <a href="#" class="header-link">here</a>.
+                        </p>
+                    </div>
+                </div>
+                <!-- Action Buttons - Conditional based on current view -->
+                <div class="header-actions">
+                    <!-- Purpose View Buttons -->
+                    <template lwc:if={isPurposeView}>
+                        <lightning-button
+                            label="New Prompt"
+                            onclick={handleNewPrompt}
+                            variant="brand">
+                        </lightning-button>
+                    </template>
+                    
+                    <!-- Configuration View Buttons -->
+                    <template lwc:if={isConfigurationView}>
+                        <lightning-button
+                            label="Back"
+                            icon-name="utility:back"
+                            onclick={handlePurposeClick}>
+                        </lightning-button>
+                        <template lwc:if={hasSelectedPrompts}>
+                            <lightning-button 
+                                label="Next" 
+                                title="Next" 
+                                variant="brand" 
+                                onclick={handleConfigurationNext}>
+                            </lightning-button>
+                        </template>
+                    </template>
+                    
+                    <!-- Deployment View Buttons -->
+                    <template lwc:if={isDeploymentView}>
+                        <lightning-button
+                            label="Back to Configuration"
+                            icon-name="utility:back"
+                            onclick={handleConfigurationClick}>
+                        </lightning-button>
+                        <lightning-button 
+                            label="Finish" 
+                            title="Finish" 
+                            variant="brand" 
+                            onclick={handleDeploymentFinish}>
+                        </lightning-button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Metrics Cards - Always Visible -->
+            <div class="metrics-container">
+                <div class="metric-card metric-card-blue">
+                    <div class="metric-icon-wrapper">
+                        <span class="metric-icon-value">{totalPromptsCount}</span>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Total Prompts</div>
+                        <div class="metric-value">{activePromptsCount} Active</div>
+                    </div>
+                </div>
+                <div class="metric-card metric-card-yellow">
+                    <div class="metric-icon-wrapper">
+                        <span class="metric-icon-value">{totalHoursSaved}</span>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Hours Saved</div>
+                        <div class="metric-value">This Month</div>
+                    </div>
+                </div>
+                <div class="metric-card metric-card-green">
+                    <div class="metric-icon-wrapper">
+                        <span class="metric-icon-value">{totalCostSaved}</span>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Money Saved</div>
+                        <div class="metric-value">Total Value</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Purpose View -->
+            <template lwc:if={isPurposeView}>
+
+                <!-- Prompt Catalogues Section -->
+                <div class="section">
+                    <!-- Progress Path -->
+                    <div class="progress-section">
+                        <div class="progress-container-wide">
+                            <div class={purposeStepClass} onclick={handlePurposeClick} style="cursor: pointer;">
+                                <div class="progress-icon progress-icon-complete">
+                                    <lightning-icon icon-name="utility:check" size="x-small" variant="inverse"></lightning-icon>
+                                </div>
+                                <div class="progress-label progress-label-complete">Purpose</div>
+                            </div>
+                            <div class={progressLineClass}></div>
+                            <div class={configurationStepClass}>
+                                <div class="progress-icon">2</div>
+                                <div class="progress-label">Configuration</div>
+                            </div>
+                            <div class="progress-line"></div>
+                            <div class="progress-step">
+                                <div class="progress-icon">3</div>
+                                <div class="progress-label">Deployment</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <template lwc:if={hasCards}>
+                    <div class="section-content">
+                        <div class={cardGridClass}>
+                            <template for:each={cards} for:item="card" for:index="i">
+                                <div key={card.Id} data-index={i} class="card-wrapper">
+                                    <article class={card.cardClass} 
+                                             data-id={card.Id}
+                                             onclick={handleCardClick}>
+                                        <div class="card-content-wrapper">
+                                            <div class="card-icon-wrapper">
+                                                <template if:true={card.hasStaticResource}>
+                                                    <img src={card.iconDetails} 
+                                                         class="card-icon-img"
+                                                         data-id={card.Id}
+                                                         data-name={card.Name} 
+                                                         alt={card.Name} 
+                                                         data-index={i}>
+                                                </template>
+                                                <template if:false={card.hasStaticResource}>
+                                                    <lightning-icon 
+                                                        icon-name={card.iconDetails}
+                                                        title={card.Name} 
+                                                        size="large" 
+                                                        data-id={card.Id}
+                                                        data-name={card.Name} 
+                                                        data-index={i}>
+                                                    </lightning-icon>
+                                                </template>
+                                            </div>
+                                            <div class="card-text-content">
+                                                <div class="card-title-wrapper">
+                                                    <div class="card-title">{card.Name}</div>
+                                                    <lightning-button-icon
+                                                        icon-name="utility:edit"
+                                                        alternative-text="Edit"
+                                                        class="edit-button"
+                                                        data-id={card.Id}
+                                                        onclick={handleEditCard}>
+                                                    </lightning-button-icon>
+                                                </div>
+                                                <div class="card-description">{card.description}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="card-metrics">
+                                            <div class="card-metric">
+                                                <div class="card-metric-label">PROMPTS</div>
+                                                <div class="card-metric-value">{card.activePrompts}/{card.totalPrompts}</div>
+                                            </div>
+                                            <div class="card-metric">
+                                                <div class="card-metric-label">TIME SAVED</div>
+                                                <div class="card-metric-value">{card.timeSaved}</div>
+                                            </div>
+                                            <div class="card-metric">
+                                                <div class="card-metric-label">COST SAVED</div>
+                                                <div class="card-metric-value">${card.costSaved}</div>
+                                            </div>
+                                        </div>
+                                    </article>
+                                </div>
+                            </template>
+
+                            <!-- Create New Catalog Card -->
+                            <div class="card-wrapper">
+                                <article class="catalog-card catalog-card-create" onclick={handleCreateNew}>
+                                    <div class="create-card-content">
+                                        <lightning-icon 
+                                            icon-name="utility:add" 
+                                            size="large"
+                                            class="create-icon">
+                                        </lightning-icon>
+                                        <h3 class="create-title">Create New Catalog</h3>
+                                        <p class="create-description">
+                                            Build a new prompt collection to organize and deploy AI capabilities
+                                        </p>
+                                    </div>
+                                </article>
+                            </div>
+                        </div>
+                    </div>
+                    </template>
+
+                    <!-- Empty State -->
+                    <template lwc:if={hasNoData}>
+                        <div class="section-content">
+                            <div class="empty-state">
+                                <lightning-icon 
+                                    icon-name="utility:announcement" 
+                                    size="large"
+                                    class="empty-icon">
+                                </lightning-icon>
+                                <h3 class="empty-title">No Catalogs Available</h3>
+                                <p class="empty-description">
+                                    Create your first catalog to start organizing AI prompts
+                                </p>
+                                <lightning-button
+                                    label="Create Catalog"
+                                    variant="brand"
+                                    onclick={handleCreateNew}>
+                                </lightning-button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Error State -->
+                    <template lwc:if={hasErrors}>
+                        <div class="section-content">
+                            <div class="error-state">
+                                <lightning-icon 
+                                    icon-name="utility:error" 
+                                    variant="error"
+                                    size="medium">
+                                </lightning-icon>
+                                <h3 class="error-title">Unable to Load Catalogue</h3>
+                                <p class="error-message">{errorMessage}</p>
+                                <lightning-button
+                                    label="Retry"
+                                    onclick={handleRefresh}>
+                                </lightning-button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            <!-- End Purpose View -->
+
+            <!-- Configuration View - Table -->
+            <template lwc:if={isConfigurationView}>
+                <!-- Prompts Table Section -->
+                <div class="section">
+                    <!-- Progress Path -->
+                    <div class="progress-section">
+                        <div class="progress-container-wide">
+                            <div class={purposeStepClass} onclick={handlePurposeClick} style="cursor: pointer;">
+                                <div class="progress-icon progress-icon-complete">
+                                    <lightning-icon icon-name="utility:check" size="x-small" variant="inverse"></lightning-icon>
+                                </div>
+                                <div class="progress-label progress-label-complete">{selectedPurpose}</div>
+                            </div>
+                            <div class={progressLineClass}></div>
+                            <div class={configurationStepClass}>
+                                <div class="progress-icon progress-icon-current">2</div>
+                                <div class="progress-label progress-label-current">Configuration</div>
+                            </div>
+                            <div class="progress-line"></div>
+                            <div class="progress-step">
+                                <div class="progress-icon">3</div>
+                                <div class="progress-label">Deployment</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="section-content">
+                        <template lwc:if={isLoadingPrompts}>
+                            <div class="slds-text-align_center slds-p-vertical_large">
+                                <lightning-spinner alternative-text="Loading Prompts" size="medium"></lightning-spinner>
+                            </div>
+                        </template>
+                        
+                        <template lwc:else>
+                            <lightning-datatable
+                                key-field="id"
+                                data={prompts}
+                                columns={columns}
+                                show-row-number-column
+                                onrowselection={handleRowSelection}>
+                            </lightning-datatable>
+                        </template>
+                    </div>
+                </div>
+            </template>
+            <!-- End Configuration View -->
+
+            <!-- Deployment View -->
+            <template lwc:if={isDeploymentView}>
+                <!-- Progress Path -->
+                <div class="section">
+                    <div class="progress-section">
+                        <div class="progress-container-wide">
+                            <div class={purposeStepClass} onclick={handlePurposeClick} style="cursor: pointer;">
+                                <div class="progress-icon progress-icon-complete">
+                                    <lightning-icon icon-name="utility:check" size="x-small" variant="inverse"></lightning-icon>
+                                </div>
+                                <div class="progress-label progress-label-complete">{selectedPurpose}</div>
+                            </div>
+                            <div class="progress-line progress-line-active"></div>
+                            <div class={configurationStepClass} onclick={handleConfigurationClick} style="cursor: pointer;">
+                                <div class="progress-icon progress-icon-complete">
+                                    <lightning-icon icon-name="utility:check" size="x-small" variant="inverse"></lightning-icon>
+                                </div>
+                                <div class="progress-label progress-label-complete">Configuration</div>
+                            </div>
+                            <div class="progress-line progress-line-active"></div>
+                            <div class="progress-step progress-current">
+                                <div class="progress-icon progress-icon-current">3</div>
+                                <div class="progress-label progress-label-current">Deployment</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Deployment Table -->
+                    <div class="section-content">
+                        <template lwc:if={isLoadingDeployment}>
+                            <div class="slds-text-align_center slds-p-vertical_large">
+                                <lightning-spinner alternative-text="Loading Deployment" size="medium"></lightning-spinner>
+                            </div>
+                        </template>
+                        
+                        <template lwc:else>
+                            <div style="height: 2px;"></div>
+                            <div class="slds-scrollable_x" style="width:100%">
+                                <table aria-multiselectable="true" class="slds-scrollable_x slds-table slds-table_cell-buffer">
+                                    <thead>
+                                        <tr class="slds-line-height_reset">
+                                            <th class="" scope="col" style="width:300px;">
+                                                <div class="slds-truncate slds-var-p-left_x-small" title="Prompt Name">Prompt Name</div>
+                                            </th>
+                                            <th class="" scope="col" style="width:300px;">
+                                                <div class="slds-truncate slds-var-p-left_x-small" title="Primary Object">Primary Object</div>
+                                            </th>
+                                            <th class="" scope="col">
+                                                <div class="slds-truncate slds-var-p-left_x-small" title="Profile">Profile</div>
+                                            </th>
+                                            <th class="" scope="col">
+                                                <div class="slds-truncate slds-var-p-left_x-small" title="Record Type">Record Type</div>
+                                            </th>
+                                            <th class="" scope="col">
+                                                <div class="slds-truncate slds-var-p-left_x-small" title="Visibility Condition">Visibility Condition</div>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={selectedMappings} for:item="map" for:index="mIndex">
+                                            <tr class="slds-hint-parent" key={map.pmtId}>
+                                                <td class="slds-cell-wrap" data-label="Prompt Name" scope="row" style="width:300px;">
+                                                    <div class="slds-line-clamp slds-truncate" title="Prompt Name">
+                                                        <a href={map.pmtUrl}>{map.promptName}</a>
+                                                    </div>
+                                                </td>
+                                                <td class="slds-cell-wrap" data-label="Primary Object" scope="row" style="width:300px;">
+                                                    <div class="slds-line-clamp slds-truncate" title="Primary Object">
+                                                        {map.primaryObject}
+                                                    </div>
+                                                </td>
+                                                <td data-label="Profile" scope="row">
+                                                    <div title="Profile">
+                                                        <lightning-dual-listbox 
+                                                            name="profiles" 
+                                                            label="Profiles"
+                                                            options={profileOptions} 
+                                                            onchange={handleDeploymentProfileChange}
+                                                            value={map.profileNames} 
+                                                            size="3" 
+                                                            disable-reordering 
+                                                            data-id={mIndex}
+                                                            variant="label-hidden">
+                                                        </lightning-dual-listbox>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Record Type" scope="row">
+                                                    <div title="Record Type">
+                                                        <template lwc:if={map.recordTypeOptions}>
+                                                            <lightning-dual-listbox 
+                                                                name="recordType" 
+                                                                label="Record Types"
+                                                                options={map.recordTypeOptions} 
+                                                                onchange={handleDeploymentRecordTypeChange}
+                                                                value={map.recordTypes} 
+                                                                size="3" 
+                                                                disable-reordering 
+                                                                data-id={mIndex}
+                                                                variant="label-hidden">
+                                                            </lightning-dual-listbox>
+                                                        </template>
+                                                        <template lwc:else>
+                                                            <div class="slds-align_absolute-center">
+                                                                ---No Record Types---
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Visibility Condition" scope="row">
+                                                    <div title="Visibility Condition" class="visibility-condition-container">
+                                                        <div class="visibility-condition-textarea">
+                                                            <lightning-textarea 
+                                                                type="text"
+                                                                name="visibilityCondition" 
+                                                                label="Visibility Condition" 
+                                                                variant="label-hidden"
+                                                                value={map.visibilityCondition}
+                                                                data-index={mIndex}
+                                                                onchange={handleDeploymentVisibilityConditionChange}
+                                                                field-level-help={helpText_VisibilityCondition}>
+                                                            </lightning-textarea>
+                                                        </div>
+                                                        <div class="visibility-condition-icon">
+                                                            <lightning-button-icon 
+                                                                icon-name="utility:edit" 
+                                                                alternative-text="Edit Visibility Condition"
+                                                                title="Edit Visibility Condition"
+                                                                data-index={mIndex} 
+                                                                data-objectname={map.primaryObject} 
+                                                                onclick={handleOpenDeploymentVisibilityCondition}>
+                                                            </lightning-button-icon>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+            <!-- End Deployment View -->
+
+        <!-- Edit Modal -->
+        <template lwc:if={showEditModal}>
+            <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon" title="Close" onclick={handleCloseModal}>
+                            <lightning-icon icon-name="utility:close"
+                                            alternative-text="Close"
+                                            size="small"></lightning-icon>
+                            <span class="slds-assistive-text">Close</span>
+                        </button>
+                        <h2 id="modal-heading-01" class="slds-modal__title slds-text-heading_medium">{modalTitle}</h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_large" id="modal-content-id-1">
+                        <lightning-record-edit-form
+                            record-id={editRecordId}
+                            object-api-name="AI_Card_Configuration__c"
+                            onsuccess={handleFormSuccess}
+                            onerror={handleSaveError}>
+                            
+                            <div class="slds-form" role="list">
+                                <!-- Row 1: AI Card Configuration Name (1/2) and Icon Source (1/2) -->
+                                <div class="slds-form__row">
+                                    <div class="slds-form__item" role="listitem">
+                                        <lightning-input-field
+                                            field-name="Name"
+                                            variant="label-stacked"
+                                            disabled={isEditMode}
+                                            required>
+                                        </lightning-input-field>
+                                    </div>
+                                    <div class="slds-form__item" role="listitem">
+                                        <lightning-input-field
+                                            field-name="Icon_Source__c"
+                                            variant="label-stacked"
+                                            required>
+                                        </lightning-input-field>
+                                    </div>
+                                </div>
+
+                                <!-- Row 2: Icon Details (1/2) and Sequence (1/2) -->
+                                <div class="slds-form__row">
+                                    <div class="slds-form__item" role="listitem">
+                                        <lightning-input-field
+                                            field-name="Icon_Details__c"
+                                            variant="label-stacked"
+                                            required>
+                                        </lightning-input-field>
+                                    </div>
+                                    <div class="slds-form__item" role="listitem">
+                                        <lightning-input-field
+                                            field-name="Sequence__c"
+                                            variant="label-stacked"
+                                            required>
+                                        </lightning-input-field>
+                                    </div>
+                                </div>
+
+                                <!-- Row 3: Description (2/2 - Full Width) -->
+                                <div class="slds-form__row">
+                                    <div class="slds-form__item slds-size_1-of-1" role="listitem">
+                                        <lightning-input-field
+                                            field-name="Description__c"
+                                            variant="label-stacked"
+                                            required>
+                                        </lightning-input-field>
+                                    </div>
+                                </div>
+                            </div>
+                        </lightning-record-edit-form>
+                    </div>
+                    <footer class="slds-modal__footer modal-footer-centered">
+                        <lightning-button 
+                            label="Cancel" 
+                            onclick={handleCloseModal}>
+                        </lightning-button>
+                        <lightning-button 
+                            label="Save" 
+                            variant="brand"
+                            type="submit"
+                            onclick={handleSaveClick}>
+                        </lightning-button>
+                        <template lwc:if={isEditMode}>
+                            <lightning-button 
+                                label="Delete" 
+                                variant="destructive"
+                                onclick={handleDelete}>
+                            </lightning-button>
+                        </template>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
+
+        <!-- AI Prompt Override Component for New Prompt Creation -->
+        <template lwc:if={isShowNewPromptComp}>
+            <c-a-i-prompt-override 
+                is-prompt-catalog="true" 
+                selected-catalog-purpose={selectedPurpose} 
+                onclose={handleHideNewPrompt}>
+            </c-a-i-prompt-override>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+        </template>
+
+        </div>
+    </div>
+</template>

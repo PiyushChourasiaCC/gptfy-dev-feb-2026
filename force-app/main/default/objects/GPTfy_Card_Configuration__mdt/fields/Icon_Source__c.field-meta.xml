@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Icon_Source__c</fullName>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <label>Icon Source</label>
+    <required>true</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Static Resource</fullName>
+                <default>true</default>
+                <label>Static Resource</label>
+            </value>
+            <value>
+                <fullName>SLDS Icon</fullName>
+                <default>false</default>
+                <label>SLDS Icon</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

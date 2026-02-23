@@ -1,0 +1,87 @@
+<template>
+    <div class="slds-page-header slds-page-header_record-home">
+        <div class="slds-page-header__row">
+            <div class="slds-page-header__col-title">
+                <div class="slds-media">
+                    <div class="slds-media__figure">
+                        <span class="slds-icon_container slds-icon-standard-opportunity">
+                            <lightning-icon icon-name="custom:custom67" alternative-text="custom67" title="custom67"></lightning-icon>
+                        </span>
+                    </div>
+                    <div class="slds-media__body">
+                        <div class="slds-page-header__name">
+                            <div class="slds-page-header__name-title">
+                                <h1>
+                                    <span class="slds-page-header__title slds-truncate" title="Global Import">Global Import</span>
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slds-page-header__col-actions">
+                <div class="slds-page-header__controls">
+                    <div class="slds-page-header__control">
+                        <button class="slds-button slds-button_neutral" onclick={handleReset}>Reset</button>
+                        <button class="slds-button slds-button_brand" onclick={handleUpload} if:false={uploadBtnDisabled}>Upload</button>
+                        <button class="slds-button slds-button_brand" disabled if:true={uploadBtnDisabled}>Upload</button>
+                        <!--<button class="slds-button slds-button_destructive" onclick={handleReset}>Reset</button>-->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template if:false={showSpinner}>
+        <div style="background-color:#fff;">
+            <template if:false={data}>
+                <div class="slds-p-around_small">
+                    <lightning-input 
+                        type="file" 
+                        accept=".json"
+                        onchange={handleFileInputChange}
+                    ></lightning-input>
+                    {fileName}
+                </div>
+                <div class="slds-align_absolute-center" style="height:25rem"></div>
+            </template>
+            <template if:true={fileName}>
+                <template if:true={dataFound}>
+                    <lightning-tabset>
+                        <lightning-tab label="Prompt" class="custom-prompt">
+                            <c-a-i-global-prompt-export-component parentprompts={data.prompts} is-import="true" onremove={handleRemovePrompt}></c-a-i-global-prompt-export-component>
+                        </lightning-tab>
+                        <lightning-tab label="AI Models" title="AI Models">
+                            <c-a-i-global-connection-export-component parentconnections={data.connections} is-import="true" onremove={handleRemoveConnections}></c-a-i-global-connection-export-component>
+                        </lightning-tab>
+                        <lightning-tab label="API Data Source" title="API Data Source">
+                            <c-a-i-global-data-source-export-component parentdatasource={data.dataSources} is-import="true" onremove={handleRemoveApiSources}></c-a-i-global-data-source-export-component>
+                        </lightning-tab>
+                        <lightning-tab label="Security Layers" title="Security Layers">
+                            <c-a-i-global-security-layer-export-component parentsecuritylayers={data.securityFilters} is-import="true" onremove={handleRemoveFilters}></c-a-i-global-security-layer-export-component>
+                        </lightning-tab>
+                        <lightning-tab label="Catalog Card" title="Catalog Card">
+                            <c-a-i-global-catalog-card-export-component parentcatalogcard={data.catalogCards} is-import="true" onremove={handleRemoveCardConfigs}></c-a-i-global-catalog-card-export-component>
+                        </lightning-tab>
+                    </lightning-tabset>
+                    <div class="slds-align_absolute-center" style="height:3rem"></div>
+                </template>
+                <template if:false={dataFound}>
+                    <div class="slds-align_absolute-center" style="height:5rem">
+                        No records to show.
+                    </div>
+                </template>
+            </template>
+        </div>
+    </template>
+</template>

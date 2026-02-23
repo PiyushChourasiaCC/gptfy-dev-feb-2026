@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DataExtractionMappingChange</fullName>
+    <active>true</active>
+    <errorConditionFormula>ISCHANGED(AI_Data_Extraction_Mapping__c)</errorConditionFormula>
+    <errorMessage>Data Extraction mapping cannot be changed on Prompt once it has been created.</errorMessage>
+</ValidationRule>

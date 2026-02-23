@@ -1,0 +1,103 @@
+:host{
+    --slds-c-textarea-sizing-min-height:75vh;
+    --slds-c-card-text-color:black;
+    --slds-c-button-spacing-block-start:8px;
+    --slds-c-button-spacing-block-end:14px; 
+    --slds-c-button-neutral-color-background :transparent;
+    --slds-c-button-neutral-color-border:transparent;
+    --slds-c-button-color-border:transparent;
+    --slds-c-button-color-background-hover:transparent;
+    --slds-c-button-color-border-hover:transparent;
+    --slds-c-button-neutral-color-background-hover:transparent;
+    --slds-c-button-neutral-color-border-hover:transparent;
+    --slds-c-button-text-color:white;
+    --slds-c-button-text-color-hover:white;
+    --slds-c-button-color-background-active:transparent;
+    --slds-c-button-color-border-active:transparent;
+    --slds-c-button-neutral-color-border-active:transparent;
+    --slds-c-button-neutral-color-background-active:transparent;
+    --slds-c-button-shadow-focus:transparent;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 1fr 100px 1fr;
+    align-items: center;
+    height: 80vh;
+    box-sizing: border-box;
+    padding: 0px 15px 0px 15px;
+    gap: 20px;
+    margin-top: -30px;
+  }
+  
+  .large-area {
+    height: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    color: black;
+    border: none;
+    border-radius: 10px;
+    outline: none;
+    resize: none;
+    font-family: monospace;
+    transition: background 0.25s, color 0.25s;
+  }
+  
+  .large-area:focus {
+    color: black;
+  }
+  
+  .controls__button {
+    padding: 8px 14px;
+    width: 100%;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    background: #009578;
+    color: white;
+    font-weight: bold;
+    font-family: "Roboto";
+  }
+  
+  .controls__button:active {
+    background: #00705a;
+  }
+
+
+ /* ul, #myUL {
+  list-style-type: none;
+}
+
+#myUL {
+  margin: 0;
+  padding: 0;
+}*/
+
+.caret {
+  cursor: pointer;
+  -webkit-user-select: none; /* Safari 3.1+ */
+  -moz-user-select: none; /* Firefox 2+ */
+  -ms-user-select: none; /* IE 10+ */
+  user-select: none;
+}
+
+.caret::before {
+  content: "\25B6";
+  color: black;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.caret-down::before {
+  transform: rotate(90deg);  
+}
+
+.nested {
+  display: none;
+}
+
+.active {
+  display: block;
+}

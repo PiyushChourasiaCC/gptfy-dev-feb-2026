@@ -1,0 +1,305 @@
+<template>
+    <div class="workspace-auth-container">
+        
+        <!-- Loading State (prevents flicker) -->
+        <template if:false={showContent}>
+            <div class="loading-state">
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                <p class="loading-text">Loading workspace authentication...</p>
+            </div>
+        </template>
+        
+        <!-- Content (only show after initialization) -->
+        <template if:true={showContent}>
+            <!-- No Provider Enabled Message -->
+            <template if:true={showNoProviderMessage}>
+                <div class="no-provider-state">
+                    <div class="no-provider-content">
+                        <div class="no-provider-icon">⚙️</div>
+                        <h2>Workspace Authentication Not Configured</h2>
+                        <p>Please enable at least one workspace provider (Outlook or Gmail) from:</p>
+                        <p class="settings-path"><strong>AI Settings → Workspace Sync</strong></p>
+                    </div>
+                </div>
+            </template>
+            
+            <!-- Show content only if at least one provider is enabled -->
+            <template if:false={showNoProviderMessage}>
+            <!-- Hero Header with GPTfy Branding -->
+            <div class="hero-header">
+                <div class="header-content">
+                    <div class="branding-section">
+                        <div class="email-icon-container">
+                             <lightning-icon icon-name="standard:email" alternative-text="Email" size="large"></lightning-icon>
+                        </div>
+                        <div class="header-text">
+                            <h1 class="slds-text-heading_large">Workspace Authentication</h1>
+                            <p class="slds-text-body_regular header-subtitle">Connect your email accounts to enable seamless synchronization</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Auto Sync Toggle in Header -->
+                    <template if:true={showAutoSyncToggle}>
+                        <div class="header-actions">
+                            <div class="toggle-wrapper">
+                                <span class="custom-toggle-label">Auto Sync</span>
+                                <lightning-input 
+                                    type="toggle" 
+                                    label="" 
+                                    checked={autoSyncEnabled}
+                                    onchange={handleAutoSyncToggle}
+                                    message-toggle-active=""
+                                    message-toggle-inactive=""
+                                    class="compact-toggle white-label">
+                                </lightning-input>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+            
+            <!-- Provider Cards -->
+            <div class="provider-cards-container">
+                
+                <!-- Outlook Card (only show if enabled) -->
+                <template if:true={showOutlookCard}>
+                <div class="provider-card outlook-card">
+                    <!-- Card Header with Logo -->
+                    <div class="card-header">
+                        <div class="provider-logo-container outlook-logo">
+                            <span class="provider-letter">O</span>
+                        </div>
+                        <div class="provider-info">
+                            <h2 class="provider-title">Outlook</h2>
+                            <p class="provider-subtitle">Connect your Outlook account for email synchronization</p>
+                        </div>
+                        <template if:true={outlookConnected}>
+                            <div class="connection-badge connected">
+                                <lightning-icon icon-name="utility:success" size="xx-small"></lightning-icon>
+                                <span>Connected</span>
+                            </div>
+                        </template>
+                        <template if:false={outlookConnected}>
+                            <div class="connection-badge disconnected">
+                                <lightning-icon icon-name="utility:close" size="xx-small"></lightning-icon>
+                                <span>Not Connected</span>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <!-- Card Body -->
+                    <div class="card-body">
+                        <!-- Loading Spinner (shown as overlay) -->
+                        <template if:true={isLoadingOutlook}>
+                            <div class="loading-overlay">
+                                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                            </div>
+                        </template>
+                        
+                        <!-- Outlook Content (always rendered but hidden when loading) -->
+                        <div class={outlookContentClass}>
+                            
+                            <!-- Connected State -->
+                            <template if:true={outlookConnected}>
+                                <!-- Profile Details -->
+                                <template if:true={showOutlookProfile}>
+                                    <div class="profile-section">
+                                        <h3 class="section-title">
+                                            <lightning-icon icon-name="standard:user" size="x-small" class="slds-m-right_xx-small"></lightning-icon>
+                                            Account Details
+                                        </h3>
+                                        <div class="profile-details">
+                                            <template if:true={outlookDisplayName}>
+                                                <div class="detail-row">
+                                                    <span class="detail-label">Name:</span>
+                                                    <span class="detail-value">{outlookDisplayName}</span>
+                                                </div>
+                                            </template>
+                                            <template if:true={outlookEmail}>
+                                                <div class="detail-row">
+                                                    <span class="detail-label">Email:</span>
+                                                    <span class="detail-value">{outlookEmail}</span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                                
+                                <!-- Profile Error -->
+                                <template if:true={outlookProfileError}>
+                                    <div class="error-message">
+                                        <lightning-icon icon-name="utility:error" size="xx-small" variant="error" class="slds-m-right_xx-small"></lightning-icon>
+                                        {outlookProfileError}
+                                    </div>
+                                </template>
+                                
+                                <!-- Action Buttons -->
+                                <div class="action-section">
+                                    <p class="status-message">Your Outlook account is connected and ready to use.</p>
+                                    <div class="button-group">
+                                        <lightning-button 
+                                            variant="brand" 
+                                            label="Re-Connect" 
+                                            onclick={handleOutlookReconnect}
+                                            icon-name="utility:refresh"
+                                            class="action-button">
+                                        </lightning-button>
+                                        <lightning-button 
+                                            variant="destructive-text" 
+                                            label="Disconnect" 
+                                            onclick={handleOutlookDisconnect}
+                                            icon-name="utility:close"
+                                            class="action-button">
+                                        </lightning-button>
+                                    </div>
+                                </div>
+                            </template>
+                            
+                            <!-- Not Connected State -->
+                            <template if:false={outlookConnected}>
+                                <div class="connect-section">
+                                    <p class="connect-description">
+                                        Connect your Microsoft Outlook account to enable email synchronization, calendar integration, and advanced workspace features.
+                                    </p>
+                                    <lightning-button 
+                                        variant="brand" 
+                                        label="Connect Outlook Account" 
+                                        onclick={handleOutlookConnect}
+                                        class="connect-button">
+                                    </lightning-button>
+                                </div>
+                            </template>
+                            
+                        </div>
+                    </div>
+                </div>
+                </template>
+            
+            <!-- Gmail Card (only show if enabled) -->
+            <template if:true={showGmailCard}>
+            <div class="provider-card gmail-card">
+                    <!-- Card Header with Logo -->
+                    <div class="card-header">
+                        <div class="provider-logo-container gmail-logo">
+                            <span class="provider-letter gmail-g">G</span>
+                        </div>
+                        <div class="provider-info">
+                            <h2 class="provider-title">Gmail</h2>
+                            <p class="provider-subtitle">Connect your Gmail account for email synchronization</p>
+                        </div>
+                        <template if:true={gmailConnected}>
+                            <div class="connection-badge connected">
+                                <lightning-icon icon-name="utility:success" size="xx-small"></lightning-icon>
+                                <span>Connected</span>
+                            </div>
+                        </template>
+                        <template if:false={gmailConnected}>
+                            <div class="connection-badge disconnected">
+                                <lightning-icon icon-name="utility:close" size="xx-small"></lightning-icon>
+                                <span>Not Connected</span>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <!-- Card Body -->
+                    <div class="card-body">
+                        <!-- Loading Spinner (shown as overlay) -->
+                        <template if:true={isLoadingGmail}>
+                            <div class="loading-overlay">
+                                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                            </div>
+                        </template>
+                        
+                        <!-- Gmail Content (always rendered but hidden when loading) -->
+                        <div class={gmailContentClass}>
+                            
+                            <!-- Connected State -->
+                            <template if:true={gmailConnected}>
+                                <!-- Profile Details -->
+                                <template if:true={showGmailProfile}>
+                                    <div class="profile-section">
+                                        <h3 class="section-title">
+                                            <lightning-icon icon-name="standard:user" size="x-small" class="slds-m-right_xx-small"></lightning-icon>
+                                            Account Details
+                                        </h3>
+                                        <div class="profile-details">
+                                            <template if:true={gmailDisplayName}>
+                                                <div class="detail-row">
+                                                    <span class="detail-label">Name:</span>
+                                                    <span class="detail-value">{gmailDisplayName}</span>
+                                                </div>
+                                            </template>
+                                            <template if:true={gmailEmail}>
+                                                <div class="detail-row">
+                                                    <span class="detail-label">Email:</span>
+                                                    <span class="detail-value">{gmailEmail}</span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                                
+                                <!-- Profile Error -->
+                                <template if:true={gmailProfileError}>
+                                    <div class="error-message">
+                                        <lightning-icon icon-name="utility:error" size="xx-small" variant="error" class="slds-m-right_xx-small"></lightning-icon>
+                                        {gmailProfileError}
+                                    </div>
+                                </template>
+                                
+                                <!-- Action Buttons -->
+                                <div class="action-section">
+                                    <p class="status-message">Your Gmail account is connected and ready to use.</p>
+                                    <div class="button-group">
+                                        <lightning-button 
+                                            variant="brand" 
+                                            label="Re-Connect" 
+                                            onclick={handleGmailReconnect}
+                                            icon-name="utility:refresh"
+                                            class="action-button">
+                                        </lightning-button>
+                                        <lightning-button 
+                                            variant="destructive-text" 
+                                            label="Disconnect" 
+                                            onclick={handleGmailDisconnect}
+                                            icon-name="utility:close"
+                                            class="action-button">
+                                        </lightning-button>
+                                    </div>
+                                </div>
+                            </template>
+                            
+                            <!-- Not Connected State -->
+                            <template if:false={gmailConnected}>
+                                <div class="connect-section">
+                                    <p class="connect-description">
+                                        Connect your Gmail account to enable email synchronization, calendar integration, and advanced workspace features.
+                                    </p>
+                                    <lightning-button 
+                                        variant="brand" 
+                                        label="Connect Gmail Account" 
+                                        onclick={handleGmailConnect}
+                                        class="connect-button">
+                                    </lightning-button>
+                                    
+                                    <!-- Configuration Notice -->
+                                </div>
+                            </template>
+                            
+                        </div>
+                    </div>
+                </div>
+                </template>
+            
+            </div>
+            
+            <!-- Footer Info -->
+            <div class="footer-info">
+                <lightning-icon icon-name="utility:info" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
+                <span>These connections enable secure access to your emails and calendar. Your credentials are encrypted and stored securely.</span>
+            </div>
+            </template>
+        </template>
+        
+    </div>
+</template>

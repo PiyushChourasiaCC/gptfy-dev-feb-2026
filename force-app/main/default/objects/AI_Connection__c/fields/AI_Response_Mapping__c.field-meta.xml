@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Response_Mapping__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Response Mapping</label>
+    <referenceTo>AI_Response_Mapping__c</referenceTo>
+    <relationshipLabel>AI Models</relationshipLabel>
+    <relationshipName>AI_Models</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

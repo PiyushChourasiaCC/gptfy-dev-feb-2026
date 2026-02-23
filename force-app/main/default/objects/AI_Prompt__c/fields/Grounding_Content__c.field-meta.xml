@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Grounding_Content__c</fullName>
+    <inlineHelpText>This category focuses on the style, clarity, and organization of responses. It includes guidelines on language usage, adherence to local conventions, and the structure of the response to ensure it is clear, direct, and easily understandable. These guidelines help in maintaining a professional and coherent communication style that enhances the effectiveness and accessibility of the information provided.</inlineHelpText>
+    <label>Grounding - Content</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Address all parts of a multi-part question.</fullName>
+                <default>false</default>
+                <label>Address all parts of a multi-part question.</label>
+            </value>
+            <value>
+                <fullName>Aim for clarity over complexity.</fullName>
+                <default>false</default>
+                <label>Aim for clarity over complexity.</label>
+            </value>
+            <value>
+                <fullName>Avoid using absolutes, such as &quot;always&quot; or &quot;never&quot;.</fullName>
+                <default>false</default>
+                <label>Avoid using absolutes, such as &quot;always&quot; or &quot;never&quot;.</label>
+            </value>
+            <value>
+                <fullName>Avoid using passive voice.</fullName>
+                <default>false</default>
+                <label>Avoid using passive voice.</label>
+            </value>
+            <value>
+                <fullName>Avoid using slang or colloquial terms unless specifically asked.</fullName>
+                <default>false</default>
+                <label>Avoid using slang or colloquial terms unless specifically asked.</label>
+            </value>
+            <value>
+                <fullName>Only answer what has been asked for.</fullName>
+                <default>false</default>
+                <label>Only answer what has been asked for.</label>
+            </value>
+            <value>
+                <fullName>Refrain from using first-person pronouns.</fullName>
+                <default>false</default>
+                <label>Refrain from using first-person pronouns.</label>
+            </value>
+            <value>
+                <fullName>Ensure all records are shown in the tables.</fullName>
+                <default>false</default>
+                <label>Ensure all records are shown in the tables.</label>
+            </value>
+            <value>
+                <fullName>Include border=&quot;1&quot; in all HTML table tags</fullName>
+                <default>false</default>
+                <label>Include border=&quot;1&quot; in all HTML table tags</label>
+            </value>
+            <value>
+                <fullName>Add captions to each HTML table.</fullName>
+                <default>false</default>
+                <label>Add captions to each HTML table.</label>
+            </value>
+            <value>
+                <fullName>Prioritize quality over speed in responses.</fullName>
+                <default>false</default>
+                <label>Prioritize quality over speed in responses.</label>
+            </value>
+            <value>
+                <fullName>Convert all internal CSS to inline CSS for the response.</fullName>
+                <default>false</default>
+                <label>Convert all internal CSS to inline CSS for the response.</label>
+            </value>
+            <value>
+                <fullName>Use the following inline CSS for table header &apos;th&apos; style=&quot;background-color: #e1ebf7 color: #16325  padding: 0.5rem text-align: left&quot;</fullName>
+                <default>false</default>
+                <label>Use the following inline CSS for table header &apos;th&apos; style=&quot;background-color: #e1ebf7 color: #16325  padding: 0.5rem text-align: left&quot;</label>
+            </value>
+            <value>
+                <fullName>Use the following inline CSS for caption = &quot;font-size: 1.0rem font-weight: bold padding: 0.5rem color: #5C5C5C text-align: left&quot;</fullName>
+                <default>false</default>
+                <label>Use the following inline CSS for caption = &quot;font-size: 1.0rem font-weight: bold padding: 0.5rem color: #5C5C5C text-align: left&quot;</label>
+            </value>
+            <value>
+                <fullName>Dont add any &apos;\n&apos; characters in your HTML. Replace each &apos;\n&apos; with the HTML line break tag &lt;br&gt;. Ensure the rest of the text is properly wrapped in HTML tags, like &lt;p&gt; for paragraphs, to maintain the formatting.</fullName>
+                <default>false</default>
+                <label>Dont add any &apos;\n&apos; characters in your HTML. Replace each &apos;\n&apos; with the HTML line break tag &lt;br&gt;. Ensure the rest of the text is properly wrapped in HTML tags, like &lt;p&gt; for paragraphs, to maintain the formatting.</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+    <visibleLines>4</visibleLines>
+</CustomField>

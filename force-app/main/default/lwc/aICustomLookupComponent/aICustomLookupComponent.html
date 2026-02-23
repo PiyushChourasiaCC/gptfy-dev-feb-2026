@@ -1,0 +1,310 @@
+<template>
+    <template if:true={showSpinner}>
+        <div>
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <div class="slds-form-element">
+        <label class="slds-form-element__label" for="combobox-id-2">{lookupLabel}</label>
+        <div class="slds-form-element__control">
+            <div class="slds-combobox_container">
+                <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open"
+                    aria-expanded="true" aria-haspopup="listbox" role="combobox">
+                    <template if:true={selectedValue}>
+                        <div data-key="pilldiv"
+                            class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_left-right"
+                            role="none">
+                            <span
+                                class="slds-icon_container slds-icon-standard-account slds-combobox__input-entity-icon"
+                                title="object">
+                                <div class="slds-icon slds-icon_small" aria-hidden="true">
+                                    <lightning-icon icon-name={iconName} size="small"></lightning-icon>
+                                </div>
+                                <span class="slds-assistive-text">Record</span>
+                            </span>
+                            <input type="text" class="slds-input slds-combobox__input slds-combobox__input-value"
+                                id="combobox-id-5" aria-controls="listbox-id-5" role="textbox"
+                                placeholder="Select an Option" readonly value={selectedValue} />
+                            <button class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                onclick={removeRecordOnLookup} title="Remove selected option" type="button">
+                                <span class="slds-button__icon" aria-hidden="true">
+                                    <lightning-icon icon-name="utility:close" size="xx-Small"
+                                        class="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
+                                        aria-hidden="true"></lightning-icon>
+                                </span>
+                                <span class="slds-assistive-text">Remove selected record</span>
+                            </button>
+                        </div>
+                    </template>
+
+                    <template if:false={selectedValue}>
+                        <div data-key="searchdiv"
+                            class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                            role="none">
+                            <input type="text" onfocusout={onLeave} value={searchKey} onkeyup={handleKeyChange}
+                                onchange={handleKeyChange} onfocus={handleKeyChange} id="combobox-id-2"
+                                aria-autocomplete="list" aria-controls="listbox-id-2" role="textbox"
+                                placeholder="Search..." class="slds-input slds-combobox__input slds-has-focus"/>
+                            <span
+                                class="slds-icon_container slds-icon-utility-search slds-input__icon slds-input__icon_right">
+                                <lightning-icon icon-name="utility:search" size="xx-Small"
+                                    class="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
+                                    aria-hidden="true"></lightning-icon>
+                            </span>
+                        </div>
+
+                        <template if:true={recordsList}>
+                            <div id="listbox-id-2-venu" data-key="dropdownresult"
+                                class="slds-show slds-dropdown slds-dropdown_length-with-icon-7 slds-dropdown_fluid"
+                                role="listbox">
+                                <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                    <template if:true={message}>
+                                        <center> {message}</center>
+                                    </template>
+                                    <template for:each={recordsList} for:item="record">
+                                        <li id={record.Id} key={record.Id} onclick={onRecordSelection}
+                                            role="presentation" class="slds-listbox__item" data-key={record.Id} data-name={record.Name}>
+                                            <div data-key={record.Id} data-name={record.Name}
+                                                class="slds-media slds-listbox__option slds-listbox__option_entity slds-listbox__option_has-meta"
+                                                role="option">
+                                                <span class="slds-media__figure slds-listbox__option-icon" data-key={record.Id} data-name={record.Name}>
+                                                    <span class="slds-icon_container" data-key={record.Id} data-name={record.Name}>
+                                                        <lightning-icon icon-name={iconName} size="small" data-key={record.Id} data-name={record.Name}>
+                                                        </lightning-icon>
+                                                    </span>
+                                                </span>
+                                                <span class="slds-media__body" data-key={record.Id} data-name={record.Name}>
+                                                    <span data-key={record.Id} data-name={record.Name}
+                                                        class="slds-listbox__option-text slds-listbox__option-text_entity">{record.Name}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </li>
+                                    </template>
+                                    <button type="button" class="slds-button slds-p-around_xxx-small add-new_button" title="New Record" onclick={createNewRecord}>
+                                        <lightning-icon icon-name="utility:add" size="x-small" class="slds-p-right_xx-small"></lightning-icon>
+                                        New Record
+                                    </button>
+                                </ul>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+            </div>
+        </div>
+        <template if:true={isNewRecord}>
+            <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <h2 id="modal-heading" class="slds-modal__title slds-hyphenate">Create {lookupLabel}
+                        </h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium" id="modal-content-id">
+                        <template if:true={showSpinner}>
+                            <div>
+                                <div class="slds-spinner_container">
+                                    <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                                        <span class="slds-assistive-text">Loading</span>
+                                        <div class="slds-spinner__dot-a"></div>
+                                        <div class="slds-spinner__dot-b"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <div class="slds-section slds-is-open">
+                            <h3 class="slds-section__title slds-theme_shade">
+                                <span class="slds-truncate slds-p-horizontal_small" title="Information">Information</span>
+                            </h3>
+                            <div class="slds-section__content">
+                                <div class="slds-grid slds-wrap">
+                                    <div class="slds-size_1-of-2 slds-p-around_xxx-small">
+                                        <lightning-input type="text" label="Response Mapping Name" class="field-input responsemappingname" name="name" required="true"></lightning-input>
+                                    </div>
+                                    <div class="slds-size_1-of-2 slds-p-around_xxx-small">
+                                        <lightning-combobox
+                                            label="AI Model"
+                                            class="field-input"
+                                            value={selectedAIModel}
+                                            placeholder="Select AI Model"
+                                            name="AI_Model__c"
+                                            options={aiModelOptions}
+                                            onchange={handleAIModelChange} required="true"></lightning-combobox>
+                                    </div>
+                                    <div class="slds-size_1-of-1 slds-p-around_xxx-small">
+                                        <lightning-textarea label="Description" max-length="255" class="field-input" name="Description__c"></lightning-textarea>
+                                    </div>
+                                    <div class="slds-size_1-of-1 slds-p-around_xxx-small">
+                                        <lightning-textarea label="Sample Response" class="textAreaBody field-input" name="Sample_Response__c" onchange={handleChangeSampleResponse} required="true"></lightning-textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slds-section slds-is-open">
+                            <h3 class="slds-section__title slds-theme_shade">
+                                <span class="slds-truncate slds-p-horizontal_small" title="Response Mapping">Response Mapping</span>
+                            </h3>
+                            <div class="slds-section__content">
+                                <div class="slds-grid slds-wrap">
+                                    <div class="slds-size_1-of-1 slds-p-around_xxx-small">
+                                        <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                                            <thead>
+                                                <tr class="slds-line-height_reset">
+                                                    <th class="" scope="col">
+                                                        <div class="slds-truncate">S.No.</div>
+                                                    </th>
+                                                    <th class="" scope="col">
+                                                        <div class="slds-truncate">Security Audit Field</div>
+                                                    </th>
+                                                    <th class="" scope="col">
+                                                        <div class="slds-truncate">Mapping Field</div>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template for:each={responseMappingOptions} for:item="opt">
+                                                    <tr class="slds-hint-parent" key={opt.index}>
+                                                        <th scope="row">
+                                                            {opt.index}
+                                                        </th>  
+                                                        <td>
+                                                            <div class="slds-truncate">{opt.label}</div>
+                                                        </td>
+                                                        <td>
+                                                            <lightning-combobox
+                                                                name="aiModel"
+                                                                label="Response Mapping Field"
+                                                                variant="label-hidden"
+                                                                value={opt.selectedMapping}
+                                                                placeholder="Select Response Mapping Field"
+                                                                options={opt.mappingOptions}
+                                                                data-index={opt.index}
+                                                                onchange={handleMappingOptionChange}></lightning-combobox>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    <div class="slds-modal__footer slds-text-align_center">
+                        <button type="button" class="slds-button slds-button_neutral" aria-label="Cancel and close" onclick={createNewRecord}>Cancel</button>
+                        <button type="button" class="slds-button slds-button_brand" onclick={handleSave}>Save</button>
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
+    </div>
+    <template if:true={showFieldPicker}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large">
+            <div class="slds-modal__container fldsel-modal__container">
+                <header class="slds-modal__header">
+                    <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Select a Field</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                    <lightning-layout multiple-rows vertical-align="center">
+                        <lightning-layout-item>
+                            <span class="rootNodeName">{startObjName}</span>
+                        </lightning-layout-item>
+                        <lightning-layout-item>
+                            <lightning-icon icon-name="utility:right" alternative-text="Close" title="Close"
+                                size="xx-small">
+                            </lightning-icon>
+                        </lightning-layout-item>
+                        <template for:each={dynamicCmpCreationStates} for:item="item">
+                            <lightning-layout-item key={item.uniqueid}>
+                                <template if:true={item.selector}>
+                                    <lightning-combobox
+                                        name="progress"
+                                        label="Field"
+                                        variant="label-hidden"
+                                        placeholder="Select Field"
+                                        class="slds-p-left_xx-small"
+                                        options={item.dataList}
+                                        data-uniqueid={item.uniqueid}
+                                        onchange={setValue}>
+                                        <template if:true={item.righArrow}>
+                                            <span slot="appendRightArrow">
+                                                <lightning-icon icon-name="utility:right" alternative-text="Close"
+                                                    title="Closes" size="xx-small">
+                                                </lightning-icon>
+                                            </span>
+                                        </template>
+                                    </lightning-combobox>
+                                </template>
+                                <template if:true={item.label}>
+                                    <lightning-layout-item>
+                                        <a class="label" href="javascript:void(0);"
+                                            data-field-info={item.selectedFieldInfoStr} data-uniqueid={item.uniqueid} onclick={openSelector}>
+                                            <span>{item.selectedFieldInfo}</span>
+                                            <!-- <span class="assistiveText">Change the Business Phone record field.</span> -->
+                                        </a>
+                                    </lightning-layout-item>
+                                    <template if:true={item.rightArrow}>
+                                        <lightning-layout-item>
+                                            <lightning-icon icon-name="utility:right" alternative-text="Close"
+                                                title="Close" size="x-small">
+                                            </lightning-icon>
+                                        </lightning-layout-item>
+                                    </template>
+                                </template>
+                            </lightning-layout-item>
+                        </template>
+                    </lightning-layout>
+                    <br />
+                    <br />
+                    <br />
+                    <br />
+                    <br />
+                    <br />
+                    <template if:true={selectedField.visible}>
+                        <lightning-layout multiple-rows horizontal-align="center">
+                            <lightning-layout-item>
+                                <span>You have selected the following field:</span>
+                                <br />
+                            </lightning-layout-item>
+                        </lightning-layout>
+                        <lightning-layout multiple-rows vertical-align="center" horizontal-align="center">
+                            <lightning-layout-item>
+                                <div class="referenceDetailContent">
+                                    <lightning-layout>
+                                        <lightning-layout-item padding="horizontal-medium">
+                                            <div class="referenceIcon"></div>
+                                        </lightning-layout-item>
+                                        <lightning-layout-item padding="horizontal-medium">
+                                            <div class="selectedText">
+                                                <span title={selectedField.title}>{selectedField.title}</span>
+                                                <br />
+                                                <span title={selectedField.api}>API Name: {selectedField.api}</span>
+                                            </div>
+                                        </lightning-layout-item>
+                                    </lightning-layout>
+                                </div>
+                            </lightning-layout-item>
+                        </lightning-layout>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <button type="button" class="slds-button slds-button_neutral" onclick={closeFieldPicker}>Cancel</button>
+                    <template if:false={selectedField.visible}>
+                        <button type="button" class="slds-button slds-button_brand" disabled>Choose</button>
+                    </template>
+                    <template if:true={selectedField.visible}>
+                        <button type="button" class="slds-button slds-button_brand" onclick={handleSelectField}>Choose</button>
+                    </template>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

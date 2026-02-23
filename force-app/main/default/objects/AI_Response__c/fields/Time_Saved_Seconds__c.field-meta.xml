@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Time_Saved_Seconds__c</fullName>
+    <description>Saving is calculated based on 8 tokens are read per second.</description>
+    <externalId>false</externalId>
+    <formula>If(Prompt_Tokens__c-Completion_Tokens__c &gt;0,CEILING((Prompt_Tokens__c-Completion_Tokens__c)/IF(NOT(ISBLANK(AI_Prompt__c)) &amp;&amp; AI_Prompt__r.Time_Saved_Coefficient__c &gt; 0, AI_Prompt__r.Time_Saved_Coefficient__c, 8)),CEILING((Completion_Tokens__c-Prompt_Tokens__c)/IF(NOT(ISBLANK(AI_Prompt__c)) &amp;&amp; AI_Prompt__r.Time_Saved_Coefficient__c &gt; 0, AI_Prompt__r.Time_Saved_Coefficient__c, 8)))</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Time Saved(Seconds)</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

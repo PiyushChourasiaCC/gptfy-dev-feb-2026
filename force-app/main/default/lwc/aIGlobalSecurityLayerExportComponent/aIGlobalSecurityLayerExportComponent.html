@@ -1,0 +1,104 @@
+<template>
+   <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template if:false={showSpinner}>
+        <template if:true={hasRecords}>
+            <div style="height:400px;overflow:auto;">
+                <table class="slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <th class="slds-p-around_x-small" scope="col" if:false={isImport}>
+                                <div title="Remove">
+                                    <lightning-input 
+                                        type="checkbox" 
+                                        label="Select" 
+                                        variant="label-hidden"
+                                        name="optionSelect"
+                                        onchange={handleAllPromptSelect}
+                                        checked={allSecurityLayersSelected}
+                                    ></lightning-input>
+                                </div>
+                            </th>
+                            <th class="slds-p-around_x-small" scope="col">
+                                <div title="Name">Name</div>
+                            </th>
+                            <th class="slds-p-around_x-small" scope="col" style="width:10%;">
+                                <div title="Record Type Name">Record Type Name</div>
+                            </th>
+                            <th class="slds-p-around_x-small" scope="col">
+                                <div title="Security Layer">Type</div>
+                            </th>
+                            <th class="slds-p-around_x-small" scope="col">
+                                <div title="Comment">Comment</div>
+                            </th>
+                            <th class="slds-p-around_x-small" scope="col" if:true={isImport}>
+                                <div></div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={securitylayers} for:item="obj" for:index="mIndex">
+                            <tr class="slds-hint-parent" key={obj.salesforceId}>
+                                <td data-label="Select" class="slds-p-around_x-small" if:false={isImport}>
+                                    <div class="slds-truncate" title="Select">
+                                        <lightning-input 
+                                            type="checkbox" 
+                                            label="Select" 
+                                            variant="label-hidden"
+                                            name="optionSelect"
+                                            onchange={handlePromptSelect}
+                                            data-mid={mIndex}
+                                            checked={obj.selected}
+                                        ></lightning-input>
+                                        <!--lightning-button-icon data-mid={mIndex} icon-name="utility:close"  onclick={handlePromptRemove}></lightning-button-icon-->
+                                    </div>
+                                </td>
+                                <td data-label="Name"  class="slds-p-around_x-small">
+                                    <div class="slds-truncate" title="Name">
+                                        {obj.filterName}
+                                    </div>
+                                </td>
+                                <td data-label="Record Type Name" class="slds-p-around_x-small">
+                                    <div class="slds-truncate" title="Record Type Name">
+                                        {obj.recordTypeName}
+                                    </div>
+                                </td>
+                                <td data-label="Type" class="slds-p-around_x-small">
+                                    <div class="slds-truncate" title="Type">
+                                        {obj.type}
+                                    </div>
+                                </td>
+                                <td data-label="Comment" class="slds-p-around_x-small">
+                                    <div title="Comment">
+                                        {obj.comment}
+                                    </div>
+                                </td>
+                                <td data-label="Remove" class="slds-p-around_x-small" if:true={isImport}>
+                                    <div title="Remove">
+                                        <lightning-button-icon data-mid={mIndex} icon-name="utility:close"  onclick={handleRemove}></lightning-button-icon>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="slds-align_absolute-center" style="height:3rem"></div>
+        </template>
+        <template if:false={hasRecords}>
+            <div class="slds-align_absolute-center" style="height:5rem">
+                No Security Layers to show.
+            </div>
+        </template>
+    </template>
+</template>

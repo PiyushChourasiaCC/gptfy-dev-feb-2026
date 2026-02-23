@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ForecastCategory__c</fullName>
+    <externalDeveloperName>ForecastCategory</externalDeveloperName>
+    <isFilteringDisabled>false</isFilteringDisabled>
+    <isNameField>false</isNameField>
+    <isSortingDisabled>false</isSortingDisabled>
+    <label>Forecast Category</label>
+    <readOnlyProxy>true</readOnlyProxy>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Omitted</fullName>
+                <default>false</default>
+                <label>Omitted</label>
+            </value>
+            <value>
+                <fullName>Pipeline</fullName>
+                <default>false</default>
+                <label>Pipeline</label>
+            </value>
+            <value>
+                <fullName>BestCase</fullName>
+                <default>false</default>
+                <label>Best Case</label>
+            </value>
+            <value>
+                <fullName>MostLikely</fullName>
+                <default>false</default>
+                <label>Most Likely</label>
+            </value>
+            <value>
+                <fullName>Forecast</fullName>
+                <default>false</default>
+                <label>Commit</label>
+            </value>
+            <value>
+                <fullName>Closed</fullName>
+                <default>false</default>
+                <label>Closed</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

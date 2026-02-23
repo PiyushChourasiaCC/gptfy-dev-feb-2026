@@ -1,0 +1,289 @@
+<template>
+    <div style="background-color: white;">
+        <div class="slds-modal__content" id="modal-content-id-3">
+            <template if:true={showSpinner}>
+                <div style="height:19rem;position:relative">
+                    <div class="slds-spinner_container">
+                        <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                            <span class="slds-assistive-text">Loading</span>
+                            <div class="slds-spinner__dot-a"></div>
+                            <div class="slds-spinner__dot-b"></div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+    
+            <template if:false={showSpinner}>
+                <template if:true={fields}>
+                    <div class="slds-grid slds-grid_vertical">
+                        <div class="slds-p-vertical_x-small slds-p-horizontal_large slds-shrink-none slds-theme_shade">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label slds-assistive-text">Search</label>
+                                <div class="slds-form-element__control">
+                                    <div class="slds-combobox_container">
+                                        <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click">
+                                            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                                                <lightning-input name="search" 
+                                                    label="Search" 
+                                                    variant="label-hidden" 
+                                                    type="search"
+                                                    onchange={handleInputChange}
+                                                    onblur={handleInputChange}>
+                                                </lightning-input>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                    </div>
+    
+                    <div class="slds-table--header-fixed_container" style="height:500px;">
+                        <div class="slds-scrollable_y" style="height:100%;">
+                            <table aria-multiselectable="true"
+                                class="slds-table slds-table_fixed-layout slds-table_cell-buffer slds-table--header-fixed">
+                                <thead>
+                                    <tr class="slds-line-height_reset">
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate slds-cell-fixed slds-align_absolute-center slds-var-p-left_x-small"
+                                                title="Field">Field</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate slds-cell-fixed slds-align_absolute-center slds-var-p-left_x-small"
+                                                title="Label">Label</div>
+                                        </th>
+                                        <th class="" scope="col" style="width:80px;">
+                                            <div class="slds-truncate slds-cell-fixed slds-align_absolute-center slds-var-p-left_x-small"
+                                                title="Send to AI">Send to AI</div>
+                                        </th>
+                                        <th class="" scope="col" style="width:210px;">
+                                            <div class="slds-truncate slds-cell-fixed slds-align_absolute-center slds-var-p-left_x-small"
+                                                title="Masking Scope">Masking Scope</div>
+                                        </th>
+                                        <th class="" scope="col">
+                                            <div class="slds-truncate slds-cell-fixed slds-align_absolute-center slds-var-p-left_x-small"
+                                                title="Masking Value">Masking Value</div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={fields} for:item="field" for:index="fIndex">
+                                            <tr style={field.disableFieldCss} class="slds-hint-parent" key={field.fieldName}>
+                                                <td class="slds-cell-wrap" data-label="Field" scope="row">
+                                                    <div class="slds-line-clamp slds-truncate" title="Field">
+                                                        {field.displayLabel}
+                                                        <template if:true={field.formula}>
+                                                            <lightning-button-icon 
+                                                                icon-name="utility:edit"  
+                                                                variant="container" 
+                                                                alternative-text="Edit Formula" 
+                                                                title="Edit Formula"
+                                                                onclick={handleFormulaEditClick}
+                                                                data-findex={fIndex}
+                                                            ></lightning-button-icon>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <td data-label="User Friendly Label">
+                                                    <div title="User Friendly Label">
+                                                        <lightning-input onchange={handleLabelChange} variant="label-hidden"
+                                                            label="Label" name={field.fieldName}
+                                                            value={field.label}></lightning-input>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Send to AI" scope="row" style="width:80px;">
+                                                    <div class="slds-truncate" title="Send to AI">
+                                                        <lightning-input checked={field.sendToAI} type="checkbox"
+                                                            variant="label-hidden" label="Send to AI" data-findex={fIndex}
+                                                            onchange={handleSendToAiChange}></lightning-input>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Masking Scope" scope="row" style="width:80px;">
+                                                    <div class="slds-truncate" title="Masking Scope">
+                                                        <template if:true={field.sendToAI}>
+                                                            <lightning-combobox 
+                                                                name="maskOption" 
+                                                                label="Mask Option" 
+                                                                value={field.selectedMaskingOption}
+                                                                options={field.maskSopeOptions}
+                                                                onchange={handleMaskOption} 
+                                                                variant="label-hidden" 
+                                                                data-findex={fIndex}
+                                                            ></lightning-combobox>
+                                                        </template>
+                                                        <template if:false={field.sendToAI}>
+                                                            <lightning-combobox 
+                                                                name="maskOption" 
+                                                                label="Mask Option" 
+                                                                value={field.selectedMaskingOption}
+                                                                options={field.maskSopeOptions} 
+                                                                variant="label-hidden" 
+                                                                data-findex={fIndex}
+                                                                disabled
+                                                            ></lightning-combobox>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Masking Value" scope="row"> 
+                                                    <div title="Masking Value">
+                                                        <template if:true={field.hasEntireValue}>
+                                                            <lightning-combobox name="progress" label="Status"
+                                                                value={field.anonymizeWith} placeholder="Select Masking Value"
+                                                                options={anonymizeWithOptions} variant="label-hidden"
+                                                                data-findex={fIndex}
+                                                                onchange={handleAnonymizeWithChange}></lightning-combobox>
+                                                        </template>
+                                                        <template if:true={field.isBlank}>
+                                                            <lightning-input type="text" label="Enter some text"
+                                                                variant="label-hidden" placeholder="---None---"
+                                                                disabled></lightning-input>
+                                                        </template>
+                                                        <template if:true={field.hasSpecificValue}>
+                                                            <lightning-input type="text" label="Enter some text"
+                                                                variant="label-hidden" placeholder="Masking with Patterns"
+                                                                disabled></lightning-input>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="slds-align_absolute-center" style="height:3rem; background:whitesmoke">
+                        <lightning-button label="Add Formula Field" title="Add Formula Field"
+                            onclick={toggleAddFormulaField} class="slds-var-m-left_x-small"></lightning-button>
+                        <lightning-button label="Add Related Fields" title="Add Related Fields"
+                            onclick={toggleAddRelatedFields} class="slds-var-m-left_x-small"></lightning-button>
+                        <lightning-button label="Quick Save" title="Quick Save" onclick={handleQuickSave}
+                            class="slds-var-m-left_x-small"></lightning-button>
+                        <lightning-button variant="brand" label="Save" title="Save" onclick={handleSave}
+                            class="slds-var-m-left_x-small"></lightning-button>
+                        <lightning-button label="Cancel" title="Cancel" onclick={handleCancel}
+                            class="slds-var-m-left_x-small"></lightning-button>
+                    </div>
+                </template>
+            </template>
+        </div>
+    </div>
+
+    <template if:true={showRelatedFieldsModal}>
+        <template if:true={relatedFieldsData.length}>
+            <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-01"
+                class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__header">
+                        <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Add Related Fields</h1>
+                    </div>
+                    <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                        <template if:true={displaySpinner}>
+                            <div style="height:19rem;position:relative">
+                                <div class="slds-spinner_container">
+                                    <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                                        <span class="slds-assistive-text">Loading</span>
+                                        <div class="slds-spinner__dot-a"></div>
+                                        <div class="slds-spinner__dot-b"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <template if:false={displaySpinner}>
+                            <template for:each={relatedFieldsData} for:item="field">
+                                <div class="slds-p-bottom_x-small" key={field.index}>
+                                    <template if:true={field.selectedValue}>
+                                        <lightning-combobox name="relatedField" label="relatedField"
+                                            placeholder="Select Field" required options={field.options}
+                                            value={field.selectedValue.value} variant="label-hidden"
+                                            data-index={field.index}
+                                            onchange={handleRelatedFieldChange}></lightning-combobox>
+                                    </template>
+                                    <template if:false={field.selectedValue}>
+                                        <lightning-combobox name="relatedField" label="relatedField"
+                                            placeholder="Select Field" required options={field.options}
+                                            variant="label-hidden" data-index={field.index}
+                                            onchange={handleRelatedFieldChange}></lightning-combobox>
+                                    </template>
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                    <div class="slds-modal__footer">
+                        <button class="slds-button slds-button_neutral" aria-label="Cancel and close"
+                            onclick={toggleAddRelatedFields}>Cancel</button>
+                        <button class="slds-button slds-button_brand" onclick={handleRelatedFieldConfirm}>Done</button>
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+        </template>
+    </template>
+
+    <template if:true={showFormulaFieldModal}>
+        <template if:true={formulaFieldData}>
+            <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-01"
+                class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__header">
+                        <h1 id="modal-heading-02" class="slds-modal__title slds-hyphenate">Add Formula Field</h1>
+                    </div>
+                    <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-2">
+                        <template if:true={displaySpinner}>
+                            <div style="height:19rem;position:relative">
+                                <div class="slds-spinner_container">
+                                    <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                                        <span class="slds-assistive-text">Loading</span>
+                                        <div class="slds-spinner__dot-a"></div>
+                                        <div class="slds-spinner__dot-b"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <template if:false={displaySpinner}>
+                            <lightning-input 
+                                onchange={handleFormulaLabelChange} 
+                                variant="label-stacked"
+                                label="Label" 
+                                name={formulaFieldData.label}
+                                required
+                                value={formulaFieldData.label}
+                            ></lightning-input>
+                            <lightning-input 
+                                variant="label-stacked"
+                                label="API Name" 
+                                name={formulaFieldData.apiName}
+                                value={formulaFieldData.apiName}
+                                disabled
+                            ></lightning-input>
+                            <lightning-combobox 
+                                name="returnType" 
+                                label="Return Type" 
+                                required 
+                                options={formulaReturnTypeOptions}         
+                                value={formulaFieldData.returnType} 
+                                variant="label-stacked"
+                                onchange={handleFormulaReturnTypeChange}
+                            ></lightning-combobox>
+                            <lightning-textarea 
+                                variant="label-stacked"
+                                name="formula" 
+                                label="Formula"
+                                value={formulaFieldData.formula}
+                                required
+                                onchange={handleFormulaValueChange} 
+                            ></lightning-textarea>
+                        </template>
+                    </div>
+                    <div class="slds-modal__footer">
+                        <button class="slds-button slds-button_neutral" aria-label="Cancel and close"
+                            onclick={toggleAddFormulaField}>Cancel</button>
+                        <button class="slds-button slds-button_brand" onclick={handleFormulaFieldConfirm}>Done</button>
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+        </template>
+    </template>
+
+</template>

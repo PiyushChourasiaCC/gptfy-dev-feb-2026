@@ -1,0 +1,87 @@
+<template>
+    <!-- Floating Chat Button -->
+    <div class="floating-chat-button" if:false={isChatOpen} onclick={openChat} style={floatingButtonStyle}>
+        <lightning-icon icon-name={chatAvatarIconName} alternative-text="Open Chat" size="medium"></lightning-icon>
+    </div>
+
+    <!-- Chat Panel -->
+    <div class="slds-col chat-panel-container" if:true={isChatOpen} style={chatContainerStyle}>
+        <div class="slds-panel slds-size_large slds-panel_docked slds-panel_docked-right slds-is-open chat-panel-wrapper">
+            <!-- Panel Header -->
+            <div class="slds-panel__header chat-header">
+                <template if:true={showSpinner}>
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </template>
+
+                <div class="slds-panel__header-title slds-text-heading_small slds-truncate" if:true={multiAgentFlag}>
+                    <span onclick={toggleDropdown} style={chatAgentNameStyle}>{selectedAgent}</span>
+                    <span class="dropdown-arrow" >&#9662;</span>
+                </div>
+                <div class="slds-panel__header-title slds-text-heading_small slds-truncate" if:false={multiAgentFlag}>
+                    <span style={chatAgentNameStyle}>{selectedAgent}</span>
+                </div>
+
+                <template if:true={open}>
+                    <div class="overlay" onclick={handleOverlayClick}></div>
+                    <section class="agent-tooltip" style={selectDialogBackgroundColor}>
+                        <button class="close-btn" onclick={closeTooltip} title="Close">&times;</button>
+                        <h2 class="title" style={chatAgentNameStyle}>Select Agent</h2>
+                        <div class="agent-list">
+                            <template for:each={agents} for:item="agent">
+                                <label class="agent-option" key={agent.value}>
+                                    <input
+                                        type="radio"
+                                        name={agent.label}
+                                        value={agent.value}
+                                        checked={agent.selected}
+                                        onchange={handleSelection}
+                                    />
+                                    <span class="agent-label" style={chatAgentNameStyle}>{agent.label}</span>
+                                </label>
+                            </template>
+                        </div>
+                        <div class="button-row">
+                            <button class="select-btn" style={selectDialogButtonStyle} onclick={handleSelect}>Select</button>
+                        </div>
+                    </section>
+                </template>
+
+                <div class="slds-panel__header-actions">
+                    <div class="slds-p-right_x-small" if:false={aiResponseName}>
+                        <button class="slds-button slds-button_icon slds-button_icon-small slds-panel__close actionButton" 
+                                title="Close Chat" onclick={endChat}>
+                            <lightning-icon icon-name="utility:close" alternative-text="Close Chat" variant="bare" 
+                                        title="Close Chat" size="x-small"></lightning-icon>
+                            <span class="slds-assistive-text">Close chat</span>
+                        </button>
+                    </div>
+                    <div>
+                        <button class="slds-button slds-button_icon slds-button_icon-small slds-panel__close actionButton" 
+                                title="Minimize Chat" onclick={closeChat}>
+                            <lightning-icon icon-name="utility:minimize_window" alternative-text="Minimize Chat" variant="bare" 
+                                        title="Minimize" size="x-small"></lightning-icon>
+                            <span class="slds-assistive-text">Minimize Chat</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Clean Panel Body - No conflicting styles -->
+            <div class="slds-panel__body chat-body-container" lwc:ref="panelBody">
+                <c-a-i-agentic-chat-portal 
+                    data-id="agentic-chat"
+                    response={aiResponse}
+                    container-height={availableHeight}
+                    record-id={currentRecordId}
+                    object-api-name={currentObjectApiName}
+                    agent-info={agentInfo}
+                    ai-response-name={aiResponseName}
+                    onchangeagent={handleChangeAgent}
+                    gptfylogo={gptfylogo}
+                    ai-settings={aiSettings}
+                    theme-config={themeConfig}>
+                </c-a-i-agentic-chat-portal>
+            </div>
+        </div>
+    </div>
+</template>

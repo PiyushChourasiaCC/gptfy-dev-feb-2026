@@ -1,0 +1,80 @@
+<template>
+    <div class="slds-col chat-panel-container" if:true={selectedAgent}>
+        <div class="slds-panel slds-size_large slds-panel_docked slds-panel_docked-right slds-is-open chat-panel-wrapper">
+            <!-- Panel Header -->
+            <div class="slds-panel__header chat-header">
+                <template if:true={showSpinner}>
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </template>
+                <!-- <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="Chat">
+                    <img src={gptfylogo} alt="gptfylogo" style="height: 20px; width: 22px; margin-left: auto; margin-right: auto; margin-top: -4px;"> &nbsp;GPTfy
+                </h2> -->
+                <div class="slds-panel__header-title slds-text-heading_small slds-truncate" if:true={hasMultipleAgents}>
+                    <span onclick={toggleDropdown}>{selectedAgent}</span>
+                    <span class="dropdown-arrow" >&#9662;</span>
+                </div>
+                <div class="slds-panel__header-title slds-text-heading_small slds-truncate" if:false={hasMultipleAgents}>
+                    <span>{selectedAgent}</span>
+                </div>
+                <template if:true={open}>
+                    <div class="overlay" onclick={handleOverlayClick}></div>
+                    <section class="agent-tooltip">
+                        <button class="close-btn" onclick={closeTooltip} title="Close">&times;</button>
+                        <h2 class="title">Select Agent</h2>
+                        <div class="agent-list">
+                            <template for:each={agents} for:item="agent">
+                                <label class="agent-option" key={agent.value}>
+                                    <input
+                                        type="radio"
+                                        name={agent.label}
+                                        value={agent.value}
+                                        checked={agent.selected}
+                                        onchange={handleSelection}
+                                    />
+                                    <span class="agent-label">{agent.label}</span>
+                                </label>
+                            </template>
+                        </div>
+                        <div class="button-row">
+                            <button class="select-btn" onclick={handleSelect}>Select</button>
+                        </div>
+                    </section>
+                </template>
+                <div class="slds-panel__header-actions">
+                    <div class="slds-p-right_x-small" if:false={aiResponseName}>
+                        <button class="slds-button slds-button_icon slds-button_icon-small slds-panel__close actionButton" 
+                                title="End Chat" onclick={endChat}>
+                            <lightning-icon icon-name="utility:end_chat" alternative-text="End Chat" variant="bare" 
+                                        title="End Chat" size="x-small"></lightning-icon>
+                            <span class="slds-assistive-text">End chat</span>
+                        </button>
+                    </div>
+                    <div>
+                        <button class="slds-button slds-button_icon slds-button_icon-small slds-panel__close actionButton" 
+                                title="Close Chat" onclick={closeChat}>
+                            <lightning-icon icon-name="utility:close" alternative-text="Close Chat" variant="bare" 
+                                        title="Close" size="x-small"></lightning-icon>
+                            <span class="slds-assistive-text">Close Chat</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Clean Panel Body - No conflicting styles -->
+            <div class="slds-panel__body chat-body-container" lwc:ref="panelBody">
+                <c-a-i-agentic-chat 
+                    data-id="agentic-chat"
+                    response={aiResponse}
+                    container-height={availableHeight}
+                    record-id={currentRecordId}
+                    object-api-name={currentObjectApiName}
+                    agent-info={agentInfo}
+                    ai-response-name={aiResponseName}
+                    onchangeagent={handleChangeAgent}
+                    gptfylogo={gptfylogo}
+                    ai-settings={aiSettings}>
+                </c-a-i-agentic-chat>
+            </div>
+        </div>
+    </div>
+</template>

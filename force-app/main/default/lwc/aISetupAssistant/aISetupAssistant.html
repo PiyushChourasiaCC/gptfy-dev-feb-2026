@@ -1,0 +1,385 @@
+<template>
+
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template if:false={showSpinner}>
+        <article class="slds-card">
+            <div class="slds-card__body slds-card__body_inner">
+
+                <template if:true={permissionAssignmentMissing}>
+                    <div class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_small" role="alert">
+                        <span class="slds-assistive-text">warning</span>
+                        <h2 style="color: white; font-weight:bold;">
+                            Permission Set 'GPTfy Admin' assignment is needed to start the Setup process. Click  <a style="color: white; font-weight:bold;" href={permissionSetAssignmentUrl} target="_blank">here</a> to assign the Permission Set
+                        </h2>
+                    </div>
+                </template>
+
+                <template if:false={permissionAssignmentMissing}>
+
+                    <div class="slds-trial-header slds-grid slds-m-bottom_medium">
+                        <div class="slds-grid" style="align-items:center;">
+                            Launch your AI in few minutes 🚀
+                        </div>
+                        <div class="slds-grid slds-grid_vertical-align-center slds-col_bump-left">
+                            <span class="slds-box slds-box_xx-small slds-theme_default">{pendingTime}</span>
+                            <span class="slds-m-horizontal_x-small">Minutes to take off</span>
+                        </div>
+                    </div>
+    
+                    <lightning-progress-indicator current-step={currentStep} type="path" variant="base" >
+                        <lightning-progress-step label="Set AI Goals" value="1"></lightning-progress-step>
+                        <lightning-progress-step label="Review Data Readiness" value="2"></lightning-progress-step>
+                        <lightning-progress-step label="Update Lightning Pages" value="3"></lightning-progress-step>
+                        <lightning-progress-step label="Take Off" value="4"></lightning-progress-step>
+                    </lightning-progress-indicator>
+    
+                    <template if:true={showStep1}>
+                        <template if:true={promptOptions}>
+                            <p class="slds-m-top_medium">Select AI Use Cases to enable for your Org</p>
+                            <br>
+                            <div class="slds-grid slds-wrap">
+                                <template for:each={promptOptions} for:item="pmt" for:index="i">
+                                    <div class="slds-col slds-size_1-of-3 slds-p-around_xxx-small" key={pmt.id}>
+                                        <span >
+                                            <div class="slds-box slds-box_link slds-box_x-small slds-media"  style="max-height: 9rem; min-height: 9rem;">
+                                                <div class="slds-media__figure slds-media__figure_fixed-width slds-align_absolute-center slds-m-left_xx-small" style="width: 9%;">
+                                                    <span class="slds-icon_container slds-icon-utility-knowledge_base" data-index={i} onclick={handlePromptSelect}>
+                                                        <lightning-icon 
+                                                            icon-name={pmt.iconName}
+                                                            title={pmt.name} 
+                                                            size="large" 
+                                                            data-index={i}
+                                                        ></lightning-icon>
+                                                    </span>
+                                                </div>
+                                                <div class="slds-media__body slds-border_left slds-p-around_x-small" style="position:relative;min-height: 8rem;" data-index={i} onclick={handlePromptSelect}>
+                                                    <template if:true={pmt.selected}>
+                                                        <span style="position: absolute; top: 0; right: 0; font-size: 9px;">
+                                                            <lightning-icon 
+                                                                icon-name="utility:check"
+                                                                alternative-text={pmt.name} 
+                                                                title={pmt.name} 
+                                                                size="small"
+                                                                variant="success"
+                                                            ></lightning-icon>
+                                                        </span>
+                                                    </template>
+                                                    <h2 class="slds-truncate slds-text-heading_small" title={pmt.name} data-index={i}>
+                                                        {pmt.name}
+                                                    </h2>
+                                                    <p class="slds-m-top_small" data-index={i}>
+                                                        {pmt.description}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </span>
+                                    </div>
+                                </template>
+                            </div>
+                            <div style="height: 3rem;"></div>
+                            <div class="slds-docked-form-footer">
+                                <lightning-button 
+                                    label="Reset" 
+                                    title="Reset" 
+                                    onclick={connectedCallback} 
+                                    class="slds-m-left_x-small"
+                                ></lightning-button>
+                                <lightning-button 
+                                    variant="brand" 
+                                    label="Next" 
+                                    title="Next" 
+                                    onclick={handleStep1Next} 
+                                    icon-name="utility:chevronright"
+                                    icon-position="right"
+                                    class="slds-m-left_x-small"
+                                ></lightning-button>
+                            </div>
+                        </template>
+                    </template>
+    
+                    <template if:true={showStep2}>
+                        <div class="slds-m-top_medium">
+                            <p>Run Data Readiness review to ensure that AI will work correctly in your org.</p>
+                            <div class="slds-col_bump-right slds-p-vertical_x-small">
+                                <lightning-button 
+                                    variant="brand" 
+                                    label="Run Review" 
+                                    title="Run Review" 
+                                    onclick={handleRunDataReview}
+                                    class="slds-m-left_x-small"
+                                ></lightning-button>
+                                <lightning-button 
+                                    label="Skip" 
+                                    title="Skip" 
+                                    onclick={handleRunDataComplete}
+                                    class="slds-m-left_x-small"
+                                ></lightning-button>
+                            </div>
+    
+                            <template if:true={selectedPrompts}>
+                                <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                                    <tbody>
+                                        <template for:each={selectedPrompts} for:item="pmt" for:index="i">
+                                            <tr class="slds-hint-parent" key={pmt.id}>
+                                                <td data-label="Status" style="width: 40px;">
+                                                    <div class="slds-truncate" title="Status">
+                                                        <template if:true={pmt.candidateId}>
+                                                            <lightning-icon 
+                                                                icon-name="utility:success"
+                                                                alternative-text="Record Found Successfully"
+                                                                title="Record Found Successfully" 
+                                                                size="small"
+                                                                variant="success"
+                                                            ></lightning-icon>
+                                                        </template>
+                                                        <template if:false={pmt.candidateId}>
+                                                            <template if:true={pmt.noRecordFound}>
+                                                                <lightning-icon 
+                                                                    icon-name="utility:error"
+                                                                    alternative-text="No Record Found"
+                                                                    title="No Record Found" 
+                                                                    size="small"
+                                                                    variant="error"
+                                                                ></lightning-icon>
+                                                            </template>
+                                                            <template if:false={pmt.noRecordFound}>
+                                                                <template if:true={isReviewRunning}>
+                                                                    <div class="spinner"></div>
+                                                                </template>
+                                                                <template if:false={isReviewRunning}>
+                                                                    <lightning-icon 
+                                                                        icon-name="utility:choice"
+                                                                        alternative-text="Not Started"
+                                                                        title="Not Started" 
+                                                                        size="small"
+                                                                    ></lightning-icon>
+                                                                </template>
+                                                            </template>
+                                                        </template>
+                                                    </div>
+                                                </td>  
+                                                <td data-label="Prompt Name">
+                                                    <div title="Prompt Name">{pmt.name}</div>
+                                                </td>                                       
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </template>
+                            
+                            <div style="height: 3rem;"></div>
+                            <div class="slds-docked-form-footer">
+                                <lightning-button 
+                                    label="Previous" 
+                                    title="Previous" 
+                                    onclick={handleStep2Previous} 
+                                    icon-name="utility:chevronleft"
+                                    icon-position="left"
+                                    class="slds-m-left_x-small"
+                                ></lightning-button>
+                                <lightning-button 
+                                    variant="brand" 
+                                    label="Next" 
+                                    title="Next" 
+                                    onclick={handleStep2Next} 
+                                    icon-name="utility:chevronright"
+                                    icon-position="right"
+                                    class="slds-m-left_x-small"
+                                ></lightning-button>
+                            </div>
+                        </div>
+                    </template>
+    
+                    <template if:true={showStep3}>
+                        <div class="slds-grid slds-gutters slds-m-top_medium">
+                            <div class="slds-col">
+                                <span>
+    
+                                    <p>Navigate to sample record page, edit page layout and add GPTfy LWC Component under the Highlight Panel.</p>
+                                    <br>
+                                    <p>Save and Activate the Page to verify that you can see the GPTfy Component and the activated Prompts.</p>
+                                    <br>
+    
+                                    <template if:true={selectedObjects}>
+                                        <div class="slds-progress slds-progress_vertical">
+                                            <ol class="slds-progress__list">
+                                                <template for:each={selectedObjects} for:item="obj" for:index="i">
+                                                    <template if:true={obj.isCompleted}>
+                                                        <li class="slds-progress__item slds-is-completed" key={obj.objectName}>
+                                                            <span class="slds-icon_container slds-icon-utility-success slds-progress__marker slds-progress__marker_icon slds-progress__marker_icon-success" title="Complete">
+                                                                <lightning-icon 
+                                                                    icon-name="utility:success"
+                                                                    alternative-text={obj.objectLabel} 
+                                                                    title={obj.objectLabel} 
+                                                                    size="xx-small"
+                                                                    variant="success"
+                                                                ></lightning-icon>
+                                                                <span class="slds-assistive-text">Complete</span>
+                                                            </span>
+                                                            <div class="slds-progress__item_content slds-grid slds-grid_align-spread">
+                                                                {obj.objectLabel} Record Page
+                                                                <div class="slds-col_bump-left">
+                                                                    <lightning-button 
+                                                                        label="Take me there" 
+                                                                        title="Take me there" 
+                                                                        data-objname={obj.objectName}
+                                                                        onclick={handleRecordPageNavigation}
+                                                                        class="slds-m-left_x-small"
+                                                                    ></lightning-button>
+                                                                    <lightning-button-stateful
+                                                                        disabled
+                                                                        class="slds-m-left_x-small"
+                                                                        label-when-off="Mark as Complete"
+                                                                        label-when-on="Mark as Complete"
+                                                                        icon-name-when-off="utility:check"
+                                                                        icon-name-when-on="utility:check"
+                                                                        selected="true">
+                                                                    </lightning-button-stateful>
+                                                                </div>
+                                                            </div>
+                                                        </li>
+                                                    </template>
+                                                    <template if:false={obj.isCompleted}>
+                                                        <li class="slds-progress__item slds-is-active" key={obj.objectName}>
+                                                            <div class="slds-progress__marker">
+                                                                <span class="slds-assistive-text">Active</span>
+                                                            </div>
+                                                            <div class="slds-progress__item_content slds-grid slds-grid_align-spread">
+                                                                {obj.objectLabel} Record Page
+                                                                <div class="slds-col_bump-left">
+                                                                    <lightning-button 
+                                                                        label="Take me there" 
+                                                                        title="Take me there" 
+                                                                        data-objname={obj.objectName}
+                                                                        onclick={handleRecordPageNavigation}
+                                                                        class="slds-m-left_x-small"
+                                                                    ></lightning-button>
+                                                                    <lightning-button-stateful
+                                                                        data-index={i}
+                                                                        onclick={handleMarkAsCompleted}
+                                                                        class="slds-m-left_x-small"
+                                                                        label-when-off="Mark as Complete"
+                                                                        label-when-on="Mark as Complete"
+                                                                        icon-name-when-off="utility:check"
+                                                                        icon-name-when-on="utility:check"
+                                                                    ></lightning-button-stateful>
+                                                                </div>
+                                                            </div>
+                                                        </li>
+                                                    </template>
+                                                </template>
+                                            </ol>
+                                        </div>
+                                    </template>
+                                </span>
+                            </div>
+                            <div class="slds-col">
+                                <span>
+                                    <img 
+                                        style="max-height: 500px" 
+                                        alt="How to Edit Record Page" 
+                                        src={editRecordPageImageUrl}
+                                    />
+                                </span>
+                            </div>
+                        </div>
+    
+                        <div style="height: 3rem;"></div>
+                        <div class="slds-docked-form-footer">
+                            <lightning-button 
+                                label="Previous" 
+                                title="Previous" 
+                                onclick={handleStep3Previous} 
+                                icon-name="utility:chevronleft"
+                                icon-position="left"
+                                class="slds-m-left_x-small"
+                            ></lightning-button>
+                            <lightning-button 
+                                variant="brand" 
+                                label="Next" 
+                                title="Next" 
+                                onclick={handleStep3Next} 
+                                icon-name="utility:chevronright"
+                                icon-position="right"
+                                class="slds-m-left_x-small"
+                            ></lightning-button>
+                        </div>
+    
+                    </template>
+    
+                    <template if:true={showStep4}>
+                        <template if:true={selectedPrompts}>
+                            <div class="slds-grid slds-wrap slds-m-top_medium">
+                                <template for:each={selectedPrompts} for:item="pmt" for:index="i">
+                                    <div class="slds-col slds-size_1-of-3 slds-p-around_xxx-small" key={pmt.id}>
+                                        <span >
+                                            <div class="slds-box slds-box_link slds-box_x-small slds-media"  style="max-height: 9rem; min-height: 9rem;">
+                                                <div class="slds-media__figure slds-media__figure_fixed-width slds-align_absolute-center slds-m-left_xx-small" style="width: 9%;">
+                                                    <span class="slds-icon_container slds-icon-utility-knowledge_base">
+                                                        <lightning-icon 
+                                                            icon-name={pmt.iconName}
+                                                            title={pmt.name} 
+                                                            size="large" 
+                                                            data-index={i}
+                                                        ></lightning-icon>
+                                                    </span>
+                                                </div>
+                                                <div class="slds-media__body slds-border_left slds-p-around_x-small" style="position:relative;min-height: 8rem;">
+                                                    <h2 class="slds-truncate slds-text-heading_small" title={pmt.name}>
+                                                        {pmt.name}
+                                                    </h2>
+                                                    <p class="slds-m-top_small">
+                                                        {pmt.description}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-3 slds-align_absolute-center" key={pmt.id}>
+                                        <lightning-button 
+                                            variant="brand" 
+                                            label="Launch Now" 
+                                            title="Launch Now" 
+                                            data-id={pmt.candidateId}
+                                            data-objname={pmt.objectName}
+                                            onclick={handleLaunchClick} 
+                                            icon-name="utility:setup_assistant_guide"
+                                            icon-position="right"
+                                            class="slds-m-left_x-small"
+                                        ></lightning-button>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-3" key={pmt.id}></div>
+                                </template>
+                            </div>
+                        </template>
+                        <div style="height: 3rem;"></div>
+                        <div class="slds-docked-form-footer">
+                            <lightning-button 
+                                label="Previous" 
+                                title="Previous" 
+                                onclick={handleStep4Previous} 
+                                icon-name="utility:chevronleft"
+                                icon-position="left"
+                                class="slds-m-left_x-small"
+                            ></lightning-button>
+                        </div>
+    
+                    </template>
+                </template>
+
+            </div>
+        </article>
+    </template>
+
+</template>

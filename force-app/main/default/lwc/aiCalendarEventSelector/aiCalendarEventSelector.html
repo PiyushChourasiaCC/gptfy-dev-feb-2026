@@ -1,0 +1,258 @@
+<template>
+    <div class="calendar-container">
+        <!-- No Provider Enabled Message -->
+        <template if:true={showNoProviderMessage}>
+            <div class="no-provider-state">
+                <div class="no-provider-content">
+                    <div class="no-provider-icon">⚙️</div>
+                    <h2>Calendar Sync Not Configured</h2>
+                    <p>Please enable at least one calendar provider (Outlook or Gmail) from:</p>
+                    <p class="settings-path"><strong>AI Settings → Workspace Sync</strong></p>
+                </div>
+            </div>
+        </template>
+        
+        <template if:false={showNoProviderMessage}>
+        <!-- Header Section -->
+        <div class="header-section">
+            <div class="header-content">
+                <div class="title-area">
+                    <h1 class="slds-text-heading_medium">
+                        <img src={logoUrl} alt="GPTfy" class="gptfy-logo" onerror={handleLogoError} />
+                        {calendarTitle}
+                    </h1>
+                </div>
+                <div class="stats-area">
+                    <div class="stat-card">
+                        <span class="stat-value">{totalEventsDisplay}</span>
+                        <span class="stat-label">Events</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <template if:true={isCalendarAccessible}>
+            <div class="main-content">
+                <!-- Toolbar -->
+                <div class="toolbar">
+                    <div class="search-container">
+                        <lightning-icon icon-name="utility:search" size="x-small" class="search-icon"></lightning-icon>
+                        <input type="text" placeholder="Search events..." value={searchKey} oninput={handleSearch} class="search-input" />
+                    </div>
+                    <div class="filters-container">
+                        <button class={past7DaysFilterClass} onclick={handleRangeChange} data-range="past7Days">
+                            📅 Past 7 Days
+                        </button>
+                        <button class={thisWeekFilterClass} onclick={handleRangeChange} data-range="thisWeek">
+                            📆 This Week
+                        </button>
+                        <button class={nextWeekFilterClass} onclick={handleRangeChange} data-range="nextWeek">
+                            🗓️ Next Week
+                        </button>
+                        <button class={thisMonthFilterClass} onclick={handleRangeChange} data-range="thisMonth">
+                            📋 This Month
+                        </button>
+                        <button class={allEventsFilterClass} onclick={handleRangeChange} data-range="allEvents">
+                            📊 All Events
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <template if:true={showProviderSwitch}>
+                            <div class="provider-switch" title="Switch calendar provider">
+                                <button class={outlookSwitchClass} onclick={handleProviderSwitch} data-provider="MICROSOFT_CALENDAR">
+                                    <span class="provider-icon outlook-icon">O</span>
+                                    Outlook
+                                </button>
+                                <button class={gmailSwitchClass} onclick={handleProviderSwitch} data-provider="GOOGLE_CALENDAR">
+                                    <span class="provider-icon gmail-icon">G</span>
+                                    Google
+                                </button>
+                            </div>
+                        </template>
+                        <button class="refresh-btn" onclick={handleRefresh} title="Refresh Calendar" disabled={isLoading}>
+                            <span class="refresh-icon">🔄</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Event List -->
+                <div class="event-list-container">
+                    <template if:true={isLoading}>
+                        <div class="spinner-container">
+                            <div class="spinner-large"></div>
+                            <p class="loading-text">Loading your calendar events...</p>
+                        </div>
+                    </template>
+
+                    <template if:false={isLoading}>
+                        <template if:true={hasEvents}>
+                            <div class="event-table">
+                                <template for:each={events} for:item="event">
+                                    <div key={event.eventId} class={event.rowClass} onclick={handleRowClick} data-event-id={event.eventId}>
+                                        <div class="col-checkbox">
+                                            <input type="checkbox" checked={event.selected} onclick={handleCheckboxClick} data-event-id={event.eventId} disabled={event.isImported} />
+                                        </div>
+                                        <div class="col-avatar">
+                                            <div class="avatar" style={event.avatarStyle}>
+                                                {event.initials}
+                                            </div>
+                                        </div>
+                                        <div class="col-content">
+                                            <div class="subject-line">
+                                                <span class="subject-text">{event.subject}</span>
+                                                <template if:true={event.isImported}>
+                                                    <span class="badge imported">✓ Imported</span>
+                                                </template>
+                                                <template if:true={event.isAllDay}>
+                                                    <span class="badge allday">All Day</span>
+                                                </template>
+                                                <template if:true={event.hasAttendees}>
+                                                    <span class="badge attendees">👥 {event.attendeeCount}</span>
+                                                </template>
+                                            </div>
+                                            <div class="preview-text">
+                                                <template if:true={event.location}>
+                                                    📍 {event.location}
+                                                </template>
+                                                <template if:true={event.attendeeEmails}>
+                                                    <template if:true={event.location}> • </template>
+                                                    {event.attendeeEmails}
+                                                </template>
+                                            </div>
+                                            <!-- Association Badges - Linked record pills -->
+                                            <template if:true={event.hasMultipleLinkedRecords}>
+                                                <div class="association-badges">
+                                                    <template for:each={event.linkedRecordsFormatted} for:item="lr">
+                                                        <span key={lr.key} 
+                                                              class={lr.badgeClass}
+                                                              data-record-id={lr.recordId}
+                                                              data-record-type={lr.recordType}
+                                                              onclick={handleBadgeClick}
+                                                              title="Click to open {lr.recordType}"
+                                                              style="cursor: pointer;">{lr.recordName}</span>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                            <!-- Fallback to single badge (for backwards compatibility) -->
+                                            <template if:false={event.hasMultipleLinkedRecords}>
+                                                <template if:true={event.linkedBadgeLabel}>
+                                                    <div class="association-badges">
+                                                        <span class={event.linkedBadgeClass}
+                                                              data-record-id={event.linkedRecordId}
+                                                              data-record-type={event.linkedRecordType}
+                                                              onclick={handleBadgeClick}
+                                                              title="Click to open {event.linkedRecordType}"
+                                                              style="cursor: pointer;">{event.linkedBadgeLabel}</span>
+                                                    </div>
+                                                </template>
+                                            </template>
+                                            <template if:true={event.meetingLink}>
+                                                <div class="meeting-link-row">
+                                                    <a href={event.meetingLink} target="_blank" onclick={handleMeetingLinkClick}>🎥 Join Meeting</a>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <div class="col-time">{event.formattedTime}</div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Pagination - only show when there are events -->
+                            <div class="pagination">
+                                <div class="page-info">Showing {pageStart}-{pageEnd} of {totalEventsDisplay} events</div>
+                                <div class="page-controls">
+                                    <button disabled={isPreviousDisabled} onclick={handlePreviousPage}>← Previous</button>
+                                    <button disabled={isNextDisabled} onclick={handleNextPage}>Next →</button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template if:false={hasEvents}>
+                            <div class="empty-state">
+                                <div class="empty-icon">📅</div>
+                                <h3>No Events Found</h3>
+                                <p>No calendar events found for the selected date range.</p>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Floating Selection Bar -->
+            <div class={selectionBarClass}>
+                <div class="selection-content">
+                    <div class="selection-count">
+                        <span class="count-number">{selectedCount}</span>
+                        <span class="count-label">events selected</span>
+                    </div>
+                    <div class="selection-actions">
+                        <button class="import-btn" onclick={handleImportSelected} disabled={isImporting}>
+                            🚀 Import Selected
+                        </button>
+                        <button class="clear-btn" onclick={handleClearSelection}>Clear</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Not Accessible State -->
+        <template if:false={isCalendarAccessible}>
+            <!-- Loading state when checking access -->
+            <template if:true={isLoading}>
+                <div class="loading-access-state">
+                    <div class="spinner-large"></div>
+                    <p class="loading-text">Checking calendar access...</p>
+                </div>
+            </template>
+            <template if:false={isLoading}>
+                <div class="not-accessible-state">
+                    <!-- Provider Switch in not-accessible state -->
+                    <template if:true={showProviderSwitch}>
+                        <div class="provider-switch-large" title="Switch calendar provider">
+                            <button class={outlookSwitchClass} onclick={handleProviderSwitch} data-provider="MICROSOFT_CALENDAR">
+                                <span class="provider-icon outlook-icon">O</span>
+                                Outlook
+                            </button>
+                            <button class={gmailSwitchClass} onclick={handleProviderSwitch} data-provider="GOOGLE_CALENDAR">
+                                <span class="provider-icon gmail-icon">G</span>
+                                Google
+                            </button>
+                        </div>
+                    </template>
+                    <div class="lock-icon">🔒</div>
+                    <h2>Calendar Access Required</h2>
+                    <p>{notAccessibleMessage}</p>
+                    <div class="action-buttons">
+                        <button class="retry-connection-btn" onclick={handleRetryConnection} title="Refresh connection without leaving this page">
+                            🔄 Refresh Connection
+                        </button>
+                        <a href={authenticationSettingsUrl} class="auth-link">🔐 Connect Calendar</a>
+                    </div>
+                </div>
+            </template>
+        </template>
+        </template>
+
+        <!-- Import Progress Overlay -->
+        <div class={loadingOverlayClass}>
+            <div class="overlay-content">
+                <div class="spinner-large"></div>
+                <h2 class="overlay-title">✨ Importing Events...</h2>
+                <p class="overlay-subtext">Creating Salesforce Event records with smart matching</p>
+            </div>
+        </div>
+
+        <!-- Quick Match Modal -->
+        <template if:true={showQuickMatchModal}>
+            <c-ai-auto-record-matching-modal
+                source-type="CALENDAR"
+                provider-type={selectedProvider}
+                items={modalItems}
+                connected-account-email={calendarEmail}
+                onclose={handleCloseModal}
+                onsuccess={handleModalSuccess}
+                onerror={handleModalError}>
+            </c-ai-auto-record-matching-modal>
+        </template>
+    </div>
+</template>

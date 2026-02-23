@@ -1,0 +1,52 @@
+<template>
+    <template lwc:if={error}>
+        <div class="slds-box slds-theme_error">
+            <div class="slds-grid slds-grid_align-center">
+                <div class="slds-col">
+                    <p class="slds-text-heading_small">
+                        <lightning-icon icon-name="utility:error" alternative-text="Error" variant="inverse" size="small"></lightning-icon>
+                        <span class="slds-p-around_small">{error}</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template lwc:if={objectName}>
+        <lightning-layout>
+            <lightning-layout-item size="3">
+                <lightning-record-picker 
+                    label="Select Record"
+                    placeholder="Search Record..."
+                    object-api-name={objectName}
+                    onchange={handlerRecordPicker}
+                    value={targetobjectRecordId}>
+                </lightning-record-picker>
+            </lightning-layout-item>
+            <lightning-layout-item size="1" class="slds-p-top_large">
+                <template lwc:if={disableButton}>
+                    <div style="display:flex;height: 32px;align-self: end; margin-bottom:2px;" class="slds-button slds-button_brand slds-var-m-left_x-small" disabled={disableButton}>
+                       <img class="slds-button__icon slds-button__icon_left" src={gptfylogo} alt="gptfylogo" style="width: 20px; height: 20px;">
+                       Run GPTfy
+                    </div>
+                </template>
+                <template lwc:else>
+                    <div style="display:flex;height: 32px;align-self: end; margin-bottom:2px;" class="slds-button slds-button_brand slds-var-m-left_x-small" onclick={initiateCanvas} >
+                        <img class="slds-button__icon slds-button__icon_left" src={gptfylogo} alt="gptfylogo" style="width: 20px; height: 20px;">
+                        Run GPTfy
+                    </div>
+                </template>
+            </lightning-layout-item>
+        </lightning-layout>
+    </template>
+    <template lwc:if={validRecord}>
+        <lightning-layout class="slds-p-top_large">
+            <lightning-layout-item size="12">
+                <c-a-i-canvas
+                    record-id={targetobjectRecordId}
+                    object-api-name={objectName}
+                    canvas-template-id={recordId}>
+                </c-a-i-canvas>
+            </lightning-layout-item>
+        </lightning-layout>  
+    </template>
+</template>

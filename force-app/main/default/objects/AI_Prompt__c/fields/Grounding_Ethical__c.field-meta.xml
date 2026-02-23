@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Grounding_Ethical__c</fullName>
+    <inlineHelpText>This category emphasizes ethical and safe communication. It focuses on producing respectful and responsible content, ensuring truthfulness, and avoiding any offensive or misleading information. It also prioritizes protecting individuals from physical, psychological, or informational harm. These guidelines advocate for dignified, conscientious communication, blending ethical principles with a commitment to safety and security in all interactions.</inlineHelpText>
+    <label>Grounding - Ethical</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Avoid using emotive language.</fullName>
+                <default>false</default>
+                <label>Avoid using emotive language.</label>
+            </value>
+            <value>
+                <fullName>Do not exaggerate.</fullName>
+                <default>false</default>
+                <label>Do not exaggerate.</label>
+            </value>
+            <value>
+                <fullName>Do not generate content that can be deemed offensive or inappropriate.</fullName>
+                <default>false</default>
+                <label>Do not generate content that can be deemed offensive or inappropriate.</label>
+            </value>
+            <value>
+                <fullName>Do not hallucinate.</fullName>
+                <default>false</default>
+                <label>Do not hallucinate.</label>
+            </value>
+            <value>
+                <fullName>Do not use scare tactics.</fullName>
+                <default>false</default>
+                <label>Do not use scare tactics.</label>
+            </value>
+            <value>
+                <fullName>Prioritize safety and ethical considerations in your answers.</fullName>
+                <default>false</default>
+                <label>Prioritize safety and ethical considerations in your answers.</label>
+            </value>
+            <value>
+                <fullName>Your response must be based on the information provided in the prompt.</fullName>
+                <default>false</default>
+                <label>Your response must be based on the information provided in the prompt.</label>
+            </value>
+            <value>
+                <fullName>Use data from the provided JSON, linked by 18-digit IDs</fullName>
+                <default>false</default>
+                <label>Use data from the provided JSON, linked by 18-digit IDs</label>
+            </value>
+            <value>
+                <fullName>Task summary must always include names and titles of people involved</fullName>
+                <default>false</default>
+                <label>Task summary must always include names and titles of people involved</label>
+            </value>
+            <value>
+                <fullName>Write summaries in third person and condense key points.</fullName>
+                <default>false</default>
+                <label>Write summaries in third person and condense key points.</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+    <visibleLines>4</visibleLines>
+</CustomField>

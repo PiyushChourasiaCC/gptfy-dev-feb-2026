@@ -1,0 +1,28 @@
+<template>
+    <template if:true={fieldOptions}>
+        <template if:true={fieldOptions.length}>
+            <template if:true={readOnly}>
+                <p class="slds-p-left_xx-small slds-p-bottom_xx-small" style="color: #444444;">{fieldLabel}</p>
+                <template if:true={selectedValue}>
+                    <p class="slds-p-left_xx-small slds-p-right_xx-small"  style="padding-bottom:10px;">{selectedValue}</p>   
+                </template>
+                <template if:false={selectedValue}>
+                    <div style="padding-bottom:30px;"></div>
+                </template>
+            </template>
+            <template if:false={readOnly}>
+                <div class="slds-p-left_xx-small slds-p-right_xx-small">
+                    <lightning-combobox
+                        name={fieldLabel}
+                        label={fieldLabel}
+                        value={selectedValue}
+                        placeholder="Select Option"
+                        options={fieldOptions}
+                        onchange={handleFieldChange}
+                        required={required}
+                    ></lightning-combobox>
+                </div>
+            </template>
+        </template>
+    </template>
+</template>

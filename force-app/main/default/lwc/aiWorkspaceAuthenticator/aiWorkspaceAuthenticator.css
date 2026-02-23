@@ -1,0 +1,563 @@
+/* ==================== CONTAINER ==================== */
+.workspace-auth-container {
+    width: 100%;
+    padding: 0;
+    background: white;
+    min-height: 400px;
+}
+
+/* ==================== LOADING STATE ==================== */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 4rem 2rem;
+    text-align: center;
+    background: white;
+}
+
+.loading-text {
+    margin-top: 1rem;
+    color: #706e6b;
+    font-size: 0.95rem;
+}
+
+/* ==================== NO PROVIDER STATE ==================== */
+.no-provider-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 4rem 2rem;
+    text-align: center;
+    background: white;
+    border-radius: 8px;
+}
+
+.no-provider-content {
+    max-width: 450px;
+}
+
+.no-provider-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+}
+
+.no-provider-state h2 {
+    margin: 0 0 1rem;
+    color: #181818;
+    font-size: 1.25rem;
+}
+
+.no-provider-state p {
+    margin: 0 0 0.5rem;
+    color: #706e6b;
+    font-size: 0.95rem;
+}
+
+.settings-path {
+    margin-top: 1rem !important;
+    padding: 0.75rem 1.5rem;
+    background: #f3f3f3;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+/* ==================== HERO HEADER ==================== */
+.hero-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 0;
+    padding: 1.5rem 2rem;
+    margin-bottom: 0;
+    box-shadow: none;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.branding-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.email-icon-container {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+.email-icon-container lightning-icon {
+    --slds-c-icon-color-foreground-default: #ffffff;
+    --slds-c-icon-color-background: #9678e8;
+}
+
+.header-text h1 {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.custom-toggle-label {
+    color: white;
+}
+
+.header-actions .compact-toggle {
+    margin-bottom: 0;
+}
+
+/* White label styling for toggle */
+.white-label {
+    --slds-c-input-toggle-color-background: white;
+    --slds-c-input-label-color-text: white;
+    --lwc-colorTextLabel: white;
+    --slds-c-input-text-color: white;
+    --lwc-colorText: white;
+    --slds-g-color-neutral-base-100: white;
+    --slds-c-checkbox-label-color-text: white;
+}
+
+.header-actions lightning-input {
+    --slds-c-input-toggle-color-background: white;
+    --slds-c-input-label-color-text: white;
+    --lwc-colorTextLabel: white;
+    --slds-c-input-text-color: white;
+    --lwc-colorText: white;
+    --slds-g-color-neutral-base-100: white;
+    --slds-c-checkbox-label-color-text: white;
+}
+
+/* Force white color on toggle label - using ::part and deep selectors */
+.header-actions lightning-input::part(label) {
+    color: white !important;
+}
+
+/* Force white color on all text elements in header actions */
+.header-actions *,
+.header-actions lightning-input *,
+.header-actions .slds-form-element__label,
+.header-actions .slds-checkbox__label,
+.header-actions label,
+.header-actions span {
+    color: white !important;
+}
+
+/* Additional specificity for label text */
+.header-actions .white-label {
+    color: white !important;
+}
+
+/* ==================== PROVIDER CARDS ==================== */
+.provider-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 1.5rem;
+    margin: 1.5rem;
+    max-width: calc(100% - 3rem);
+}
+
+.provider-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.provider-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* ==================== CARD HEADER ==================== */
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e8ecf1;
+    background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%);
+}
+
+.provider-logo-container {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.outlook-logo {
+    background: #0078D4;
+}
+
+.gmail-logo {
+    background: white;
+}
+
+.provider-letter {
+    font-size: 32px;
+    font-weight: 700;
+    font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+    line-height: 1;
+}
+
+.outlook-logo .provider-letter {
+    color: white;
+}
+
+.gmail-g {
+    background: linear-gradient(135deg, #4285F4 25%, #EA4335 25%, #EA4335 50%, #FBBC04 50%, #FBBC04 75%, #34A853 75%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-family: 'Product Sans', 'Roboto', Arial, sans-serif;
+}
+
+.provider-info {
+    flex: 1;
+}
+
+.provider-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #181818;
+    margin-bottom: 0.25rem;
+}
+
+.provider-subtitle {
+    font-size: 0.875rem;
+    color: #706e6b;
+}
+
+.connection-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.connection-badge.connected {
+    background: #d4edda;
+    color: #155724;
+}
+
+.connection-badge.disconnected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* ==================== CARD BODY ==================== */
+.card-body {
+    padding: 1.5rem;
+    min-height: 180px;
+    position: relative;
+}
+
+/* Loading overlay - sits on top of content */
+.loading-overlay {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    z-index: 10;
+}
+
+/* Content visibility classes to prevent flicker */
+.content-hidden {
+    visibility: hidden;
+    opacity: 0;
+}
+
+.content-visible {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* ==================== PROFILE SECTION ==================== */
+.profile-section {
+    background: #f8f9fb;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    font-size: 0.938rem;
+    font-weight: 600;
+    color: #181818;
+    margin-bottom: 0.75rem;
+}
+
+.profile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.detail-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #706e6b;
+    min-width: 100px;
+    font-size: 0.875rem;
+}
+
+.detail-value {
+    color: #181818;
+    font-size: 0.938rem;
+    flex: 1;
+}
+
+/* ==================== ACTION SECTION ==================== */
+.action-section {
+    text-align: center;
+}
+
+.status-message {
+    font-size: 0.938rem;
+    color: #181818;
+    margin-bottom: 1rem;
+}
+
+.button-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.action-button {
+    min-width: 130px;
+}
+
+/* ==================== CONNECT SECTION ==================== */
+.connect-section {
+    text-align: center;
+    padding: 0.5rem 0;
+}
+
+.connect-description {
+    font-size: 0.938rem;
+    color: #3e3e3c;
+    line-height: 1.5;
+    margin-bottom: 1.25rem;
+}
+
+.connect-button {
+    min-width: 200px;
+    height: 44px;
+    font-size: 0.938rem;
+    font-weight: 600;
+}
+
+.config-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    font-size: 0.813rem;
+    color: #856404;
+}
+
+/* ==================== ERROR MESSAGE ==================== */
+.error-message {
+    display: flex;
+    align-items: center;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    color: #721c24;
+    font-size: 0.813rem;
+}
+
+/* ==================== FOOTER INFO ==================== */
+.footer-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 0;
+    padding: 1rem 1.5rem;
+    box-shadow: none;
+    font-size: 0.813rem;
+    color: #3e3e3c;
+    text-align: center;
+    margin: 0;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 1200px) {
+    .provider-cards-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .workspace-auth-container {
+        padding: 1rem;
+    }
+    
+    .hero-header {
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .branding-section {
+        flex-direction: row;
+        align-items: center;
+        text-align: left;
+        width: 100%;
+    }
+    
+    .header-text h1 {
+        font-size: 1.25rem;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .card-header {
+        flex-wrap: wrap;
+        padding: 1rem 1.25rem;
+    }
+    
+    .connection-badge {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .button-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .action-button,
+    .connect-button {
+        width: 100%;
+    }
+    
+    .provider-cards-container {
+        gap: 1rem;
+        grid-template-columns: 1fr;
+    }
+    
+    .card-body {
+        padding: 1.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .workspace-auth-container {
+        padding: 0.75rem;
+    }
+    
+    .hero-header {
+        padding: 1rem 1.25rem;
+    }
+    
+    .provider-title {
+        font-size: 1.125rem;
+    }
+    
+    .email-icon-container {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+    
+    .provider-logo-container {
+        width: 44px;
+        height: 44px;
+    }
+    
+    .provider-letter {
+        font-size: 24px;
+    }
+    
+    .detail-row {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .detail-label {
+        min-width: auto;
+    }
+    
+    .header-text h1 {
+        font-size: 1.125rem;
+    }
+    
+    .header-subtitle {
+        font-size: 0.813rem;
+    }
+}

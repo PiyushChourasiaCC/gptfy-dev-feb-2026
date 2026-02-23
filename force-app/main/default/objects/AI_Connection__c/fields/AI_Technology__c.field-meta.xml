@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Technology__c</fullName>
+    <label>AI Technology</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>AnyAI_AnyPlatform</fullName>
+                <default>false</default>
+                <label>Any AI. Any Platform.</label>
+            </value>
+            <value>
+                <fullName>AWS_Comprehend</fullName>
+                <default>false</default>
+                <label>AWS Comprehend</label>
+            </value>
+            <value>
+                <fullName>BloombergGPT</fullName>
+                <default>false</default>
+                <label>BloombergGPT</label>
+            </value>
+            <value>
+                <fullName>Claude</fullName>
+                <default>false</default>
+                <label>Claude</label>
+            </value>
+            <value>
+                <fullName>Cohere_AI</fullName>
+                <default>false</default>
+                <label>Cohere.AI</label>
+            </value>
+            <value>
+                <fullName>Google_Vertex</fullName>
+                <default>false</default>
+                <label>Google Vertex</label>
+            </value>
+            <value>
+                <fullName>GPTfy</fullName>
+                <default>false</default>
+                <label>GPTfy</label>
+            </value>
+            <value>
+                <fullName>OpenAI_Azure</fullName>
+                <default>false</default>
+                <label>OpenAI / Azure</label>
+            </value>
+            <value>
+                <fullName>OpenAI_ChatGPT</fullName>
+                <default>false</default>
+                <label>OpenAI / ChatGPT</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

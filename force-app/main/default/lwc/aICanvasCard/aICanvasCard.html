@@ -1,0 +1,18 @@
+<template>
+    <template if:true={isLoading}>
+        <div class="slds-text-long-form">
+            <c-a-i-canvas-card-stencil></c-a-i-canvas-card-stencil>
+        </div>
+    </template>
+    
+    <template if:false={isLoading}>
+        <div class="slds-p-horizontal_small slds-p-bottom_small prompt-content slds-p-top_small">
+            <div class="slds-text-long-form">
+                <c-gpt-response 
+                    canvas-config={canvasConfig}
+                    gpt-ans-param={responseContent}>
+                </c-gpt-response>
+            </div>
+        </div>
+    </template>
+</template>

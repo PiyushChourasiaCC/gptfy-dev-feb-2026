@@ -1,0 +1,41 @@
+<template>
+    <template if:true={readOnly}>
+        <p class="slds-p-left_xx-small slds-p-bottom_xx-small" style="color: #444444;">{fieldLabel}</p>
+        <template if:true={visibilityConditionValue}>
+            <p class="slds-p-left_xx-small slds-p-right_xx-small"  style="padding-bottom:10px;">{visibilityConditionValue}</p>  
+        </template>
+        <template if:false={visibilityConditionValue}>
+            <div style="padding-bottom:30px;"></div>
+        </template>
+    </template>
+    <template if:false={readOnly}>
+        <div class="slds-p-left_xx-small slds-p-right_xx-small">
+            <div class="row" style="display:flex;">
+                <div class="column" style="width:88%">
+                    <span>
+                        <lightning-input 
+                            type="text" 
+                            name={fieldLabel}
+                            label={fieldLabel}
+                            value={visibilityConditionValue}
+                            onchange={handleFieldChange}
+                            required={required}
+                        ></lightning-input>
+                    </span>
+                </div>
+                <div class="column" style="width:2%;"></div>
+                <div class="column" style="width:10%; padding-top: 24px;">
+                    <span>
+                        <lightning-button-icon 
+                            icon-name="utility:edit"  
+                            alternative-text="Edit" 
+                            title="Edit" 
+                            onclick={handleOpenVisibilityCondition}
+                        ></lightning-button-icon>
+                    </span>
+                </div>
+            </div>
+
+        </div>
+    </template>
+</template>

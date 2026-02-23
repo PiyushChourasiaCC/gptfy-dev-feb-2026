@@ -1,0 +1,225 @@
+/* ── Host ──────────────────────────────────────────── */
+:host {
+    display: block;
+    background-color: #f3f3f3;
+}
+
+/* ── Page Container ───────────────────────────────── */
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+/* ── Breadcrumb ───────────────────────────────────── */
+.breadcrumb-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0;
+}
+
+.back-icon {
+    --slds-c-button-icon-color-foreground: #706e6b;
+}
+
+.breadcrumb-text {
+    color: #0176d3;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.breadcrumb-text:hover {
+    color: #014486;
+    text-decoration: underline;
+}
+
+.breadcrumb-separator {
+    color: #c9c7c5;
+    font-size: 0.875rem;
+}
+
+.breadcrumb-current {
+    color: #3e3e3c;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+/* ── Header ───────────────────────────────────────── */
+.header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-left h1 {
+    margin: 0;
+    color: #181818;
+    font-weight: 700;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* ── Status Badge ─────────────────────────────────── */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.status-active {
+    background-color: #4bca81;
+    color: #ffffff;
+}
+
+.status-draft {
+    background-color: #e5e5e5;
+    color: #706e6b;
+}
+
+/* ── Sections ─────────────────────────────────────── */
+.section {
+    margin-bottom: 1rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.5rem;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s ease;
+}
+
+.section:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f3f3f3;
+}
+
+.section-icon {
+    flex-shrink: 0;
+}
+
+.section-header h2 {
+    margin: 0;
+    color: #181818;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.section-header-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-count {
+    margin-left: 0.5rem;
+    color: #706e6b;
+    font-size: 0.8125rem;
+    background-color: #f3f3f3;
+    padding: 0.125rem 0.625rem;
+    border-radius: 1rem;
+}
+
+.section-content {
+    background-color: #ffffff;
+}
+
+/* ── Read-only display ────────────────────────────── */
+.read-only-text {
+    min-height: 1.75rem;
+    padding: 0.5rem 0.75rem;
+    background-color: #fafaf9;
+    border-radius: 0.25rem;
+    border: 1px solid #f0f0f0;
+    color: #181818;
+}
+
+.description-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    min-height: 3rem;
+    line-height: 1.6;
+}
+
+/* ── Active toggle alignment ──────────────────────── */
+.active-toggle-col {
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 0.25rem;
+}
+
+/* ── Empty State ──────────────────────────────────── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1rem;
+    gap: 0.75rem;
+}
+
+.empty-icon {
+    --slds-c-icon-color-foreground: #c9c7c5;
+}
+
+/* ── Form Element Labels ──────────────────────────── */
+.slds-form-element__label {
+    font-weight: 600;
+    color: #3e3e3c;
+    font-size: 0.8125rem;
+}
+
+/* ── Datatable ────────────────────────────────────── */
+lightning-datatable {
+    --slds-c-datatable-color-background: #ffffff;
+}
+
+/* ── Focus state overrides ────────────────────────── */
+lightning-input,
+lightning-textarea,
+lightning-combobox {
+    --sds-c-input-shadow-focus: none;
+    --sds-c-input-color-border-focus: #dddbda;
+    --sds-c-textarea-shadow-focus: none;
+    --sds-c-textarea-color-border-focus: #dddbda;
+}
+
+/* ── Responsive ───────────────────────────────────── */
+@media (max-width: 768px) {
+    .header-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .header-actions {
+        width: 100%;
+    }
+}

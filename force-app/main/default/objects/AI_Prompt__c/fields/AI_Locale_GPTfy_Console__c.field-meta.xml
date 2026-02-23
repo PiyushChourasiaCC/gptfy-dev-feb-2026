@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Locale_GPTfy_Console__c</fullName>
+    <inlineHelpText>Set locale for the GPTfy console, affecting date, time, and number formats.
+
+Active User: Uses current user&apos;s locale for a personalized experience.
+Company Default: Applies standard organization locale for consistency.</inlineHelpText>
+    <label>Locale - GPTfy Console</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Active User</fullName>
+                <default>false</default>
+                <label>Active User</label>
+            </value>
+            <value>
+                <fullName>Company Default</fullName>
+                <default>false</default>
+                <label>Company Default</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

@@ -1,0 +1,217 @@
+<template>
+    <div class="slds-card slds-border-none" lwc:if={hasCanvasUser}>
+        <div class="slds-card slds-p-around_medium prompt-canvas">
+            <!-- Title and refresh info -->
+            <div class="slds-grid slds-grid_align-spread slds-m-bottom_medium" lwc:if={showHeader}>
+                <div class="slds-col">
+                    <h2 class="slds-text-heading_medium slds-m-bottom_x-small">
+                        <img class="slds-button__icon slds-button__icon_left slds-logo" src={gptfylogo} alt="gptfylogo">
+                        <strong class="slds-p-left_xxx-small">GPTfy Canvas</strong>
+                    </h2>
+                </div>
+                <div class="slds-col slds-grid slds-grid_align-end slds-grid_vertical-align-center" lwc:if={lastRefreshDate}>
+                    <!-- Refresh info display -->
+                    <div class="slds-grid slds-grid_vertical-align-center slds-m-right_medium">
+                        <div class="slds-text-body_small slds-text-color_weak">
+                            <div>Last refreshed: 
+                                <span class="slds-text-body_small slds-m-left_xx-small">
+                                    <lightning-formatted-date-time 
+                                        value={lastRefreshDate} 
+                                        year="numeric"
+                                        day="2-digit"
+                                        month="short"
+                                        hour="2-digit"
+                                        minute="2-digit"
+                                        time-zone={timeZone}
+                                    ></lightning-formatted-date-time>
+                                </span>
+                            </div>
+                            <div lwc:if={nextRefreshDate}>
+                                Next refresh: 
+                                <span class="slds-text-body_small slds-m-left_xx-small">
+                                    <lightning-formatted-date-time 
+                                        value={nextRefreshDate} 
+                                        year="numeric"
+                                        day="2-digit"
+                                        month="short"
+                                        hour="2-digit"
+                                        minute="2-digit"
+                                        time-zone={timeZone}
+                                    ></lightning-formatted-date-time>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Vertical separator -->
+                    <div class="slds-m-horizontal_small">
+                        <div class="slds-border_left slds-h_100"></div>
+                    </div>
+                    <c-a-i-canvas-action-buttons
+                        record-id={recordId}
+                        settings={buttonComponentSettings}
+                        body-content={canvasBodyContent}
+                        email-action-name={emailActionName}
+                        user-signature={userSignature}
+                        namespace={namespace}
+                        onrefresh={handleRefresh}
+                        onzoomout={handleZoomOut}>
+                    </c-a-i-canvas-action-buttons>
+                </div>
+            </div>
+            
+            <!-- Main loading spinner -->
+            <template if:true={loading}>
+                <div class="slds-notify slds-notify_alert slds-theme_warning" role="alert">
+                    <h2 style="color:white;">
+                        <strong>
+                            {defaultWaitMessage}
+                        </strong>   
+                    </h2>
+                </div>
+            </template>
+            
+            <!-- Prompt content -->
+            <template if:false={loading}>
+                <template if:true={hasCanvasTemplates}>
+                    <!-- Masonry container for dynamic layout -->
+                    <div class="prompt-masonry-container">
+                        <!-- Iterate over prompt items -->
+                        <template for:each={promptElementsArr} for:item="element">
+                            <div key={element.Id} class="prompt-card-wrapper slds-m-bottom_small" 
+                                data-id={element.Id} data-index={element.sequence}>
+                                <div class={element.cardStyle}>
+                                    <!-- Card content with loading state -->
+                                    <div class="slds-is-relative prompt-card-content" data-id={element.Id} onclick={expandCard}>
+                                        <c-a-i-canvas-card 
+                                            record-id={recordId}
+                                            object-api-name={objectApiName}
+                                            canvas-template-component={element}
+                                            canvas-template-prompts={promptDetails}
+                                            parent-a-i-response-id={parentResponseId}
+                                            onmutation={handleCardMutation}
+                                            not-initial-load={notInitialLoad}>
+                                        </c-a-i-canvas-card>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <template if:true={showHowItWorksDocked}>
+                        <div class="slds-col">
+                            <span>
+                                <div class="slds-panel slds-size_large slds-panel_docked slds-panel_docked-right slds-is-open">
+                                    <div class="slds-panel__header">
+                                        <h2 class="slds-panel__header-title slds-text-heading_small slds-truncate" title="How it is Generated?">How it is Generated?</h2>
+                                        <div class="slds-panel__header-actions">
+                                            <button class="slds-button slds-button_icon slds-button_icon-small slds-panel__close" title="Collapse" onclick={handleHowItWorks}>
+                                                <lightning-icon icon-name="utility:close" alternative-text="Collapse" title="Collapse" size="x-small"></lightning-icon>
+                                                <span class="slds-assistive-text">Collapse</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="slds-panel__body" style="max-height: 350px; overflow-y:auto;">
+                                        <lightning-formatted-rich-text
+                                            value={howItWorks}
+                                        ></lightning-formatted-rich-text>
+                                    </div>
+                                </div>
+                            </span>
+                        </div>
+                    </template>
+                </template>
+                <template if:false={hasCanvasTemplates}>
+                    <div>
+                        <lightning-formatted-rich-text value={canvasMessage}></lightning-formatted-rich-text>
+                    </div>
+                </template>
+            </template>
+        </div>
+        <template lwc:if={showFooter}>
+            <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-page-header slds-footer" if:false={loading}>
+                <template if:false={hasAdminUser}>
+                    <div class="slds-col">
+                        <lightning-formatted-text value={gptResponseName}></lightning-formatted-text>
+                    </div>
+                </template>
+                <template if:true={hasAdminUser}>
+                    <div class="slds-col">
+                        <lightning-formatted-url value={gptResponseUrl} label={gptResponseName} target="_blank" ></lightning-formatted-url>
+                    </div>
+                </template>
+                <div class="slds-col slds-text-align_right slds-text-color-gray">
+                    <span class="slds-text-body_small slds-m-right_xx-small">
+                        <template lwc:if={timeSaved}>
+                            <span class="slds-m-right_xx-small">
+                                {timeSaved} seconds Saved&nbsp;|&nbsp; 
+                            </span>
+                        </template>    
+                        <lightning-formatted-date-time 
+                            value={gptResponseDate} 
+                            year="numeric"
+                            day="2-digit"
+                            month="short"
+                            hour="2-digit"
+                            minute="2-digit"
+                            time-zone={timeZone}
+                        ></lightning-formatted-date-time>
+                    </span>
+                    <span>
+                        <template lwc:if={howItWorks}>
+                            <span class="slds-m-right_xx-small" onclick={handleHowItWorks}>
+                                &nbsp;|&nbsp;<a style="color:gray;">How it Works?</a>
+                            </span>
+                        </template>
+                    </span>
+                    <span title={feedbackTitle}>
+                        &nbsp;|&nbsp;
+                        <lightning-button-stateful
+                            label-when-off=""
+                            label-when-on=""
+                            icon-name-when-off="utility:dislike"
+                            icon-name-when-on="utility:dislike"
+                            variant="text"
+                            disabled={dislikeState}
+                            onclick={handleDislikeButtonClick}>
+                        </lightning-button-stateful>
+                    </span>
+                </div>
+            </div>
+        </template>
+    </div>
+    <template if:true={showPopOutContent}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1">
+            <div class="slds-modal__container">
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-8">
+                    <c-gpt-response 
+                        canvas-config={canvasConfig}
+                        gpt-ans-param="">
+                    </c-gpt-response>
+                </div>
+                <div class="slds-modal__footer">
+                    <lightning-button label="Close" title="Close" onclick={handlePopOutContent}></lightning-button>
+                </div>
+            </div>
+        </section>
+    </template>
+    <!-- Expand view modal -->
+    <c-a-i-canvas-modal
+        record-id={recordId}
+        title={expandedCardName}
+        is-open={showExpandModal}
+        body-content={expandedCardContent}
+        last-refresh-date={lastRefreshDate}
+        email-action-name={emailActionName}
+        namespace={namespace}
+        feedback-category-options={picklistWrapper}
+        user-signature={userSignature}
+        onfeedbacksuccess={handleFeedbackCaptured}>
+    </c-a-i-canvas-modal>
+    <template if:true={showFeedbackModal}>
+        <c-a-i--canvas-dislike-modal
+            category-options={picklistWrapper}
+            response-id={parentAIResponse.Id}
+            onopenclose={handleFeedbackOpenClose}
+            onfeedbackcaptured={fireFeedbackCaptured}>
+        </c-a-i--canvas-dislike-modal>
+    </template>
+</template>

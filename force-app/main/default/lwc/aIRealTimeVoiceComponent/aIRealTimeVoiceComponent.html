@@ -1,0 +1,84 @@
+<template>
+    <template if:true={showChat}>
+        <div class="voice-chat-container">
+            <lightning-card title="Voice Assistant">
+                <div class="slds-p-around_medium">
+                    <!-- Chat Messages Section -->
+                    <div class="slds-grid slds-grid_vertical chat-container">
+                        <div class="chat-messages slds-scrollable_y" >
+                            <template for:each={messages} for:item="message">
+                                <div key={message.id} class={message.messageClass}>
+                                    <div class="slds-box slds-theme_default slds-m-around_x-small {message.role}">
+                                        <template if:true={message.gptfy}>
+                                            <span class="slds-icon_container slds-icon-standard-account" title="GPTfy" style="background-color: #0176d3;">
+                                                <img class="slds-button__icon slds-button__icon_left" src={gptfylogo} alt="gptfylogo" style="height: 18px; width: 18px; margin: 4px;">
+                                            </span>
+                                        </template>
+                                        <template if:false={message.gptfy}>
+                                            <p class="slds-text-title_bold">{message.role}</p>
+                                        </template>
+                                        <div>
+                                            <lightning-formatted-rich-text value={message.text}></lightning-formatted-rich-text>
+                                        </div>
+                                        <!-- <template if:true={message.optionsVisible}> -->
+                                            <lightning-datatable 
+                                                    key-field="Id"
+                                                    data={dataTable}
+                                                    columns={columns}
+                                                    onrowaction={handleRowAction}>
+                                                </lightning-datatable>
+                                        <!-- </template> -->
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+    
+                        <!-- Chat Input Section -->
+                        <table>
+                            <tr>
+                                <td style="width: 95%;">
+                                    <lightning-input 
+                                        type="text" 
+                                        placeholder="Type your message here..." 
+                                        value={userInput} 
+                                        onkeypress={userInputChangeHandler}>
+                                    </lightning-input>
+                                </td>
+                                <td style="width: 5%; text-align: center;">
+                                    <lightning-button label="Send" onclick={handleSendClick}>
+                                    </lightning-button>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+    
+                    <!-- Button Section -->
+                    <!-- <div class="slds-col slds-p-top_medium">
+                        <div class="slds-grid slds-grid_align-center">
+                            <lightning-button-group>
+                                <lightning-button 
+                                    label={buttonLabel} 
+                                    variant="brand" 
+                                    onclick={toggleRecording} 
+                                    class="slds-m-right_x-small">
+                                </lightning-button>
+                                <template if:true={isResponding}>
+                                    <lightning-button 
+                                        label="Stop Response" 
+                                        variant="destructive" 
+                                        onclick={stopResponse}>
+                                    </lightning-button>
+                                </template>
+                                <lightning-button 
+                                    label="Reset" 
+                                    variant="destructive" 
+                                    onclick={resetChatAndAudio}>
+                                </lightning-button>
+                            </lightning-button-group>
+                        </div>
+                    </div> -->
+                </div>
+            </lightning-card>
+        </div>
+    </template>
+</template>

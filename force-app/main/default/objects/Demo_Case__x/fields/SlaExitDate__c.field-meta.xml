@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>SlaExitDate__c</fullName>
+    <externalDeveloperName>SlaExitDate</externalDeveloperName>
+    <isFilteringDisabled>false</isFilteringDisabled>
+    <isNameField>false</isNameField>
+    <isSortingDisabled>false</isSortingDisabled>
+    <label>Entitlement Process End Time</label>
+    <readOnlyProxy>true</readOnlyProxy>
+    <required>false</required>
+    <type>DateTime</type>
+</CustomField>

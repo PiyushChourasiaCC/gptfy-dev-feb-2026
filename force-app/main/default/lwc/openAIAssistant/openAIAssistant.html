@@ -1,0 +1,112 @@
+<!-- OpenAI Assistant Chat Interface -->
+<template>
+    <lightning-card title="AI Assistant Chat" icon-name="utility:chat">
+        <div class="slds-p-around_medium">
+            <!-- Chat Messages Container -->
+            <div class="chat-container slds-scrollable">
+                <div class="slds-box slds-theme_default messages-box">
+                    <template for:each={messages} for:item="message">
+                        <div key={message.id} class={message.messageClass}>
+                            <div class="slds-p-around_small message-content">
+                                <lightning-formatted-text
+                                    value={message.content}
+                                    linkify>
+                                </lightning-formatted-text>
+                                <p class="slds-text-body_small slds-text-color_weak timestamp">{message.timestamp}</p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- File Upload Section -->
+            <div class="slds-p-vertical_medium">
+                <!-- Replace lightning-file-upload with a button to open the file selection modal -->
+                <lightning-button
+                    variant="neutral"
+                    label="Select Files from Salesforce"
+                    icon-name="utility:file"
+                    onclick={handleShowFileModal}
+                    disabled={isButtonDisabled}
+                    class="slds-m-bottom_small">
+                </lightning-button>
+                
+                <!-- Uploaded Files List -->
+                <template if:true={uploadedFiles.length}>
+                    <div class="slds-p-top_small">
+                        <div class="slds-text-title">Uploaded Files:</div>
+                        <ul class="slds-has-dividers_bottom-space">
+                            <template for:each={uploadedFiles} for:item="file">
+                                <li key={file.id} class="slds-item slds-p-vertical_x-small">
+                                    <lightning-icon icon-name="doctype:attachment" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                    {file.name}
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Input Section -->
+            <div class="slds-form-element slds-p-top_medium">
+                <div class="slds-form-element__control slds-input-has-icon slds-input-has-icon_right">
+                    <lightning-textarea
+                        name="input"
+                        label="Message"
+                        value={inputMessage}
+                        onchange={handleInputChange}
+                        class="slds-input"
+                        disabled={isuploading}>
+                    </lightning-textarea>
+                </div>
+                <div class="slds-p-top_small slds-text-align_right">
+                    <lightning-button
+                        variant="brand"
+                        label="Send"
+                        onclick={handleSendMessage}
+                        disabled={isButtonDisabled}>
+                    </lightning-button>
+                </div>
+            </div>
+        </div>
+    </lightning-card>
+
+    <!-- File Selection Modal -->
+    <template if:true={showFileModal}>
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseFileModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" variant="inverse" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Select Files</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                    <template if:true={relatedFiles.length}>
+                        <div class="slds-scrollable" style="height: 300px;">
+                            <lightning-datatable
+                                key-field="id"
+                                data={relatedFiles}
+                                columns={columns}
+                                onrowselection={handleFileSelection}
+                                max-row-selection="10"
+                                show-row-number-column>
+                            </lightning-datatable>
+                        </div>
+                    </template>
+                    <template if:false={relatedFiles.length}>
+                        <div class="slds-text-align_center slds-p-around_medium">
+                            No files found for this record.
+                        </div>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" onclick={handleCloseFileModal}>Cancel</button>
+                    <button class="slds-button slds-button_brand" onclick={handleSelectedFilesUpload} disabled={isuploading}>Upload Selected Files</button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

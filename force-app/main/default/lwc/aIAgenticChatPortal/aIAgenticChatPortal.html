@@ -1,0 +1,169 @@
+<!-- aiFileProcessingChat.html -->
+<template>
+    <div>
+        <div class="chat-header" if:false={aiResponseName}>
+            <button class="start-chat-btn" type="button" onclick={handleNewButton} style={startChatButtonStyle}>Start A New Chat</button>
+        </div>
+    </div>
+    <div class={chatContainerCSS} style={containerStyle}>
+        <template if:true={showSpinner}>
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+        </template>
+        <!-- Messages Area - Scrollable -->
+        <div class="chat-messages-area" lwc:ref="messagesContainer" style={chatMessagesAreaStyle}>
+            <div class="chat-messages-list" if:true={chatList.length}>
+                <template for:each={chatList} for:item="c">
+                    <div key={c.question} class="message-item">
+                        <!-- User Messages - Right Aligned -->
+                        <template if:true={c.question}>
+                            <div class="message-wrapper user-message">
+                                <div class="message-content">
+                                    <div class="message-bubble user-bubble" style={userBubbleStyle}>
+                                        <lightning-formatted-rich-text value={c.question}></lightning-formatted-rich-text>
+                                    </div>
+                                </div>
+                                <div class="message-avatar">
+                                    <lightning-avatar 
+                                        src={userPhotoUrl} 
+                                        fallback-icon-name="standard:user"
+                                        alternative-text={userName}
+                                        variant="circle">
+                                    </lightning-avatar>
+                                </div>
+                            </div>
+                        </template>
+                        <!-- AI Messages - Left Aligned /* @JIRA V2-7339 */-->
+                        <template if:true={c.answer}>
+                            <div class="message-wrapper ai-message">
+                                <div class="message-avatar image-bot-avatar" style={botAvatarStyle}>
+                                    <img src={botLogoURL} class="avatar-image" alt="AI" />
+                                </div>
+                                
+                                <div class="message-content">
+                                    <div class="message-bubble ai-bubble" style={botBubbleStyle}>
+                                        <lightning-formatted-rich-text value={c.answer}></lightning-formatted-rich-text>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Typing Indicator -->
+                <template if:true={isInProgress}>
+                    <div class="message-item">
+                        <div class="message-wrapper ai-message">
+                            <!-- /* @JIRA V2-7339 */ -->
+                            <div class="message-avatar image-bot-avatar" style={botAvatarStyle}>
+                                <img src={botLogoURL} class="avatar-image" alt="AI" />
+                            </div>
+                            <div class="message-content">
+                                <div class="message-bubble ai-bubble typing-indicator-bubble" style={botBubbleStyle}>
+                                    <div class="typing-dots">
+                                        <span class="dot" style={typingDotStyle}></span>
+                                        <span class="dot" style={typingDotStyle}></span>
+                                        <span class="dot" style={typingDotStyle}></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="chat-messages-list" if:false={chatList.length}>
+                <!-- /* @JIRA V2-7339 */ -->
+                <div class="empty-state">
+                    <image src={botLogoURL} alt="AI Bot" class="empty-bot-icon"/>
+                    <div class="empty-message" style={emptyMessageStyle}>You're all set. Let's start a new chat!</div>
+                </div>
+            </div>
+        </div>
+       
+        <!-- Input Area - Fixed -->
+            <div class={inputAreaCSS} if:false={expiredChatMessage} style={inputAreaStyle}>
+                <div class="input-container" style={inputFieldStyle}>
+                    <!-- Link Files icon /* @JIRA V2-7339 */-->
+                    <lightning-icon 
+                        icon-name="utility:link" 
+                        alternative-text="Link files" 
+                        size="small"
+                        title="Link files"
+                        class={fileUploadButtonClass}
+                        style={attachmentIconStyle}
+                        onclick={openFileChooser}
+                        if:false={aiResponseName}>
+                    </lightning-icon>
+
+                    <!-- Hidden native file input -->
+                    <input 
+                        type="file" 
+                        multiple 
+                        accept={fileType}
+                        class="slds-hide" 
+                        onchange={handleNativeFiles} 
+                        data-id="nativeFileInput"/>
+                    <lightning-input 
+                        class="message-input"
+                        type="text" 
+                        placeholder="Type your message..." 
+                        variant="label-hidden" 
+                        value={userInput} 
+                        onkeypress={handleKeyPress} 
+                        style={inputFieldStyle}
+                        disabled={isInProgress}>
+                    </lightning-input>
+                    <lightning-icon 
+                        icon-name="utility:send" 
+                        alternative-text="send" 
+                        size="small"
+                        title="send"
+                        class={sendButtonClass}
+                        style={sendIconStyle}
+                        onclick={handleSendbtn}>
+                    </lightning-icon>              
+                </div>
+            </div>
+            <!-- Input Area - Fixed -->
+            <div class="chat-input-area-message" if:true={expiredChatMessage}>
+                <div class="input-container-message">
+                    {expiredChatMessage}
+                </div>
+            </div>
+    </div>
+    <div class="settings-popup" if:true={showSettings}>
+        <lightning-input 
+            data-id="threadId"
+            label="User Context Id"
+            value={userThreadId}
+            class="slds-p-bottom_medium">
+        </lightning-input>
+        <div class="autonav-row slds-m-around_xx-small">
+            <label class="autonav-checkbox">
+              <input
+                type="checkbox"
+                data-id="autonav"
+                checked={tempAutoNavEnabled}
+                onchange={handleAutoNavToggle}
+              />
+              <span class="autonav-label">
+                AutoNav - Navigate To Created Record
+              </span>
+            </label>
+          </div>
+        <div class="slds-float_right">
+            <lightning-button
+                label="Cancel"
+                variant="bare"
+                class="slds-p-right_medium bare-cancel-btn"
+                onclick={closeSettings}>
+            </lightning-button>
+            <lightning-button
+                class="brand-done-btn"
+                label="Done"
+                variant="brand"
+                onclick={handleDone}>
+            </lightning-button>
+        </div>
+      </div>
+      
+</template>

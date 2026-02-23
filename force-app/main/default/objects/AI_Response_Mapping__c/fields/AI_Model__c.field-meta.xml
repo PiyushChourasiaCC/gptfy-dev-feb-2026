@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Model__c</fullName>
+    <label>AI Model</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>OpenAi 3.5-Turbo16K</fullName>
+                <default>true</default>
+                <label>OpenAi 3.5-Turbo16K</label>
+            </value>
+            <value>
+                <fullName>OpenAi 4.0 Turbo</fullName>
+                <default>false</default>
+                <label>OpenAi 4.0 Turbo</label>
+            </value>
+            <value>
+                <fullName>Google Vertex-Palm-Bison</fullName>
+                <default>false</default>
+                <label>Google Vertex-Palm-Bison</label>
+            </value>
+            <value>
+                <fullName>AWS-Bedrock-CloudeV2</fullName>
+                <default>false</default>
+                <label>AWS-Bedrock-CloudeV2</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

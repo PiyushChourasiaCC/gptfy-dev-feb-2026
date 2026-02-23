@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Canned_Response__c</fullName>
+    <description>The pre-defined canned response text that will be used when this action is triggered. Only applicable when Action Type is Canned Response.</description>
+    <inlineHelpText>Enter the canned response text that will be sent when this action is triggered.</inlineHelpText>
+    <label>Canned Response</label>
+    <length>131072</length>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>5</visibleLines>
+</CustomField>

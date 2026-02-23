@@ -1,0 +1,7 @@
+<aura:component implements="force:lightningQuickAction,force:hasRecordId" controller="AISyncScheduleController">
+    <aura:attribute name="showSpinner" type="boolean" default="true"/>
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <aura:if isTrue="{!v.showSpinner}">
+    	<lightning:spinner alternativeText="Loading" size="large" /> 
+    </aura:if>
+</aura:component>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>32K Open AI/Azure (GPTfy)</label>
+    <protected>false</protected>
+    <values>
+        <field>Card_Type__c</field>
+        <value xsi:type="xsd:string">AMODL</value>
+    </values>
+    <values>
+        <field>Description__c</field>
+        <value xsi:type="xsd:string">Added to test 32K Token size for Azure. Delete if required.</value>
+    </values>
+    <values>
+        <field>Enabled__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Icon_Details__c</field>
+        <value xsi:type="xsd:string">custom:custom7</value>
+    </values>
+    <values>
+        <field>Icon_Source__c</field>
+        <value xsi:type="xsd:string">SLDS Icon</value>
+    </values>
+    <values>
+        <field>Sequence__c</field>
+        <value xsi:type="xsd:double">30.0</value>
+    </values>
+</CustomMetadata>

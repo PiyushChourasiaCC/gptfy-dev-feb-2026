@@ -1,0 +1,16 @@
+.THIS {
+    width: 100%;
+    height: 100%;
+}
+
+.THIS .prompt-builder-wrapper {
+    width: 100%;
+    min-height: 100vh;
+    background-color: #f3f3f3;
+}
+
+@media (max-width: 768px) {
+    .THIS .prompt-builder-wrapper {
+        padding: 0.5rem;
+    }
+}

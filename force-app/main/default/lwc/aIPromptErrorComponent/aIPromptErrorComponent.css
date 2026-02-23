@@ -1,0 +1,19 @@
+.message-text {
+    color: white;
+    text-align: left;
+    margin-left: 8px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    text-wrap: auto;
+}
+
+.heading {
+    font-weight: 500;
+}
+
+.banner-container {
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-left: 12px;
+}

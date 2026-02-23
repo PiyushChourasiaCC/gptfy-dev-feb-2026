@@ -1,0 +1,33 @@
+<template>
+    <template if:true={enablePromptVersioning}>
+        <template if:true={showSpinner}>
+            <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+        </template>
+        <lightning-quick-action-panel header="Activate?">
+            <lightning-layout style="width: 100%;display: block;">
+                <lightning-layout-item padding="around-small">
+                    <lightning-textarea label="What Changed in this version?"></lightning-textarea>
+                </lightning-layout-item>
+            </lightning-layout>
+            <div class="slds-hidden">{recordId}</div>
+            <div slot="footer">
+                <lightning-button variant="neutral" label="Cancel" type="button" onclick={handleClose}></lightning-button>
+                <lightning-button variant="brand" label="Continue" class="slds-m-left_x-small" type="button" onclick={handleContinue}></lightning-button>
+            </div>
+        </lightning-quick-action-panel>
+    </template>
+    <template if:false={enablePromptVersioning}>
+        <template if:true={showSpinner}>
+            <div style="height:19rem;position:relative">
+                <div class="slds-spinner_container">
+                    <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                        <span class="slds-assistive-text">Loading</span>
+                        <div class="slds-spinner__dot-a"></div>
+                        <div class="slds-spinner__dot-b"></div>
+                    </div>
+                </div>
+            </div>
+        </template>
+        <div class="slds-hidden">{recordId}</div>
+    </template>
+</template>

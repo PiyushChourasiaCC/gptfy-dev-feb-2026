@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Verification_Prompt__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Verification Prompt</label>
+    <lookupFilter>
+        <active>true</active>
+        <errorMessage>Verification Prompt would only run on Security Audit record.</errorMessage>
+        <filterItems>
+            <field>AI_Prompt__c.Object__c</field>
+            <operation>contains</operation>
+            <value>AI_Response__c</value>
+        </filterItems>
+        <filterItems>
+            <field>AI_Prompt__c.Status__c</field>
+            <operation>equals</operation>
+            <value>Active</value>
+        </filterItems>
+        <isOptional>false</isOptional>
+    </lookupFilter>
+    <referenceTo>AI_Prompt__c</referenceTo>
+    <relationshipLabel>Test Cycles (Verification Prompt)</relationshipLabel>
+    <relationshipName>Test_Cycles_Verification</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

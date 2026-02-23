@@ -1,0 +1,170 @@
+<apex:page controller="AIOutlookOAuthController" lightningStylesheets="true" showHeader="false" sidebar="false" standardStylesheets="false">
+    <apex:slds />
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        .slds-scope {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f3f3f3;
+        }
+        .spinner-container {
+            text-align: center;
+        }
+        .spinner-message {
+            margin-top: 1.5rem;
+            font-size: 1.125rem;
+            color: #3e3e3c;
+            font-weight: 400;
+        }
+        .error-message {
+            color: #c23934;
+            margin-top: 1rem;
+        }
+    </style>
+    
+    <div class="slds-scope">
+        
+        <!-- Hidden form for action functions -->
+        <apex:form id="mainForm">
+            <!-- Hidden fields to pass values to JavaScript after reRender -->
+            <apex:inputHidden id="hiddenIsSuccess" value="{!isSuccess}" />
+            <apex:inputHidden id="hiddenHasError" value="{!hasError}" />
+            <apex:inputHidden id="hiddenShowConnect" value="{!showConnectButton}" />
+            <apex:inputHidden id="hiddenAuthUrl" value="{!authUrl}" />
+            <apex:inputHidden id="hiddenIsLoading" value="{!isLoading}" />
+            
+            <!-- Action function to initialize page (makes callouts) -->
+            <apex:actionFunction name="initPageAction" action="{!initializePage}" reRender="contentPanel,hiddenIsSuccess,hiddenHasError,hiddenShowConnect,hiddenAuthUrl,hiddenIsLoading" oncomplete="handleInitComplete();"/>
+            
+            <!-- Action function to save refresh token after successful auth -->
+            <apex:actionFunction name="saveTokenAction" action="{!saveRefreshTokenToWorkspaceUser}" reRender="dummy"/>
+        </apex:form>
+        
+        <!-- Main content panel that gets rerendered after init -->
+        <apex:outputPanel id="contentPanel">
+            <div class="spinner-container">
+                
+                <!-- Loading spinner (shown while initializing) -->
+                <apex:outputPanel rendered="{!isLoading}">
+                    <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                        <span class="slds-assistive-text">Loading</span>
+                        <div class="slds-spinner__dot-a"></div>
+                        <div class="slds-spinner__dot-b"></div>
+                    </div>
+                    <div class="spinner-message">
+                        Initializing...
+                    </div>
+                </apex:outputPanel>
+                
+                <!-- Redirecting to Microsoft (initial load) -->
+                <apex:outputPanel rendered="{!AND(showConnectButton, NOT(isLoading), NOT(ISBLANK(authUrl)))}">
+                    <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                        <span class="slds-assistive-text">Loading</span>
+                        <div class="slds-spinner__dot-a"></div>
+                        <div class="slds-spinner__dot-b"></div>
+                    </div>
+                    <div class="spinner-message">
+                        Redirecting to Microsoft authentication...
+                    </div>
+                </apex:outputPanel>
+                
+                <!-- Success state -->
+                <apex:outputPanel rendered="{!AND(isSuccess, NOT(isLoading))}">
+                    <div class="slds-icon_container slds-icon-utility-success" title="Success">
+                        <svg class="slds-icon slds-icon-text-success" aria-hidden="true" style="width:52px;height:52px;">
+                            <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="/apexpages/slds/latest/assets/icons/utility-sprite/svg/symbols.svg#success"></use>
+                        </svg>
+                    </div>
+                    <div class="spinner-message">
+                        Authentication successful! Redirecting...
+                    </div>
+                </apex:outputPanel>
+                
+                <!-- Error state -->
+                <apex:outputPanel rendered="{!AND(hasError, NOT(isLoading))}">
+                    <div class="slds-icon_container slds-icon-utility-error" title="Error">
+                        <svg class="slds-icon slds-icon-text-error" aria-hidden="true" style="width:52px;height:52px;">
+                            <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="/apexpages/slds/latest/assets/icons/utility-sprite/svg/symbols.svg#error"></use>
+                        </svg>
+                    </div>
+                    <div class="spinner-message">
+                        Authentication failed. Redirecting...
+                    </div>
+                    <apex:outputPanel rendered="{!NOT(ISBLANK(errorMessage))}">
+                        <div class="error-message">{!errorMessage}</div>
+                    </apex:outputPanel>
+                </apex:outputPanel>
+                
+            </div>
+        </apex:outputPanel>
+        
+    </div>
+    
+    <!-- JavaScript to handle the flow -->
+    <script type="text/javascript">
+        // On page load, call the init action function
+        window.onload = function() {
+            console.log('Page loaded, calling initPageAction...');
+            // Call the action function to initialize (makes callouts)
+            initPageAction();
+        };
+        
+        // Helper function to get hidden field value
+        function getHiddenValue(fieldId) {
+            var field = document.querySelector('[id$="' + fieldId + '"]');
+            return field ? field.value : null;
+        }
+        
+        // Called after init action completes
+        function handleInitComplete() {
+            console.log('Init complete, checking values...');
+            
+            // Read values from hidden fields (these are updated after reRender)
+            var isSuccess = getHiddenValue('hiddenIsSuccess') === 'true';
+            var hasError = getHiddenValue('hiddenHasError') === 'true';
+            var showConnectButton = getHiddenValue('hiddenShowConnect') === 'true';
+            var authUrl = getHiddenValue('hiddenAuthUrl');
+            var isLoading = getHiddenValue('hiddenIsLoading') === 'true';
+            
+            console.log('Values - isSuccess:', isSuccess, 'hasError:', hasError, 'showConnect:', showConnectButton, 'authUrl:', authUrl, 'isLoading:', isLoading);
+            
+            if (isLoading) {
+                console.log('Still loading, waiting...');
+                return;
+            }
+            
+            if (isSuccess) {
+                console.log('Success! Saving token and redirecting...');
+                // Authentication successful - save token and redirect
+                saveTokenAction();
+                
+                // Redirect to LWC tab after a short delay to allow token save
+                setTimeout(function() {
+                    window.location.href = '{!JSENCODE(redirectUrl)}';
+                }, 1500);
+                
+            } else if (hasError) {
+                console.log('Error occurred, redirecting...');
+                // Error occurred - redirect back to LWC tab to show error
+                setTimeout(function() {
+                    window.location.href = '{!JSENCODE(redirectUrl)}';
+                }, 2000);
+                
+            } else if (showConnectButton && authUrl && authUrl.length > 0) {
+                console.log('Redirecting to Microsoft OAuth:', authUrl);
+                // Initial load with auth URL ready - redirect to OAuth
+                window.location.href = authUrl;
+            } else {
+                console.log('No action taken. showConnectButton:', showConnectButton, 'authUrl:', authUrl);
+            }
+        }
+    </script>
+    
+</apex:page>

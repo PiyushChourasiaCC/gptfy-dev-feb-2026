@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Provider__c</fullName>
+    <label>Provider</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>MICROSOFT_GRAPH</fullName>
+                <default>false</default>
+                <label>Microsoft Graph</label>
+            </value>
+            <value>
+                <fullName>GOOGLE</fullName>
+                <default>false</default>
+                <label>Google</label>
+            </value>
+            <value>
+                <fullName>GMAIL</fullName>
+                <default>false</default>
+                <label>Gmail</label>
+            </value>
+            <value>
+                <fullName>GOOGLE_CALENDAR</fullName>
+                <default>false</default>
+                <label>Google Calendar</label>
+            </value>
+            <value>
+                <fullName>GOOGLE_TASKS</fullName>
+                <default>false</default>
+                <label>Google Tasks</label>
+            </value>
+            <value>
+                <fullName>MICROSOFT_TODO</fullName>
+                <default>false</default>
+                <label>Microsoft To-Do</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

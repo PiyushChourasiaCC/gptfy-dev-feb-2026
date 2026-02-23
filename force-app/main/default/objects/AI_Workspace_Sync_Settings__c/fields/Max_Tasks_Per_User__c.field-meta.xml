@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Max_Tasks_Per_User__c</fullName>
+    <description>Maximum tasks to sync per user</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Maximum number of tasks to sync per user</inlineHelpText>
+    <label>Max Tasks Per User</label>
+    <precision>4</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

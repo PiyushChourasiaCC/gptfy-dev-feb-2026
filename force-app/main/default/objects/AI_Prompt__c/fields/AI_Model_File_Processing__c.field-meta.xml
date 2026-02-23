@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Model_File_Processing__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>AI Model - File Processing</label>
+    <lookupFilter>
+        <active>true</active>
+        <filterItems>
+            <field>AI_Connection__c.Type__c</field>
+            <operation>equals</operation>
+            <value>File</value>
+        </filterItems>
+        <isOptional>false</isOptional>
+    </lookupFilter>
+    <referenceTo>AI_Connection__c</referenceTo>
+    <relationshipLabel>Prompts (AI Model - File Processing)</relationshipLabel>
+    <relationshipName>Prompts</relationshipName>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

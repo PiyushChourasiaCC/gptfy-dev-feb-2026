@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>64.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>AI GPTfy Agent Portal</masterLabel>
+    <targets>
+        <target>lightningCommunity__Page</target>
+        <target>lightningCommunity__Default</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightningCommunity__Default">
+            <!-- Layout Settings -->
+            <property name="chatHeight" type="Integer" default="600" label="Chat Height (px)" description="Height of the chat window in pixels"/>
+            
+            <!-- Header Colors -->
+            <property name="primaryColor" type="Color" default="#5B21B6" label="Primary Color" description="Primary color for (Header background, chat logo, floating chat icon). Use Action Color from Experience Cloud theme."/>
+            <property name="floatingIconColor" type="Color" default="#FFFFFF" label="Floating Icon Color" description="Color for the floating chat icon."/>
+            <property name="headerTextColor" type="Color" default="#FFFFFF" label="Header Text Color" description="Text color for the header area."/>
+            <property name="multiAgentFlag" type="Boolean" default="false" label="Multi Agent Flag" description="Flag to show/hide the multi agent dropdown."/>
+            
+            <!-- Start Chat Button Colors -->
+            <property name="startChatButtonColor" type="Color" default="#5B21B6" label="Start Chat Button Background" description="Background color for the Start A New Chat button."/>
+            <property name="startChatButtonTextColor" type="Color" default="#FFFFFF" label="Start Chat Button Text Color" description="Text color for the Start A New Chat button."/>
+            <property name="selectAgentDialogBackgroundColor" type="Color" default="#FFFFFF" label="Agent Dropdown Dialog Background Color" description="Background color for the agent dropdown dialog."/>
+            
+            <!-- Chat Area Colors -->
+            <property name="chatBackgroundColor" type="Color" default="#F8F9FA" label="Chat Background Color" description="Background color for the chat messages area."/>
+            
+            <!-- User Message Colors -->
+            <property name="userMessageBackgroundColor" type="Color" default="#5B21B6" label="User Message Background" description="Background color for user message bubbles."/>
+            <property name="userMessageTextColor" type="Color" default="#FFFFFF" label="User Message Text Color" description="Text color for user messages."/>
+            
+            <!-- Bot Message Colors -->
+            <property name="botMessageBackgroundColor" type="Color" default="#E9ECEE" label="Bot Message Background" description="Background color for bot/AI message bubbles."/>
+            <property name="botMessageTextColor" type="Color" default="#000000" label="Bot Message Text Color" description="Text color for bot/AI messages."/>
+            
+            <!-- Input Field Colors -->
+            <property name="inputTextColor" type="Color" default="#000000" label="Input Text Color" description="Text color for the message input field."/>
+            <property name="inputBorderColor" type="Color" default="#5B21B6" label="Input Border Color" description="Border color for the message input field."/>
+            
+            <!-- Icon Colors -->
+            <property name="attachmentIconColor" type="Color" default="#5B21B6" label="Attachment Icon Color" description="Color for the attachment/link icon."/>
+            <property name="sendIconColor" type="Color" default="#5B21B6" label="Send Icon Color" description="Color for the send button icon."/>
+            
+            <!-- Bot Logo -->
+            <property name="botLogoUrl" type="String" default="" label="Bot Logo URL" description="Full URL for custom bot avatar logo. For Static Resources in Experience Cloud, use: YourResourceName. For internal SF, use: YourResourceName. Leave empty to use default GPTfy logo."/>
+            
+            <!-- Font Settings -->
+            <property name="chatMessageFontSize" type="String" default="14" label="Chat Message Font Size (px)" description="Font size for chat messages in pixels. Default is 14px."/>
+            <property name="chatFontFamily" type="String" default="Salesforce Sans, Arial, sans-serif" label="Chat Font Family" description="Font family for all chat text. Default is Salesforce Sans."/>
+            
+            <property name="chatAvatarIconName" type="String" default="utility:chat" label="Chat Avatar Icon Name" description="Name of the chat avatar icon. Default is utility:chat."/>
+            
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

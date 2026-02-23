@@ -1,0 +1,27 @@
+<template>
+    <template if:true={readOnly}>
+        <p class="slds-p-left_xx-small slds-p-bottom_xx-small" style="color: #444444;">{fieldLabel}</p>
+        <template if:true={selectedValues.length}>
+            <ul class="slds-p-left_xx-small slds-p-right_xx-small slds-list_dotted" style="padding-bottom:10px;">
+                <template for:each={selectedValues} for:item="val">
+                    <li key={val}>{val}</li>
+                </template>
+            </ul>
+        </template>
+        <template if:false={selectedValues.length}>
+            <div style="padding-bottom:30px;"></div>
+        </template>
+    </template>
+    <template if:false={readOnly}>
+        <lightning-record-edit-form
+            object-api-name={promptObjectApi}
+            record-id={recordId}>
+            <lightning-input-field 
+                field-name={fieldApiName}
+                required={required}
+                onchange={handleFieldChange}
+                value={selectedValues}
+            ></lightning-input-field>                                            
+        </lightning-record-edit-form>
+    </template>
+</template>

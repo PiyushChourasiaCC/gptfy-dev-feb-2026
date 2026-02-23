@@ -1,0 +1,70 @@
+<template>
+    <template if:true={showSpinner}>
+        <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+    </template>
+    <lightning-layout class="slds-m-top_x-small" style="width:100%;display:block;">
+        <article class="slds-card lightning-card" style="border: 1px solid #c9c9c9;">
+            <div class="slds-card__header slds-grid slds-theme_shade" style="border-radius: 4px;margin-bottom: inherit;border-bottom: 1px solid #c9c9c9;">
+              <header class="slds-media slds-media_center slds-has-flexi-truncate" style="padding: 15px 20px;">
+                <div class="slds-media__figure">
+                    <lightning-icon icon-name="standard:file" size="small"></lightning-icon>
+                </div>
+                <div class="slds-media__body">
+                  <h2 class="slds-card__header-title">
+                    <a class="slds-card__header-link">Versions ({totalRecords})</a>
+                  </h2>
+                </div>
+                <div class="slds-no-flex">
+                    <lightning-button-icon icon-name="utility:refresh"  variant="border-filled" alternative-text="Refresh" title="Refresh" onclick={handleRefresh}></lightning-button-icon>
+                </div>
+              </header>
+            </div>
+            <template if:true={hasRecords}>
+              <div style="height: 275px;">
+                    <lightning-datatable class="related-list"
+                                        onrowaction={handleRowAction}
+                                        columns={columns}
+                                        data={records}
+                                        key-field="Id"
+                                        hide-checkbox-column="true">
+                    </lightning-datatable>
+                </div>
+            </template>
+            <template if:false={hasRecords}>
+                <center>
+                    <div style="padding:20px;">No records to display.</div>
+                </center>
+            </template>
+          </article>                       
+    </lightning-layout>
+    <template if:true={showReinstatePopup}>
+      <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading" class="slds-modal slds-fade-in-open slds-modal_small">
+        <div class="slds-modal__container">
+            <template if:true={showSpinner}>
+              <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+            </template>
+            <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" onclick={handleHideReinstatePopup}>
+                <lightning-icon icon-name="utility:close" variant="inverse"></lightning-icon>
+                <span class="slds-assistive-text">Cancel and close</span>
+            </button>
+            <div class="slds-modal__header">
+                <h1 id="modal-heading" class="slds-modal__title slds-hyphenate">Reinstate?</h1>
+            </div>
+            <div class="slds-modal__content slds-p-around_medium" id="modal-content-id">
+              <div class="slds-grid slds-wrap">
+                <div class="slds-size_1-of-1">
+                    <div class="slds-text-align_center slds-m-around_x-small" style="font-size: 15px;">
+                      Are you sure, you want to reinstate this version?
+                    </div>
+                </div>
+              </div>
+            </div>
+            <div class="slds-modal__footer">
+                <button class="slds-button slds-button_neutral" type="button" onclick={handleHideReinstatePopup}>No</button>
+                <button class="slds-button slds-button_brand" type="button" onclick={handleConfirmReinstatePopup}>Yes</button>
+            </div>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+    </template>
+</template>

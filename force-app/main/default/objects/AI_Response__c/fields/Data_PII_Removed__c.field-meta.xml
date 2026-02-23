@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Data_PII_Removed__c</fullName>
+    <inlineHelpText>Data that has been processed to remove PII.
+This data was sent to ChatGPT.</inlineHelpText>
+    <label>Data(PII Removed)</label>
+    <length>131072</length>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>3</visibleLines>
+</CustomField>

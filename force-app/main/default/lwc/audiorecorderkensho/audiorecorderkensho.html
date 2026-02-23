@@ -1,0 +1,116 @@
+<template>
+    
+    <article class="slds-card">
+        <div class="slds-card__header slds-grid">
+            <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                <div class="slds-media__figure">
+                    <span class="slds-icon_container slds-icon-standard-account" title="GPTfy" style="background-color: #0176d3;">
+                        <img class="slds-button__icon slds-button__icon_left" src={gptfylogo} alt="gptfylogo" style="height: 18px; width: 18px;  margin: 4px;">
+                        <span class="slds-assistive-text">GPTfy</span>
+                    </span>
+                </div>
+                <div class="slds-media__body">
+                    <h2 class="slds-card__header-title">
+                        <a href="#" class="slds-card__header-link slds-truncate" title="GPTfy">
+                            <span>GPTfy Kensho</span>
+                        </a>
+                    </h2>
+                </div>
+            </header>
+        </div>
+        <div class="slds-card__body slds-card__body_inner">
+            <template if:true={showSpinner}>
+                <div style="height:19rem;position:relative">
+                    <div class="slds-spinner_container">
+                        <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                            <span class="slds-assistive-text">Loading</span>
+                            <div class="slds-spinner__dot-a"></div>
+                            <div class="slds-spinner__dot-b"></div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <template if:false={showSpinner}>
+                <!--div style="text-align: center; font-size: medium; font-weight: bold; ">GPTfy</div-->
+                <div class="slds-grid slds-grid_vertical slds-m-around_medium" style="align-items: center;">
+                    <div class="slds-col">
+                        <span>
+                            <template if:false={isRecording} style="align-self: center;" >
+                                <div onclick={handleRecordClick} class="slds-button slds-button_brand slds-var-m-left_xxx-small font-size: medium; align-items: center;" style="display:inline-flex; font-size: medium; align-items: center; ">
+                                    <img class="slds-button__icon slds-button__icon_left" src={gptfylogo} alt="gptfylogo" style="height: 21px; width: 21px; margin-left: auto; margin-right: 8px;">
+                                    {recordButtonLabel}
+                                </div>
+                            </template>
+                            <template if:true={isRecording}>
+                                <template if:true={isVisiblePauseBtn}>
+                                        <lightning-button-icon icon-name="utility:pause" variant="border-filled"
+                                        onclick={pauseRecording} class="slds-m-left_xx-small" title="Pause"></lightning-button-icon>
+                                    </template>
+                               
+                                <template if:true={isVisibleResumeBtn}>
+                                    <lightning-button-icon icon-name="utility:play" variant="border-filled"
+                                        onclick={pauseRecording} class="slds-m-left_xx-small"
+                                        title="Resume"></lightning-button-icon>
+                                </template> 
+    
+                                <template if:true={isVisibleStopBtn}>
+                                    <lightning-button-icon icon-name="utility:stop" variant="border-filled"
+                                            onclick={stopRecording} class="slds-m-left_xx-small"
+                                            title="Stop"></lightning-button-icon>   
+                                </template>
+
+                                <template if:false={isliveRecording}>
+                                    <template if:false={isAudioReady}>
+                                        <lightning-button-icon icon-name="utility:delete" variant="border-filled"
+                                            onclick={clearRecording} class="slds-m-left_xx-small"
+                                            title="Delete"></lightning-button-icon>
+                                    </template>
+                                </template>
+
+                                <template if:true={isliveRecording}>
+                                    <span style="margin-left:3px; vertical-align: middle;" class="blink">
+                                        <svg class="slds-icon slds-icon-text-error slds-icon_small text-danger-glow"
+                                            aria-hidden="true">
+                                            <use xlink:href="/_slds/icons/utility-sprite/svg/symbols.svg#record"></use>
+                                        </svg>
+                                        <span style="color:red;vertical-align: middle;"> Recording </span>
+                                    </span>
+                                    <span class="slds-text-heading_small" style="font-weight: 400;vertical-align: middle;margin-left: 5px; color:gray;">{timeVal}</span>
+                                </template>
+                                <template if:true={isAudioReady}>
+
+                                    <lightning-button-icon 
+                                        icon-name="utility:delete" 
+                                        variant="container"
+                                        onclick={clearRecording} class="slds-m-left_xx-small"
+                                        size="large"
+                                        title="Delete"
+                                    ></lightning-button-icon>
+
+                                    <audio style=" height: 35px; width: 250px; margin-left: 5px;" src={audioUrl} controls></audio>
+
+                                    <div class="circlebtn" 
+                                        style="margin-left: 5px;  background-color: #0176d3; width: 25px; height:25px; border-radius: 50%; display: inline-block; text-align:center;" 
+                                        label="Submit" 
+                                        onclick={handleSubmit}>
+                                        <span style="color:white">
+                                            <span class="slds-icon_container slds-icon-utility-arrowup slds-current-color" title="Upload">
+                                                <lightning-icon icon-name="utility:arrowup" alternative-text="Upload" title="Upload" size="x-small"></lightning-icon>   
+                                                <span class="slds-assistive-text">Upload</span>
+                                            </span>
+                                        </span>
+                                    </div>
+
+                                    <template if:true={isSubmitProgress}>
+                                        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                                    </template>
+                                    
+                                </template>
+                            </template>
+                        </span>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </article>
+</template>

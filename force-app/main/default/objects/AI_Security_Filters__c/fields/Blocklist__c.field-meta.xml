@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Blocklist__c</fullName>
+    <description>This field is used to house values that will be scanned across long text and rich text fields. If found they will be replaced.</description>
+    <inlineHelpText>Separate each value by semi colon.
+Example: RX500;DX670;CD245</inlineHelpText>
+    <label>Blocklist</label>
+    <length>131072</length>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>5</visibleLines>
+</CustomField>

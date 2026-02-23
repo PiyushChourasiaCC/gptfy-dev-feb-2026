@@ -1,0 +1,183 @@
+<template>
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template if:false={showSpinner}>
+        <lightning-card title="Prompt Elements" icon-name="custom:custom15">
+            <!-- Action Mode Header with Add Button -->
+            <lightning-button-group slot="actions">   
+                <span if:false={isPromptActive}>
+                    <lightning-button-icon 
+                        icon-name="utility:add" 
+                        alternative-text="Add New Element" 
+                        title="Add New Element"
+                        onclick={handleAddNew}>
+                    </lightning-button-icon>
+                </span>
+                <lightning-button-icon 
+                    icon-name="utility:refresh" 
+                    alternative-text="Refresh" 
+                    title="Refresh"
+                    onclick={handleRefresh}>
+                </lightning-button-icon>
+            </lightning-button-group>
+
+            <!-- Data Table -->
+            <p class="slds-p-horizontal_small">
+                <template if:true={promptElements.length}>
+                    <lightning-datatable
+                        key-field="id"
+                        data={promptElements}
+                        columns={columns}
+                        hide-checkbox-column="true"
+                        show-row-number-column="true"
+                        onrowaction={handleRowAction}>
+                    </lightning-datatable>
+                </template>
+
+                <!-- No Data Message -->
+                <template if:false={hasData}>
+                    <div class="slds-text-align_center slds-p-around_medium">
+                        <p>No Records found.</p>
+                    </div>
+                </template>
+            </p>
+
+            <!-- Add/Edit Modal -->
+            <template if:true={showModal}>
+                <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+                    <div class="slds-modal__container">
+                        <!-- Modal Header -->
+                        <header class="slds-modal__header">
+                            <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" 
+                                    title="Close" onclick={closeModal}>
+                                <lightning-icon icon-name="utility:close" alternative-text="close" variant="inverse" size="small"></lightning-icon>
+                                <span class="slds-assistive-text">Close</span>
+                            </button>
+                            <h2 class="slds-text-heading_medium">{modalTitle}</h2>
+                        </header>
+
+                        <!-- Modal Body -->
+                        <div class="slds-modal__content slds-p-around_medium">
+                            <lightning-record-edit-form object-api-name={promptElementObjectApiName} onsubmit={handleSubmit}>
+                                
+                                <!-- Parent Prompt (Read Only) -->
+                                <lightning-input
+                                    label="Parent Prompt Name"
+                                    type="text"
+                                    read-only="true"
+                                    value={currentElement.parentPromptName}>
+                                </lightning-input>
+
+                                <!-- Name (Read Only for Edit) -->
+                                <template if:true={isEditMode}>
+                                    <lightning-input
+                                        label="Prompt Element Name"
+                                        type="text"
+                                        read-only="true"
+                                        value={currentElement.name}>
+                                    </lightning-input>
+                                </template>
+
+                                <!-- Prompt Lookup with Filter -->
+                                <lightning-record-picker
+                                    label="Prompt"
+                                    placeholder="Select Prompt"
+                                    data-field="promptId"
+                                    object-api-name={objectApiName}
+                                    filter={promptFilter}
+                                    value={currentElement.promptId}
+                                    onblur={handleFieldChange}
+                                    required>
+                                </lightning-record-picker>
+
+                                <!-- Summary Prompt Lookup with Filter -->
+                                <lightning-record-picker
+                                    label="Summary Prompt"
+                                    data-field="summaryPromptId"
+                                    placeholder="Select Summary Prompt"
+                                    object-api-name={objectApiName}
+                                    filter={summaryPromptFilter}
+                                    value={currentElement.summaryPromptId}
+                                    onblur={handleFieldChange}>
+                                </lightning-record-picker>
+
+                                <!-- Height -->
+                                <lightning-input
+                                    label="Height"
+                                    type="number"
+                                    value={currentElement.height}
+                                    onblur={handleFieldChange}
+                                    data-field="height">
+                                </lightning-input>
+
+                                <!-- Width -->
+                                <lightning-combobox
+                                    label="Width"
+                                    value={currentElement.width}
+                                    options={widthOptions}
+                                    onchange={handleFieldChange}
+                                    data-field="width"
+                                    required>
+                                </lightning-combobox>
+
+                                <!-- Icon -->
+                                <lightning-combobox
+                                    label="Icon"
+                                    value={currentElement.icon}
+                                    options={iconOptions}
+                                    onchange={handleFieldChange}
+                                    data-field="icon">
+                                </lightning-combobox>
+
+                                <!-- Sequence -->
+                                <lightning-input
+                                    label="Sequence"
+                                    type="number"
+                                    value={currentElement.sequence}
+                                    onblur={handleFieldChange}
+                                    data-field="sequence"
+                                    required>
+                                </lightning-input>
+
+                                <!-- Inherit Prompt Security -->
+                                <lightning-input
+                                    label="Inherit Parent Prompt Security"
+                                    type="checkbox"
+                                    checked={currentElement.inheritPromptSecurity}
+                                    onchange={handleFieldChange}
+                                    data-field="inheritPromptSecurity">
+                                </lightning-input>
+
+                            </lightning-record-edit-form>
+                        </div>
+
+                        <!-- Modal Footer -->
+                        <footer class="slds-modal__footer">
+                            <lightning-button 
+                                class=""
+                                onclick={closeModal}
+                                label="Cancel">
+                            </lightning-button>
+                            <lightning-button 
+                                variant="brand"
+                                class="slds-p-left_small"
+                                onclick={handleSave}
+                                label="Save">
+                            </lightning-button>
+                        </footer>
+                    </div>
+                </section>
+                <div class="slds-backdrop slds-backdrop_open"></div>
+            </template>
+        </lightning-card>
+    </template>
+</template>

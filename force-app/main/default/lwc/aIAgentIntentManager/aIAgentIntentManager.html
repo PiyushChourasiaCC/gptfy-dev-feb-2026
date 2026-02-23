@@ -1,0 +1,202 @@
+<template>
+    <!-- Loading Spinner -->
+    <template if:true={isLoading}>
+        <div class="slds-p-vertical_large slds-text-align_center">
+            <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+        </div>
+    </template>
+
+    <template if:false={isLoading}>
+        <div class="page-container">
+            <!-- ── Breadcrumb ────────────────────────────────── -->
+            <div class="breadcrumb-bar">
+                <lightning-button-icon
+                    icon-name="utility:back"
+                    alternative-text="Back to Agent"
+                    title="Back to Agent"
+                    variant="bare"
+                    onclick={handleBackToAgent}
+                    class="back-icon">
+                </lightning-button-icon>
+                <template if:true={intent.agentName}>
+                    <span class="breadcrumb-text" onclick={handleBackToAgent}>{intent.agentName}</span>
+                    <span class="breadcrumb-separator">/</span>
+                </template>
+                <span class="breadcrumb-current">{intentName}</span>
+            </div>
+
+            <!-- ── Header ────────────────────────────────────── -->
+            <div class="header-section">
+                <div class="header-left">
+                    <h1 class="slds-text-heading_large">{intentName}</h1>
+                    <span class={activeStatusClass}>{activeStatusLabel}</span>
+                </div>
+                <div class="header-actions">
+                    <template if:false={isEditMode}>
+                        <lightning-button
+                            label="Edit"
+                            onclick={handleEdit}
+                            icon-name="utility:edit">
+                        </lightning-button>
+                    </template>
+                    <template if:true={isEditMode}>
+                        <lightning-button
+                            label="Save"
+                            onclick={handleSave}
+                            variant="brand"
+                            disabled={isSaving}
+                            icon-name="utility:save">
+                        </lightning-button>
+                        <lightning-button
+                            label="Cancel"
+                            onclick={handleCancel}
+                            disabled={isSaving}>
+                        </lightning-button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- ── Intent Details Section ────────────────────── -->
+            <div class="section">
+                <div class="section-header">
+                    <lightning-icon icon-name="standard:strategy" size="small" class="section-icon"></lightning-icon>
+                    <h2 class="slds-text-heading_medium">Intent Details</h2>
+                </div>
+                <div class="section-content">
+                    <template if:true={isEditMode}>
+                        <div class="slds-grid slds-wrap slds-gutters">
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-input
+                                    type="text"
+                                    label="Intent Name"
+                                    value={intent.name}
+                                    onchange={handleNameChange}
+                                    required
+                                    placeholder="e.g. UPDATE_PRIORITY">
+                                </lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <lightning-input
+                                    type="number"
+                                    label="Sequence"
+                                    value={intent.sequence}
+                                    onchange={handleSequenceChange}
+                                    min="0"
+                                    max="999">
+                                </lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4 active-toggle-col">
+                                <lightning-input
+                                    type="toggle"
+                                    label="Active"
+                                    checked={intent.isActive}
+                                    onchange={handleActiveChange}
+                                    message-toggle-active="Active"
+                                    message-toggle-inactive="Inactive">
+                                </lightning-input>
+                            </div>
+                        </div>
+                        <div class="slds-m-top_small">
+                            <lightning-textarea
+                                label="Description"
+                                value={intent.description}
+                                onchange={handleDescriptionChange}
+                                placeholder="Describe when this intent should trigger. This text is sent to the AI model."
+                                rows="4">
+                            </lightning-textarea>
+                        </div>
+                    </template>
+                    <template if:false={isEditMode}>
+                        <div class="slds-grid slds-wrap slds-gutters">
+                            <div class="slds-col slds-size_1-of-2">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label">Intent Name</label>
+                                    <div class="slds-form-element__control">
+                                        <div class="read-only-text">{intent.name}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-4">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label">Sequence</label>
+                                    <div class="slds-form-element__control">
+                                        <div class="read-only-text">{intent.sequence}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slds-m-top_small">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">Description</label>
+                                <div class="slds-form-element__control">
+                                    <div class="read-only-text description-text">{intent.description}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- ── Actions Section ───────────────────────────── -->
+            <div class="section">
+                <div class="section-header">
+                    <lightning-icon icon-name="standard:actions_and_buttons" size="small" class="section-icon"></lightning-icon>
+                    <h2 class="slds-text-heading_medium">Actions</h2>
+                    <span class="action-count">{actionCount}</span>
+                    <div class="section-header-actions">
+                        <lightning-button-icon
+                            icon-name="utility:add"
+                            alternative-text="Add Action"
+                            title="Add Action"
+                            onclick={handleAddAction}
+                            variant="brand">
+                        </lightning-button-icon>
+                        <lightning-button-icon
+                            icon-name="utility:refresh"
+                            alternative-text="Refresh"
+                            title="Refresh"
+                            onclick={loadData}>
+                        </lightning-button-icon>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <template if:true={hasActions}>
+                        <lightning-datatable
+                            key-field="id"
+                            data={actions}
+                            columns={actionColumns}
+                            hide-checkbox-column
+                            show-row-number-column
+                            onrowaction={handleRowAction}>
+                        </lightning-datatable>
+                    </template>
+                    <template if:false={hasActions}>
+                        <div class="empty-state">
+                            <lightning-icon icon-name="utility:add" size="large" class="empty-icon"></lightning-icon>
+                            <p class="slds-text-body_regular slds-text-color_weak">No actions configured yet.</p>
+                            <lightning-button
+                                label="Add First Action"
+                                variant="neutral"
+                                onclick={handleAddAction}
+                                icon-name="utility:add">
+                            </lightning-button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- ── Action Modal (child component) ────────────────── -->
+    <template if:true={showActionModal}>
+        <c-a-i-agent-intent-action-form
+            intent-id={recordId}
+            action-data={currentAction}
+            action-type-options={actionTypeOptions}
+            apex-return-type-options={apexReturnTypeOptions}
+            language-options={languageOptions}
+            onsave={handleActionSaved}
+            onclose={handleActionModalClose}>
+        </c-a-i-agent-intent-action-form>
+    </template>
+</template>

@@ -1,0 +1,81 @@
+<apex:page controller="AIGmailOAuthController" lightningStylesheets="true" showHeader="false" sidebar="false" standardStylesheets="false">
+    <apex:slds />
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        .slds-scope {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f3f3f3;
+        }
+        .spinner-container {
+            text-align: center;
+        }
+        .spinner-message {
+            margin-top: 1.5rem;
+            font-size: 1.125rem;
+            color: #3e3e3c;
+            font-weight: 400;
+        }
+    </style>
+    
+    <div class="slds-scope">
+        
+        <!-- Hidden action function to save refresh token after page load -->
+        <apex:form id="hiddenForm" style="display:none;">
+            <apex:actionFunction name="saveTokenAction" action="{!saveRefreshTokenToWorkspaceUser}" reRender="dummy"/>
+        </apex:form>
+        
+        <!-- Auto-execute flow based on state -->
+        <script type="text/javascript">
+            window.onload = function() {
+                var isSuccess = {!isSuccess};
+                var hasError = {!hasError};
+                var showConnectButton = {!showConnectButton};
+                
+                if (isSuccess) {
+                    // Authentication successful - save token and redirect
+                    saveTokenAction();
+                    
+                    // Redirect to LWC tab after a short delay to allow token save
+                    setTimeout(function() {
+                        window.location.href = '{!JSENCODE(redirectUrl)}';
+                    }, 1500);
+                    
+                } else if (hasError) {
+                    // Error occurred - redirect back to LWC tab to show error
+                    setTimeout(function() {
+                        window.location.href = '{!JSENCODE(redirectUrl)}';
+                    }, 2000);
+                    
+                } else if (showConnectButton) {
+                    // Initial load - auto-redirect to OAuth
+                    window.location.href = '{!JSENCODE(authUrl)}';
+                }
+            };
+        </script>
+        
+        <div class="spinner-container">
+            <lightning-spinner alternativeText="Loading" size="large"></lightning-spinner>
+            <div class="spinner-message">
+                <apex:outputPanel rendered="{!showConnectButton}">
+                    Redirecting to Google authentication...
+                </apex:outputPanel>
+                <apex:outputPanel rendered="{!isSuccess}">
+                    Authentication successful! Redirecting...
+                </apex:outputPanel>
+                <apex:outputPanel rendered="{!hasError}">
+                    Authentication failed. Redirecting...
+                </apex:outputPanel>
+            </div>
+        </div>
+        
+    </div>
+    
+</apex:page>

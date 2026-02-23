@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>API_Data_Source</fullName>
+    <columns>MasterLabel</columns>
+    <columns>DeveloperName</columns>
+    <columns>Description__c</columns>
+    <columns>Enabled__c</columns>
+    <columns>Card_Type__c</columns>
+    <columns>Icon_Details__c</columns>
+    <columns>Icon_Source__c</columns>
+    <columns>Sequence__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>Card_Type__c</field>
+        <operation>equals</operation>
+        <value>API Data Source,APIDS</value>
+    </filters>
+    <label>API Data Source</label>
+    <language>en_US</language>
+</ListView>

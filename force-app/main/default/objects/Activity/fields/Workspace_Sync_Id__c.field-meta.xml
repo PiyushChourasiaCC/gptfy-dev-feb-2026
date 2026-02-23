@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Workspace_Sync_Id__c</fullName>
+    <caseSensitive>false</caseSensitive>
+    <description>Unified external ID for workspace sync deduplication. Stores provider IDs for Events (iCalUID), Tasks (Microsoft To-Do/Google Tasks ID), and Email Messages. This field consolidates Calendar_Event_Id__c, Task_Provider_Id__c, and Email_Message_Id__c.</description>
+    <externalId>true</externalId>
+    <label>Workspace Sync ID</label>
+    <length>255</length>
+    <required>false</required>
+    <type>Text</type>
+    <unique>true</unique>
+</CustomField>

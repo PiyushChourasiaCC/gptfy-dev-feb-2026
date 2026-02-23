@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Emails_Imported__c</fullName>
+    <description>Records successfully imported to Salesforce</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Number of actual Salesforce records created during this sync (EmailMessage, Event, or Task). This represents successfully imported items that are now available in Salesforce.</inlineHelpText>
+    <label>Imported</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

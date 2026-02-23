@@ -1,0 +1,14 @@
+<template>
+    <div class="slds-button-style">
+        <lightning-button  
+            title="Print" 
+            variant="bare"
+            label="Print"
+            onclick={reviewAndDownload} 
+            class="download">
+        </lightning-button>
+    </div>
+    <lightning-formatted-rich-text
+        value={responseData}
+    ></lightning-formatted-rich-text>
+</template>

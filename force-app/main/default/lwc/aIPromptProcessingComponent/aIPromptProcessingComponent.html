@@ -1,0 +1,88 @@
+<template>
+	<template if:true={showSpinner}>
+		<div style="height:19rem;position:relative">
+			<div class="slds-spinner_container">
+				<div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+					<span class="slds-assistive-text">Loading</span>
+					<div class="slds-spinner__dot-a"></div>
+					<div class="slds-spinner__dot-b"></div>
+				</div>
+			</div>
+		</div>
+	</template>
+	<template if:false={showSpinner}>
+		<lightning-card variant="Narrow" title="AI Processing Actions" icon-name="standard:dashboard_component">
+			<lightning-button label="New" slot="actions" onclick={handleAddModal}></lightning-button>
+			<p class="slds-p-horizontal_small">
+				<template if:true={records}>
+					<lightning-datatable key-field="Id" data={records} columns={fields} hide-checkbox-column
+						show-row-number-column default-sort-direction={defaultSortDirection}
+						sorted-direction={sortDirection} sorted-by={sortedBy} onsort={onHandleSort}
+						onrowaction={handleRowAction}></lightning-datatable>
+				</template>
+				<template if:false={records}>
+					<div class="slds-align_absolute-center" style="height:5rem">
+						No actions present.
+					</div>
+				</template>
+			</p>
+		</lightning-card>
+	</template>
+
+	<template if:true={showAddModal}>
+		<section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true"
+			class="slds-modal slds-fade-in-open">
+			<div class="slds-modal__container">
+				<div class="slds-modal__header">
+					<lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large"
+						icon-name="utility:close" variant="bare" alternative-text="Close" title="Close"
+						onclick={handleCancel}></lightning-button-icon>
+					<h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">AI Response Processing</h1>
+				</div>
+				<div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1"
+					style="min-height:550px;">
+					<template if:true={showSpinner}>
+						<div style="height:19rem;position:relative">
+							<div class="slds-spinner_container">
+								<div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+									<span class="slds-assistive-text">Loading</span>
+									<div class="slds-spinner__dot-a"></div>
+									<div class="slds-spinner__dot-b"></div>
+								</div>
+							</div>
+						</div>
+					</template>
+					<template if:false={showSpinner}>
+
+						<template if:true={promotProcessingObjectName}>
+
+							<lightning-record-edit-form object-api-name={promotProcessingObjectName}
+								record-id={selectedRecordId}>
+
+								<lightning-input-field field-name={actionFieldApi} required></lightning-input-field>
+								<div class="slds-p-around_xx-small">
+									<lightning-combobox name="destinationFieldApi" label="Destination Field"
+										value={destinationFieldApi} placeholder="Select Field" options={fieldOptions}
+										onchange={handleFieldChange} required field-level-help={helpText_fieldApi}>
+									</lightning-combobox>
+								</div>
+								<lightning-input-field field-name={descFieldApi}></lightning-input-field>
+								<template if:true={showAppendTimestampField}>
+									<lightning-input-field field-name={timestampFieldApi}></lightning-input-field>
+								</template>
+							</lightning-record-edit-form>
+
+						</template>
+
+					</template>
+				</div>
+				<div class="slds-modal__footer">
+					<lightning-button label="Cancel" title="Cancel" onclick={handleCancel}></lightning-button>
+					<lightning-button label="Save" title="Save" onclick={handleSave} variant="brand"
+						class="slds-m-left_x-small"></lightning-button>
+				</div>
+			</div>
+		</section>
+		<div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+	</template>
+</template>

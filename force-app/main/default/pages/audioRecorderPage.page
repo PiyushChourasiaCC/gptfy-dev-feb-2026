@@ -1,0 +1,35 @@
+<apex:page lightningStylesheets="true">
+    <apex:includeLightning />
+    <div id="lightning"> </div>
+    <script>
+    document.addEventListener("dosearch", function(event){
+        console.log('vf event data window listener => ', event.detail);
+        console.log(navigator);
+        console.log(navigator.mediaDevices);
+        navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        .then(stream => {
+            const mediaRecorder = new MediaRecorder(stream);
+            console.log(mediaRecorder);
+            const data = 'Hello from Visualforce Page!';
+            const event = new CustomEvent('sendDataToLWC', {
+                detail: mediaRecorder
+            });
+            // Dispatch the event to the LWC component
+            window.dispatchEvent(event);
+        }).catch(error => {
+            console.log('error');
+        })
+    });
+    
+    $Lightning.use(
+        "c:audioRecorderApp", 
+        function() {
+            $Lightning.createComponent(
+                "c:audioRecorderTest",
+                {},
+                "lightning"
+            );
+        } 
+    );
+    </script>
+</apex:page>

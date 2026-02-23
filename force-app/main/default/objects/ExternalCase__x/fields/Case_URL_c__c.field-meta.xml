@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Case_URL_c__c</fullName>
+    <externalDeveloperName>Case_URL__c</externalDeveloperName>
+    <inlineHelpText>URL text field for Security Layer</inlineHelpText>
+    <isFilteringDisabled>false</isFilteringDisabled>
+    <isNameField>false</isNameField>
+    <isSortingDisabled>false</isSortingDisabled>
+    <label>Case URL</label>
+    <required>false</required>
+    <type>Url</type>
+</CustomField>

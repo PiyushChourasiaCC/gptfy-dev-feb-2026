@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Key__c</fullName>
+    <label>Action</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Chain of Thought</fullName>
+                <default>false</default>
+                <label>Chain of Thought</label>
+            </value>
+            <value>
+                <fullName>Next Best Action</fullName>
+                <default>false</default>
+                <label>Next Best Action</label>
+            </value>
+            <value>
+                <fullName>Draft Email</fullName>
+                <default>false</default>
+                <label>Draft Email</label>
+            </value>
+            <value>
+                <fullName>Sentiment</fullName>
+                <default>false</default>
+                <label>Sentiment</label>
+            </value>
+            <value>
+                <fullName>Sentiment Score</fullName>
+                <default>false</default>
+                <label>Sentiment Score</label>
+            </value>
+            <value>
+                <fullName>Summary</fullName>
+                <default>true</default>
+                <label>Summary</label>
+            </value>
+            <value>
+                <fullName>Root Cause Analysis</fullName>
+                <default>false</default>
+                <label>Root Cause Analysis</label>
+            </value>
+            <value>
+                <fullName>Corrective Action</fullName>
+                <default>false</default>
+                <label>Corrective Action</label>
+            </value>
+            <value>
+                <fullName>Intent Analysis</fullName>
+                <default>false</default>
+                <label>Intent Analysis</label>
+            </value>
+            <value>
+                <fullName>Identify Language</fullName>
+                <default>false</default>
+                <label>Identify Language</label>
+            </value>
+            <value>
+                <fullName>JSON</fullName>
+                <default>false</default>
+                <label>JSON</label>
+            </value>
+            <value>
+                <fullName>Identify Product</fullName>
+                <default>false</default>
+                <label>Identify Product</label>
+            </value>
+            <value>
+                <fullName>Identify Request Type</fullName>
+                <default>false</default>
+                <label>Identify Request Type</label>
+            </value>
+            <value>
+                <fullName>Root Cause Reason</fullName>
+                <default>false</default>
+                <label>Root Cause Reason</label>
+            </value>
+            <value>
+                <fullName>Resolution</fullName>
+                <default>false</default>
+                <label>Resolution</label>
+            </value>
+            <value>
+                <fullName>Categorize</fullName>
+                <default>false</default>
+                <label>Categorize</label>
+            </value>
+            <value>
+                <fullName>True or False</fullName>
+                <default>false</default>
+                <label>True or False</label>
+            </value>
+            <value>
+                <fullName>Title</fullName>
+                <default>false</default>
+                <label>Title</label>
+            </value>
+            <value>
+                <fullName>Article type</fullName>
+                <default>false</default>
+                <label>Article type</label>
+            </value>
+            <value>
+                <fullName>Problem statement</fullName>
+                <default>false</default>
+                <label>Problem statement</label>
+            </value>
+            <value>
+                <fullName>Knowledge URL</fullName>
+                <default>false</default>
+                <label>Knowledge URL</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

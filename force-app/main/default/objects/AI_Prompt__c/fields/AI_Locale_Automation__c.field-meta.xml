@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Locale_Automation__c</fullName>
+    <inlineHelpText>Choose locale for Flows, Mass Processing, and APIs, affecting date, time, and number formats.
+
+Company Default: Applies standard locale for consistent automated formatting.
+Record Owner&apos;s Locale: Adopts record owner&apos;s settings for personalized formatting.</inlineHelpText>
+    <label>Locale - Automation</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Company Default</fullName>
+                <default>false</default>
+                <label>Company Default</label>
+            </value>
+            <value>
+                <fullName>Record Owner</fullName>
+                <default>false</default>
+                <label>Record Owner</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

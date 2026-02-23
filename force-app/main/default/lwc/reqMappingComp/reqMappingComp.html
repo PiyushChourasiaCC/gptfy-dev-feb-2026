@@ -1,0 +1,209 @@
+<template>
+	<template if:true={showSpinner}>
+		<div>
+			<div class="slds-spinner_container">
+				<div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+					<span class="slds-assistive-text">Loading</span>
+					<div class="slds-spinner__dot-a"></div>
+					<div class="slds-spinner__dot-b"></div>
+				</div>
+			</div>
+		</div>
+	</template>
+	<div class="slds-form-element">
+		<label class="slds-form-element__label" for="combobox-id-2">{lookupLabel}</label>
+		<div class="slds-form-element__control">
+			<div class="slds-combobox_container">
+				<div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open"
+					aria-expanded="true" aria-haspopup="listbox" role="combobox">
+					<template if:true={selectedValue}>
+						<div data-key="pilldiv"
+							class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_left-right"
+							role="none">
+							<span
+                                class="slds-icon_container slds-icon-standard-account slds-combobox__input-entity-icon"
+                                title="object">
+                                <div class="slds-icon slds-icon_small" aria-hidden="true">
+                                    <lightning-icon icon-name={iconName} size="small"></lightning-icon>
+                                </div>
+                                <span class="slds-assistive-text">Record</span>
+							</span>
+							<input type="text" class="slds-input slds-combobox__input slds-combobox__input-value"
+                                id="combobox-id-5" aria-controls="listbox-id-5" role="textbox"
+                                placeholder="Select an Option" readonly value={selectedValue} />
+							<button class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                onclick={removeRecordOnLookup} title="Remove selected option" type="button">
+                                <span class="slds-button__icon" aria-hidden="true">
+                                    <lightning-icon icon-name="utility:close" size="xx-Small"
+                                        class="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
+                                        aria-hidden="true"></lightning-icon>
+                                </span>
+                                <span class="slds-assistive-text">Remove selected record</span>
+                            </button>
+						</div>
+					</template>
+
+					<template if:false={selectedValue}>
+						<div data-key="searchdiv"
+							class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+							role="none">
+							<input type="text" onfocusout={onLeave} value={searchKey} onkeyup={handleKeyChange}
+                                onchange={handleKeyChange} onfocus={handleKeyChange} id="combobox-id-2"
+                                aria-autocomplete="list" aria-controls="listbox-id-2" role="textbox"
+                                placeholder="Search..." class="slds-input slds-combobox__input slds-has-focus"/>
+							<span
+                                class="slds-icon_container slds-icon-utility-search slds-input__icon slds-input__icon_right">
+                                <lightning-icon icon-name="utility:search" size="xx-Small"
+                                    class="slds-icon slds-icon slds-icon_x-small slds-icon-text-default"
+                                    aria-hidden="true"></lightning-icon>
+                            </span>
+						</div>
+
+						<template if:true={recordsList}>
+							<div id="listbox-id-2-venu" data-key="dropdownresult"
+								class="slds-show slds-dropdown slds-dropdown_length-with-icon-7 slds-dropdown_fluid"
+								role="listbox">
+								<ul class="slds-listbox slds-listbox_vertical" role="presentation">
+									<template if:true={message}>
+										<center> {message}</center>
+									</template>
+									<template for:each={recordsList} for:item="record">
+										<li id={record.Id} key={record.Id} onclick={onRecordSelection}
+											role="presentation" class="slds-listbox__item" data-key={record.Id}
+											data-name={record.Name}>
+											<div data-key={record.Id} data-name={record.Name}
+												class="slds-media slds-listbox__option slds-listbox__option_entity slds-listbox__option_has-meta"
+												role="option">
+												<span class="slds-media__figure slds-listbox__option-icon" data-key={record.Id} data-name={record.Name}>
+                                                    <span class="slds-icon_container" data-key={record.Id} data-name={record.Name}>
+                                                        <lightning-icon icon-name={iconName} size="small" data-key={record.Id} data-name={record.Name}>
+                                                        </lightning-icon>
+                                                    </span>
+												</span>
+												<span class="slds-media__body" data-key={record.Id} data-name={record.Name}>
+                                                    <span data-key={record.Id} data-name={record.Name}
+                                                        class="slds-listbox__option-text slds-listbox__option-text_entity" style="font-size:14px;">{record.Name}
+                                                    </span>
+												</span>
+											</div>
+										</li>
+									</template>
+									<button type="button" class="slds-button slds-p-around_xxx-small add-new_button" title="New Record" onclick={createNewRecord}>
+                                        <lightning-icon icon-name="utility:add" size="x-small" class="slds-p-right_xx-small"></lightning-icon>
+                                        New Record
+                                    </button>
+								</ul>
+							</div>
+						</template>
+					</template>
+				</div>
+			</div>
+		</div>
+		<template if:true={isNewRecord}>
+			<section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-02"
+				class="slds-modal slds-fade-in-open slds-modal_large">
+				<div class="slds-modal__container" style="width:100%;">
+					<div class="slds-modal__header">
+						<h1 id="modal-heading-02" class="slds-modal__title slds-hyphenate">Create Request Mapping</h1>
+					</div>
+					<div class="slds-modal__content slds-p-around_medium" id="modal-content-id-2">
+						<div class="slds-section slds-is-open">
+							<h3 class="slds-section__title slds-theme_shade">
+								<span class="slds-truncate slds-p-horizontal_small" title="Information">Information</span>
+							</h3>
+							<div class="slds-section__content">
+								<lightning-record-edit-form object-api-name={reqMapObj}>
+									<lightning-layout multiple-rows>
+										<lightning-layout-item size="6">
+											<lightning-input-field field-name="Name" class="field-input name-input"
+												required></lightning-input-field>
+										</lightning-layout-item>
+										<lightning-layout-item size="6">
+											<lightning-input-field field-name={aiModalField} class="field-input modal-input"></lightning-input-field>
+										</lightning-layout-item>
+										<lightning-layout-item size="12">
+											<lightning-input-field field-name={descField}
+												class="field-input desc-input"></lightning-input-field>
+										</lightning-layout-item>
+									</lightning-layout>
+								</lightning-record-edit-form>
+							</div>
+						</div>
+						<div class="slds-section slds-is-open">
+							<h3 class="slds-section__title slds-theme_shade">
+								<span class="slds-truncate slds-p-horizontal_small" title="Request Mapping">Request Mapping</span>
+							</h3>
+							<div class="slds-section__content">
+								<lightning-layout multiple-rows>
+									<div style="width:24%">
+										<div class="slds-text-heading_small slds-m-bottom_xx-small">
+											<abbr class="slds-required" title="required" style="margin-right: -3px;">* </abbr>Data
+											Source
+										</div>
+									</div>
+									<div style="width:24%" class="slds-p-left_x-small">
+										<div class="slds-text-heading_small slds-m-bottom_xx-small">
+											<abbr class="slds-required" title="required" style="margin-right: -3px;">* </abbr>User
+											Role</div>
+									</div>
+									<div style="width:24%" class="slds-p-left_x-small">
+										<div class="slds-text-heading_small slds-m-bottom_xx-small">
+											<abbr class="slds-required" title="required" style="margin-right: -3px;">* </abbr>Sequence
+										</div>
+									</div>
+									<div style="width:24%" class="slds-p-left_x-small">
+										<div class="slds-text-heading_small slds-m-bottom_xx-small">Annotation</div>
+									</div>
+									<template for:each={rows} for:item="item" for:index="i">
+										<div style="width:24%" class="slds-m-bottom_x-small" key={item.id}>
+											<lightning-combobox name={i} label="Status" value={item.dataSource}
+												options={item.dataSourceOption} onchange={handleChange}
+												variant="label-hidden" class="field-input" required>
+											</lightning-combobox>
+										</div>
+										<div style="width:24%" class="slds-p-left_x-small slds-m-bottom_x-small"
+											key={item.id}>
+											<lightning-combobox name={i} label="Enter some text" value={item.userRole}
+												options={roleOptions} onchange={handleRoleChange} variant="label-hidden"
+												class="field-input" required>
+											</lightning-combobox>
+											<!--<lightning-input name={i} type="text" label="Enter some text"
+											variant="label-hidden" value={item.userRole} onchange={handleRoleChange}>
+										</lightning-input>-->
+										</div>
+										<div style="width:24%" class="slds-p-left_x-small slds-m-bottom_x-small"
+											key={item.id}>
+											<lightning-input name={i} type="number" label="Enter some text"
+												variant="label-hidden" value={item.sequence}
+												onchange={handleSequenceChange} class="field-input" required>
+											</lightning-input>
+										</div>
+										<div style="width:23%" class="slds-p-left_x-small slds-m-bottom_x-small"
+											key={item.id}>
+											<lightning-input name={i} label="Enter some text" variant="label-hidden"
+												value={item.annotation} onchange={handleAnnotationChange}>
+											</lightning-input>
+										</div>
+										<div style="text-align:center;"
+											class="slds-p-left_x-small slds-m-bottom_x-small" key={item.id}>
+											<lightning-button-icon name={i} icon-name="utility:delete" variant="brand"
+												alternative-text="Delete" class="slds-m-left_xx-small" title="Delete"
+												onclick={handleRemoveRow}>
+											</lightning-button-icon>
+										</div>
+									</template>
+								</lightning-layout>
+							</div>
+						</div>
+					</div>
+					<div class="slds-modal__footer slds-text-align_center">
+						<button class="slds-button slds-button_neutral" aria-label="Cancel" onclick={createNewRecord} type="button">Cancel</button>
+						<button class="slds-button slds-button_neutral" aria-label="Add Row" onclick={handleAddRow} type="button">Add Row</button>
+						<button class="slds-button slds-button_brand" onclick={handleSave} type="button">Save</button>
+					</div>
+				</div>
+			</section>
+			<div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+		</template>
+	</div>
+</template>

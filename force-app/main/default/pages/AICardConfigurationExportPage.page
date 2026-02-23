@@ -1,0 +1,67 @@
+<!--
+    @description       : 
+    @author            : Rishabh Goel
+    @group             : Plumcloud Labs
+    @last modified on  : 27-04-2024
+    @last modified by  : Rishabh Goel
+-->
+<apex:page controller="AICardConfigurationExportController" sidebar="true" showHeader="true" standardStylesheets="false">
+    <apex:form >
+      <apex:actionFunction action="{!navigateToListView}" name="navigateToListView"/>
+  	</apex:form>
+    <apex:includeLightning />
+    <html xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    	<head>
+    		<title>Cards</title>
+            <apex:slds />
+    		<apex:includeScript value="{!URLFOR($Resource.aljs,'/jquery/jquery-3.6.0.min.js')}" />
+            <script>
+            
+            	document.addEventListener("closechild", function(event){
+                    navigateToListView();
+                });
+            
+                $(document).ready(function(){     
+                    let ScrubbedPackageName = 'c';
+                    let np = '{!JSENCODE(currentPackageName)}';
+                    if(np && np!=null && np!=''){
+                        ScrubbedPackageName = np.replace('__','');
+                    }
+
+                    let reqType = '{!JSENCODE(requestType)}';
+                    if(reqType == 'export'){
+                        document.getElementById('exportWizardDiv').style.display = 'block';
+                    	document.getElementById('importWizardDiv').style.display = 'none';
+                        $Lightning.use(ScrubbedPackageName+":aILightningContainer", function() {
+                            if ($('#exportWizardDiv').length){
+                                $Lightning.createComponent(
+                                    ScrubbedPackageName+":aICardConfigurationExportComponent",
+                                    {},
+                                    "exportWizardDiv",
+                                    function(cmp) {}
+                                );
+                            }
+                        });
+                    }else{
+                    	document.getElementById('importWizardDiv').style.display = 'block';
+                    	document.getElementById('exportWizardDiv').style.display = 'none';
+                        $Lightning.use(ScrubbedPackageName+":aILightningContainer", function() {
+                            if ($('#importWizardDiv').length){
+                                $Lightning.createComponent(
+                                    ScrubbedPackageName+":aICardConfigurationImportComponent",
+                                    {},
+                                    "importWizardDiv",
+                                    function(cmp) {}
+                                );
+                            }
+                        });
+                    }
+                });
+            </script>
+        </head>
+        <body>
+            <div id="exportWizardDiv"/>
+            <div id="importWizardDiv"/>
+        </body>
+	</html>
+</apex:page>

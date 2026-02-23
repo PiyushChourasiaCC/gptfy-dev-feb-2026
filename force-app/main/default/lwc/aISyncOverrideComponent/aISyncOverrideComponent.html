@@ -1,0 +1,239 @@
+<template>
+    <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" class="slds-modal slds-fade-in-open">
+        <div class="slds-modal__container">
+            <div class="slds-modal__header">
+                <lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large" icon-name="utility:close" variant="bare" alternative-text="Close" title="Close" onclick={handleCancel}></lightning-button-icon>
+                <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">{modalHeader}</h1>
+            </div>
+            <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1" style="min-height:550px;">
+                <template if:true={showSpinner}>
+                    <div style="height:19rem;position:relative">
+                        <div class="slds-spinner_container">
+                            <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                                <span class="slds-assistive-text">Loading</span>
+                                <div class="slds-spinner__dot-a"></div>
+                                <div class="slds-spinner__dot-b"></div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <template if:false={showSpinner}>
+                    <template if:true={data}>
+
+                        <lightning-input 
+                            type="text" 
+                            name="name" 
+                            label="Name" 
+                            value={data.name} 
+                            onchange={handleFieldChange}
+                            data-fname="name" 
+                            required
+                        ></lightning-input>
+
+                        <lightning-combobox
+                            name="fileUploadModelId"
+                            label="AI Model (File Upload)"
+                            value={data.fileUploadModelId}
+                            placeholder="Select AI Model"
+                            options={data.modelOptions}
+                            required
+                            onchange={handleFieldChange}
+                            data-fname="fileUploadModelId" 
+                        ></lightning-combobox>
+
+                        <lightning-combobox
+                            name="datastoreImportModelId"
+                            label="AI Model (Datastore Import)"
+                            value={data.datastoreImportModelId}
+                            placeholder="Select AI Model"
+                            options={data.modelOptions}
+                            required
+                            onchange={handleFieldChange}
+                            data-fname="datastoreImportModelId" 
+                        ></lightning-combobox>
+
+                        <lightning-textarea 
+                            name="description" 
+                            label="Description" 
+                            value={data.description}
+                            onchange={handleFieldChange}
+                            data-fname="description" 
+                        ></lightning-textarea>
+
+                        <lightning-input 
+                            type="text" 
+                            name="cronExp" 
+                            label="Cron Expression" 
+                            value={data.cronExp} 
+                            onchange={handleFieldChange}
+                            data-fname="cronExp" 
+                        ></lightning-input>
+
+                        <div class="slds-section slds-is-open slds-p-top_medium">
+                            <h3 class="slds-section__title slds-theme_shade">
+                                <span class="slds-truncate slds-p-horizontal_small" title="Section Title">
+                                    Source Details
+                                </span>
+                            </h3>
+                            <div class="slds-section__content">
+                                <lightning-combobox
+                                    name="objectName"
+                                    label="Select Object"
+                                    value={data.objectName}
+                                    placeholder="Select Object"
+                                    options={data.objectOptions}
+                                    data-fname="objectName" 
+                                    onchange={handleFieldChange}
+                                ></lightning-combobox>
+
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label">
+                                        Fields
+                                    </label>
+                                    <div class="slds-form-element__control">
+                                        
+                                        <table class="slds-table slds-table_cell-buffer">
+                                            <thead>
+                                                <tr class="slds-line-height_reset">
+                                                    <th class="" scope="col">
+                                                        <div class="slds-truncate" title="Field">Field</div>
+                                                    </th>
+                                                    <th class="" scope="col">
+                                                        <div class="slds-truncate" title="Label">Label</div>
+                                                    </th>
+                                                    <th class="" scope="col" style="width: 20px;">
+                                                        <div class="slds-truncate" title="Action"></div>
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template if:true={data.fields}>
+                                                    <template if:true={data.fields.length}>
+                                                        <template for:each={data.fields} for:item="field" for:index="fIndex">
+                                                            <tr class="slds-hint-parent" key={field.index}>
+                                                                <td data-label="Field">
+                                                                    <div title="Field">
+                                                                        <lightning-combobox
+                                                                            name="fieldApi"
+                                                                            label="Field"
+                                                                            variant="label-hidden"
+                                                                            data-index={fIndex}
+                                                                            data-fname="fieldApi"
+                                                                            value={field.fieldApi}
+                                                                            placeholder="Select Field"
+                                                                            options={data.fieldOptions}
+                                                                            onchange={handleFieldValueChange}
+                                                                            required
+                                                                        ></lightning-combobox> 
+                                                                    </div>
+                                                                </td>
+                                                                <td data-label="Field">
+                                                                    <div title="Field">
+                                                                        <lightning-input 
+                                                                            type="text" 
+                                                                            name="nodeName"
+                                                                            label="Node Name"
+                                                                            value={field.nodeName}
+                                                                            onchange={handleFieldValueChange}
+                                                                            variant="label-hidden"
+                                                                            data-index={fIndex}
+                                                                            data-fname="nodeName"
+                                                                        ></lightning-input>
+                                                                    </div>
+                                                                </td>
+                                                                <td data-label="Action">
+                                                                    <div title="Action">
+                                                                        <lightning-button-icon 
+                                                                            icon-name="utility:delete" 
+                                                                            alternative-text="Delete" 
+                                                                            variant="container"
+                                                                            title="Delete" 
+                                                                            onclick={handleDeleteField} 
+                                                                            data-index={fIndex}
+                                                                        ></lightning-button-icon>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        </template>
+                                                    </template>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                            
+                                        <lightning-button 
+                                            variant="base" 
+                                            label="+ Add Row" 
+                                            onclick={handleAddField}
+                                        ></lightning-button>
+                                    </div>
+                                </div>
+        
+                                <template if:true={data.objectName}>
+                                    <div class="slds-grid">
+                                        <div class="slds-col" style="width: 94%;">
+                                            <span>
+                                                <lightning-input 
+                                                    name="whereClause" 
+                                                    label="Where Clause"
+                                                    data-fname="whereClause" 
+                                                    value={data.whereClause}
+                                                    onblur={handleFieldChange}
+                                                ></lightning-input>      
+                                            </span>
+                                        </div>
+                                        <div class="slds-col" style="width: 1%;"><span></span></div>
+                                        <div class="slds-col" style="width: 5%; padding-top: 24px;">
+                                            <span>
+                                                <lightning-button-icon 
+                                                    style="padding-left:5px"
+                                                    icon-name="utility:edit"  
+                                                    alternative-text="Edit" 
+                                                    title="Edit" 
+                                                    onclick={handleOpenVisibilityCondition}
+                                                ></lightning-button-icon>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="slds-section slds-is-open slds-p-top_medium">
+                            <h3 class="slds-section__title slds-theme_shade">
+                                <span class="slds-truncate slds-p-horizontal_small" title="Section Title">
+                                    File Details
+                                </span>
+                            </h3>
+                            <div class="slds-section__content">
+                                <lightning-combobox
+                                    name="fileFormat"
+                                    label="File Format"
+                                    value={data.fileFormat}
+                                    placeholder="Select Format"
+                                    options={data.fileFormatOptions}
+                                    onchange={handleFieldChange}
+                                    data-fname="fileFormat" 
+                                ></lightning-combobox>
+        
+                                <lightning-input 
+                                    type="text" 
+                                    name="fileName" 
+                                    label="File Name" 
+                                    value={data.fileName} 
+                                    onchange={handleFieldChange}
+                                    data-fname="fileName"
+                                ></lightning-input>
+                            </div>
+                        </div>
+
+                    </template>
+                </template>
+            </div>
+            <div class="slds-modal__footer">
+                <lightning-button label="Cancel" title="Cancel" onclick={handleCancel}></lightning-button>
+                <lightning-button label="Save" title="Save" onclick={handleSave} variant="brand" class="slds-m-left_x-small"></lightning-button>
+            </div>
+        </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+</template>

@@ -1,0 +1,481 @@
+<template>
+    <div class="container">
+        <!-- Main Content Area (3/4 width) -->
+        <div class="main-content">
+            <!-- Loading Spinner -->
+            <template if:true={isLoading}>
+                <div class="slds-text-align_center slds-p-vertical_large">
+                    <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+                </div>
+            </template>
+            
+            <!-- Content -->
+            <template if:false={isLoading}>
+                <!-- Header -->
+                <div class="header-section">
+                    <div class="header-content">
+                        <template if:false={isEditingName}>
+                            <div class="agent-name-display">
+                                <h1 class="slds-text-heading_large">{agentName}</h1>
+                                <template if:true={isEditMode}>
+                                    <lightning-button-icon
+                                        icon-name="utility:edit"
+                                        alternative-text="Edit Name"
+                                        title="Edit Name"
+                                        onclick={handleEditName}
+                                        variant="bare"
+                                        class="name-edit-icon">
+                                    </lightning-button-icon>
+                                </template>
+                            </div>
+                        </template>
+                        <template if:true={isEditingName}>
+                            <lightning-input
+                                type="text"
+                                value={editedAgentName}
+                                onchange={handleInlineNameChange}
+                                onblur={handleNameBlur}
+                                class="agent-name-input">
+                            </lightning-input>
+                        </template>
+                    </div>
+                    <div class="header-actions">
+                        <template if:true={showDeactivateButton}>
+                            <lightning-button 
+                                label="Unpublish" 
+                                onclick={handleDeactivate}
+                                variant="destructive"
+                                disabled={isSaving}>
+                            </lightning-button>
+                        </template>
+                        <template if:true={showSaveButton}>
+                            <lightning-button 
+                                label="Save" 
+                                onclick={handleSave}
+                                variant="brand"
+                                disabled={isSaving}>
+                            </lightning-button>
+                        </template>
+                        <template if:true={showSaveAndActivateButton}>
+                            <lightning-button 
+                                label="Save & Publish" 
+                                onclick={handleSaveAndActivate}
+                                variant="success"
+                                disabled={isSaving}>
+                            </lightning-button>
+                        </template>
+                        <template if:true={showCancelButton}>
+                            <lightning-button 
+                                label="Cancel" 
+                                onclick={handleCancel}
+                                disabled={isSaving}>
+                            </lightning-button>
+                        </template>
+                        <template if:true={showDeleteButton}>
+                            <lightning-button 
+                                label="Delete" 
+                                onclick={handleDelete}
+                                variant="destructive"
+                                disabled={isSaving}>
+                            </lightning-button>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- Description Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <lightning-icon icon-name='utility:description' alternative-text='description' variant='success' size='small' title='description'  class="section-icon"></lightning-icon>
+                        <h2 class="slds-text-heading_medium">Description</h2>
+                    </div>
+                    <div class="section-content">
+                        <template if:true={isEditMode}>
+                            <lightning-textarea 
+                                label="Agent Description" 
+                                value={agentData.description}
+                                onchange={handleDescriptionChange}
+                                placeholder="Enter a brief description of this agent"
+                                rows="3">
+                            </lightning-textarea>
+                        </template>
+                        <template if:false={isEditMode}>
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">Agent Description</label>
+                                <div class="slds-form-element__control">
+                                    <div class="slds-text-body_regular read-only-text">
+                                        {agentData.description}
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- System Prompt Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <lightning-icon icon-name="standard:approval" size="small" class="section-icon"></lightning-icon>
+                        <h2 class="slds-text-heading_medium">System Prompt</h2>
+                    </div>
+                    <div class="section-content">
+                        <template if:true={isEditMode}>
+                            <lightning-textarea 
+                                label="Instructions for Agent Behavior" 
+                                value={agentData.systemPrompt}
+                                onchange={handleSystemPromptChange}
+                                style="--sds-c-textarea-sizing-min-height:175px;"
+                                rows="6">
+                            </lightning-textarea>
+                        </template>
+                        <template if:false={isEditMode}>
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">Instructions for Agent Behavior</label>
+                                <div class="slds-form-element__control">
+                                    <div class="slds-text-body_regular read-only-text">
+                                        {agentData.systemPrompt}
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- Skills Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <lightning-icon icon-name="standard:skill" size="small" class="section-icon"></lightning-icon>
+                        <h2 class="slds-text-heading_medium">Skills</h2>
+                        <template if:false={isEditMode}>
+                            <span class="skill-count">{selectedSkills.length} selected</span>
+                        </template>
+                    </div>
+                    <div class="section-content">
+                        <template if:true={isEditMode}>
+                            <lightning-dual-listbox
+                                name="skills"
+                                label="Select Skills"
+                                source-label="Available"
+                                selected-label="Selected"
+                                options={skillOptions}
+                                value={selectedSkills}
+                                onchange={handleSkillChange}
+                                size="5">
+                            </lightning-dual-listbox>
+                        </template>
+                        <template if:false={isEditMode}>
+                            <div class="slds-form-element">
+                                <div class="slds-form-element__control">
+                                    <div class="selected-items-display">
+                                        <template if:true={selectedSkills.length}>
+                                            <template for:each={currentSkills} for:item="skill">
+                                                <div key={skill.promptId} class="selected-item-pill">
+                                                    <lightning-icon icon-name="standard:skill" size="x-small"></lightning-icon>
+                                                    <span class="pill-label">{skill.promptName}</span>
+                                                </div>
+                                            </template>
+                                        </template>
+                                        <template if:false={selectedSkills.length}>
+                                            <div class="slds-text-color_weak">No skills selected</div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- AI Model Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <lightning-icon icon-name="standard:data_integration_hub" size="small" class="section-icon"></lightning-icon>
+                        <h2 class="slds-text-heading_medium">AI Model</h2>
+                    </div>
+                    <div class="section-content">
+                        <template if:true={isEditMode}>
+                            <lightning-combobox
+                                name="aiModel"
+                                label="Select AI Model"
+                                value={agentData.aiModel}
+                                placeholder="Choose an AI Model"
+                                options={aiModelOptions}
+                                onchange={handleAIModelChange}
+                                required>
+                            </lightning-combobox>
+                        </template>
+                        <template if:false={isEditMode}>
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">Select AI Model</label>
+                                <div class="slds-form-element__control">
+                                    <div class="slds-text-body_regular">
+                                        {aiModelDisplayName}
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- Knowledge Base Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <lightning-icon icon-name="standard:knowledge" size="small" class="section-icon"></lightning-icon>
+                        <h2 class="slds-text-heading_medium">Knowledge Bases</h2>
+                        <template if:false={isEditMode}>
+                            <span class="skill-count">{selectedKnowledgeBases.length} selected</span>
+                        </template>
+                    </div>
+                    <div class="section-content">
+                        <template if:true={isEditMode}>
+                            <lightning-dual-listbox
+                                name="knowledgeBases"
+                                label="Select Knowledge Sources"
+                                source-label="Available"
+                                selected-label="Selected"
+                                options={knowledgeBaseOptions}
+                                value={selectedKnowledgeBases}
+                                onchange={handleKnowledgeBaseChange}
+                                size="5">
+                            </lightning-dual-listbox>
+                        </template>
+                        <template if:false={isEditMode}>
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">Select Knowledge Sources</label>
+                                <div class="slds-form-element__control">
+                                    <div class="slds-text-body_regular">
+                                        {selectedKnowledgeBasesDisplay}
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- Channel Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <lightning-icon icon-name="standard:portal" size="small" class="section-icon"></lightning-icon>
+                        <h2 class="slds-text-heading_medium">Channels</h2>
+                        <template if:false={isEditMode}>
+                            <span class="skill-count">{selectedChannels.length} selected</span>
+                        </template>
+                    </div>
+                    <div class="section-content">
+                        <template if:true={isEditMode}>
+                            <div class="channel-grid">
+                                <template for:each={channelOptions} for:item="channel">
+                                    <div key={channel.value} 
+                                         class={channel.cardClass}
+                                         data-channel={channel.value} 
+                                         onclick={handleChannelClick}>
+                                        <div class="channel-icon-wrapper">
+                                            <img 
+                                                src={channel.logoUrl} 
+                                                alt={channel.label}
+                                                class="channel-logo">
+                                        </div>
+                                        <span class="channel-name">{channel.label}</span>
+                                        <template if:true={channel.checked}>
+                                            <lightning-icon 
+                                                icon-name="utility:check" 
+                                                size="xx-small"
+                                                class="channel-check-icon"
+                                                variant="inverse">
+                                            </lightning-icon>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                        <template if:false={isEditMode}>
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">Selected Channels</label>
+                                <div class="slds-form-element__control">
+                                    <div class="slds-text-body_regular">
+                                        {selectedChannelsDisplay}
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- Security Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <lightning-icon icon-name="custom:custom91" size="small" class="section-icon"></lightning-icon>
+                        <h2 class="slds-text-heading_medium">Security</h2>
+                    </div>
+                    <div class="section-content">
+                        <div class="security-grid">
+                            <!-- Profiles -->
+                            <div class="security-column">
+                                <template if:true={isEditMode}>
+                                    <lightning-dual-listbox
+                                        name="profiles"
+                                        label="Profiles"
+                                        source-label="Available"
+                                        selected-label="Selected"
+                                        options={profileOptions}
+                                        value={selectedProfiles}
+                                        onchange={handleProfileChange}
+                                        size="4">
+                                    </lightning-dual-listbox>
+                                </template>
+                                <template if:false={isEditMode}>
+                                    <div class="slds-form-element">
+                                        <label class="slds-form-element__label">Profiles ({selectedProfiles.length})</label>
+                                        <div class="slds-form-element__control">
+                                            <template if:true={selectedProfiles.length}>
+                                                <ul class="slds-list_dotted">
+                                                    <template for:each={selectedProfiles} for:item="profile">
+                                                        <li key={profile}>{profile}</li>
+                                                    </template>
+                                                </ul>
+                                            </template>
+                                            <template if:false={selectedProfiles.length}>
+                                                <div class="slds-text-color_weak">No profiles selected</div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                            
+                            <!-- Permission Sets -->
+                            <div class="security-column">
+                                <template if:true={isEditMode}>
+                                    <lightning-dual-listbox
+                                        name="permissionSets"
+                                        label="Permission Sets"
+                                        source-label="Available"
+                                        selected-label="Selected"
+                                        options={permissionSetOptions}
+                                        value={selectedPermissionSets}
+                                        onchange={handlePermissionSetChange}
+                                        size="4">
+                                    </lightning-dual-listbox>
+                                </template>
+                                <template if:false={isEditMode}>
+                                    <div class="slds-form-element">
+                                        <label class="slds-form-element__label">Permission Sets ({selectedPermissionSets.length})</label>
+                                        <div class="slds-form-element__control">
+                                            <template if:true={selectedPermissionSets.length}>
+                                                <ul class="slds-list_dotted">
+                                                    <template for:each={selectedPermissionSets} for:item="permSet">
+                                                        <li key={permSet}>{permSet}</li>
+                                                    </template>
+                                                </ul>
+                                            </template>
+                                            <template if:false={selectedPermissionSets.length}>
+                                                <div class="slds-text-color_weak">No permission sets selected</div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Advanced Settings Section (Collapsible) -->
+                <div class="section">
+                    <div class="section-header collapsible-header" onclick={handleAdvancedSettingsToggle}>
+                        <lightning-icon icon-name="standard:settings" size="small" class="section-icon"></lightning-icon>
+                        <h2 class="slds-text-heading_medium">Advanced Settings</h2>
+                        <lightning-icon 
+                            icon-name={advancedSettingsToggleIcon}
+                            size="small" 
+                            class="toggle-icon">
+                        </lightning-icon>
+                    </div>
+                    <template if:true={isAdvancedSettingsExpanded}>
+                        <div class="section-content">
+                            <template if:true={isEditMode}>
+                                <lightning-textarea 
+                                    label="Welcome Message" 
+                                    value={agentData.welcomeMessage}
+                                    onchange={handleWelcomeMessageChange}
+                                    placeholder="Enter a welcome message for users"
+                                    rows="3">
+                                </lightning-textarea>
+                                
+                                <lightning-input 
+                                    type="checkbox" 
+                                    label="Use Thread Id"
+                                    checked={agentData.useThreadId}
+                                    onchange={handleUseThreadIdChange}>
+                                </lightning-input>
+                                
+                                <lightning-input 
+                                    type="number" 
+                                    label="TTL (minutes)" 
+                                    value={agentData.ttl}
+                                    onchange={handleTTLChange}
+                                    min="0">
+                                </lightning-input>
+                                
+                                <template if:true={showTTLMessage}>
+                                    <lightning-textarea 
+                                        label="TTL Message" 
+                                        value={agentData.ttlMessage}
+                                        onchange={handleTTLMessageChange}
+                                        placeholder="Enter message to display when chat expires"
+                                        rows="3"
+                                        required>
+                                    </lightning-textarea>
+                                </template>
+                            </template>
+                            <template if:false={isEditMode}>
+                                <div class="slds-form-element slds-m-bottom_small">
+                                    <label class="slds-form-element__label">Welcome Message</label>
+                                    <div class="slds-form-element__control">
+                                        <div class="slds-text-body_regular read-only-text">
+                                            {agentData.welcomeMessage}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="slds-form-element slds-m-bottom_small">
+                                    <label class="slds-form-element__label">Use Thread Id</label>
+                                    <div class="slds-form-element__control">
+                                        <div class="slds-text-body_regular">
+                                            {agentData.useThreadId}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="slds-form-element slds-m-bottom_small">
+                                    <label class="slds-form-element__label">TTL (minutes)</label>
+                                    <div class="slds-form-element__control">
+                                        <div class="slds-text-body_regular">
+                                            {agentData.ttl}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <template if:true={showTTLMessage}>
+                                    <div class="slds-form-element">
+                                        <label class="slds-form-element__label">TTL Message</label>
+                                        <div class="slds-form-element__control">
+                                            <div class="slds-text-body_regular read-only-text">
+                                                {agentData.ttlMessage}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+                
+            </template>
+        </div>
+        
+        <!-- Preview Panel (1/4 width) - Test Agent Chat -->
+        <div class="preview-panel">
+            <c-a-i-agent-creation-chat-preview-container
+                lwc:ref="chatContainer"
+                default-agent-id={recordId}>
+            </c-a-i-agent-creation-chat-preview-container>
+        </div>
+    </div>
+</template>

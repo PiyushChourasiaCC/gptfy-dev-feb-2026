@@ -1,0 +1,255 @@
+<template>
+    <div class="exchange-container">
+        <!-- Compact Mode - for Highlight Panel -->
+        <template if:true={isCompactMode}>
+            <div class="compact-header">
+                <div class="compact-info">
+                    <img src={logoUrl} alt="GPTfy" class="gptfy-logo-compact" />
+                    <div class="compact-details">
+                        <div class="compact-email">{userEmailAddress}</div>
+                        <div class="compact-stats">{totalEmailsDisplay} emails</div>
+                    </div>
+                </div>
+                <template if:false={isAuthenticated}>
+                    <a href={authenticationSettingsUrl} class="auth-link">Connect</a>
+                </template>
+            </div>
+        </template>
+
+        <!-- Full Mode -->
+        <template if:false={isCompactMode}>
+            <!-- No Provider Enabled Message -->
+            <template if:true={showNoProviderMessage}>
+                <div class="no-provider-state">
+                    <div class="no-provider-content">
+                        <div class="no-provider-icon">⚙️</div>
+                        <h2>Email Sync Not Configured</h2>
+                        <p>Please enable at least one email provider (Outlook or Gmail) from:</p>
+                        <p class="settings-path"><strong>AI Settings → Workspace Sync</strong></p>
+                    </div>
+                </div>
+            </template>
+            
+            <!-- Main Content (when at least one provider is enabled) -->
+            <template if:false={showNoProviderMessage}>
+            <!-- Header Section -->
+            <div class="header-section">
+                <div class="header-content">
+                    <div class="title-area">
+                        <h1 class="slds-text-heading_medium">
+                            <img src={logoUrl} alt="GPTfy" class="gptfy-logo" />
+                            {inboxTitle}
+                        </h1>
+                    </div>
+                    <div class="stats-area">
+                        <div class="stat-card">
+                            <span class="stat-value">{totalEmailsDisplay}</span>
+                            <span class="stat-label">Emails</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <template if:true={isAuthenticated}>
+                <div class="main-content full-width">
+                    <!-- Email List Panel (Full Width) -->
+                    <div class="email-panel full-width">
+                        <!-- Quick Action Bar - Slim -->
+                        <div class="action-bar slim">
+                            <div class="search-container">
+                                <lightning-icon icon-name="utility:search" size="x-small"
+                                    class="search-icon"></lightning-icon>
+                                <input type="text" placeholder="Search by subject or content..."
+                                    value={searchKey} oninput={handleSearch} class="search-input" />
+                            </div>
+                            <div class="filters-container">
+                                <button class={todayFilterClass} onclick={handleFilterClick} data-filter="today">📅
+                                    Today</button>
+                                <button class={allEmailsFilterClass} onclick={handleFilterClick} data-filter="all">📧
+                                    All Emails</button>
+                                <button class={filesFilterClass} onclick={handleFilterClick} data-filter="files">📎 Has
+                                    Files</button>
+                            </div>
+                            <div class="toolbar-right">
+                                <template if:true={showProviderSwitch}>
+                                    <div class="provider-switch" title="Switch email provider">
+                                        <button class={outlookSwitchClass} onclick={handleProviderSwitch} data-provider="MICROSOFT_GRAPH">
+                                            <span class="provider-icon outlook-icon">O</span>
+                                            Outlook
+                                        </button>
+                                        <button class={gmailSwitchClass} onclick={handleProviderSwitch} data-provider="GMAIL">
+                                            <span class="provider-icon gmail-icon">G</span>
+                                            Gmail
+                                        </button>
+                                    </div>
+                                </template>
+                                <button class="refresh-btn" onclick={handleRefresh} title="Refresh Inbox" disabled={isLoading}>
+                                    <span class="refresh-icon">🔄</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Email List Table -->
+                        <div class="email-list-container">
+                            <template if:true={isLoading}>
+                                <div class="spinner-container">
+                                    <div class="spinner-large"></div>
+                                    <p style="text-align: center; color: #666;">Loading your inbox...</p>
+                                </div>
+                            </template>
+
+                            <template if:false={isLoading}>
+                                <template if:true={hasEmails}>
+                                    <div class="email-table">
+                                        <template for:each={emails} for:item="email">
+                                            <div key={email.id} class={email.rowClass} onclick={handleRowSelection}
+                                                data-email-id={email.id}>
+                                                <div class="col-checkbox">
+                                                    <input type="checkbox" checked={email.selected} onclick={handleCheckboxClick} data-email-id={email.id} disabled={email.isImported} />
+                                                </div>
+                                                <div class="col-avatar">
+                                                    <div class="avatar" style={email.avatarStyle}>
+                                                        {email.fromInitials}
+                                                    </div>
+                                                </div>
+                                                <div class="col-content">
+                                                    <div class="subject-line">
+                                                        <span class="subject-text">{email.subject}</span>
+                                                        <template if:true={email.isImported}>
+                                                            <span class="badge imported">✓ Imported</span>
+                                                        </template>
+                                                        <template if:true={email.isImportant}>
+                                                            <span class="badge important">🔥 IMPORTANT</span>
+                                                        </template>
+                                                        <template if:true={email.hasAttachments}>
+                                                            <span
+                                                                class="badge attachment">{email.attachmentCount}</span>
+                                                        </template>
+                                                    </div>
+                                                    <div class="preview-text">{email.bodyPreview}</div>
+                                                    <!-- Association Badges - Clickable links to records -->
+                                                    <template if:true={email.hasAssociations}>
+                                                        <div class="association-badges">
+                                                            <template for:each={email.associationBadges}
+                                                                for:item="badge">
+                                                                <span key={badge.key} 
+                                                                      class={badge.cssClass}
+                                                                      data-record-id={badge.recordId}
+                                                                      data-record-type={badge.type}
+                                                                      onclick={handleAssociationClick}
+                                                                      title="Click to open {badge.type}">
+                                                                    {badge.name}
+                                                                </span>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                                <div class="col-sender">{email.fromName}</div>
+                                                <div class="col-time">{email.receivedTimeFormatted}</div>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <!-- Pagination - always show when there are emails, buttons disabled when no pagination needed -->
+                                    <div class="pagination">
+                                        <div class="page-info">Showing {pageStart}-{pageEnd} of {totalEmailsDisplay} emails</div>
+                                        <div class="page-controls">
+                                            <button disabled={isPreviousDisabled} onclick={handlePreviousPage}>← Previous</button>
+                                            <button disabled={isNextDisabled} onclick={handleNextPage}>Next →</button>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <template if:false={hasEmails}>
+                                    <div class="empty-state" style="text-align: center; padding: 3rem;">
+                                        <p style="color: #666; font-size: 1.1rem;">No emails found matching your
+                                            criteria.
+                                        </p>
+                                    </div>
+                                </template>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floating Selection Bar -->
+                <div class={selectionBarClass}>
+                    <div class="selection-content">
+                        <div class="selection-count">
+                            <span class="count-number">{selectionCount}</span>
+                            <span class="count-label">emails selected</span>
+                        </div>
+                        <div class="selection-actions">
+                            
+                            <button class="import-btn" onclick={handleAutoSyncWithAI} disabled={isImporting} 
+                            title="Lightning-fast intelligent matching">
+                                🚀 Import Selected
+                            </button>
+                            <button class="clear-btn slds-m-left_x-small" onclick={clearSelection}>Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Unauthenticated State -->
+            <template if:false={isAuthenticated}>
+                <!-- Loading state when checking access -->
+                <template if:true={isLoading}>
+                    <div class="loading-access-state">
+                        <div class="spinner-large"></div>
+                        <p class="loading-text">Checking email access...</p>
+                    </div>
+                </template>
+                <template if:false={isLoading}>
+                    <div class="not-accessible-state">
+                        <!-- Provider Switch in not-accessible state -->
+                        <template if:true={showProviderSwitch}>
+                            <div class="provider-switch-large" title="Switch email provider">
+                                <button class={outlookSwitchClass} onclick={handleProviderSwitch} data-provider="MICROSOFT_GRAPH">
+                                    <span class="provider-icon outlook-icon">O</span>
+                                    Outlook
+                                </button>
+                                <button class={gmailSwitchClass} onclick={handleProviderSwitch} data-provider="GMAIL">
+                                    <span class="provider-icon gmail-icon">G</span>
+                                    Gmail
+                                </button>
+                            </div>
+                        </template>
+                        <div class="lock-icon">🔒</div>
+                        <h2>Email Access Required</h2>
+                        <p>{notAccessibleMessage}</p>
+                        <div class="action-buttons">
+                            <button class="retry-connection-btn" onclick={handleRetryConnection} title="Refresh connection without leaving this page">
+                                🔄 Refresh Connection
+                            </button>
+                            <a href={authenticationSettingsUrl} class="auth-link">🔐 Connect Email</a>
+                        </div>
+                    </div>
+                </template>
+            </template>
+            </template>
+        </template>
+
+        <!-- Quick Match Modal -->
+        <template if:true={showQuickMatchModal}>
+            <c-ai-auto-record-matching-modal
+                source-type="EMAIL"
+                provider-type={selectedProvider}
+                items={modalItems}
+                connected-account-email={userEmailAddress}
+                onclose={handleCloseModal}
+                onsuccess={handleModalSuccess}
+                onerror={handleModalError}>
+            </c-ai-auto-record-matching-modal>
+        </template>
+
+        <!-- Loading Overlay -->
+        <div class={loadingOverlayClass}>
+            <div class="overlay-content">
+                <div class="spinner-large"></div>
+                <h2 class="overlay-title">{loadingMessage}</h2>
+                <p class="overlay-subtext">{loadingSubtext}</p>
+            </div>
+        </div>
+    </div>
+</template>

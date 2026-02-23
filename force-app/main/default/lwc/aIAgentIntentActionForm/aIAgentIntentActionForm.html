@@ -1,0 +1,370 @@
+<template>
+    <!-- ── Modal Backdrop ───────────────────────────────── -->
+    <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="action-modal-heading" class="slds-modal slds-fade-in-open">
+        <div class="slds-modal__container">
+
+            <!-- Header -->
+            <div class="slds-modal__header">
+                <lightning-button-icon
+                    icon-name="utility:close"
+                    alternative-text="Close"
+                    class="slds-modal__close"
+                    onclick={handleClose}>
+                </lightning-button-icon>
+                <h1 id="action-modal-heading" class="slds-modal__title slds-hyphenate">{modalTitle}</h1>
+            </div>
+
+            <!-- Body -->
+            <div class="slds-modal__content slds-p-around_medium" id="action-modal-content">
+
+                <!-- Validation Error Banner -->
+                <template if:true={hasValidationError}>
+                    <div class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_small" role="alert">
+                        <lightning-icon icon-name="utility:error" size="x-small" variant="inverse" class="slds-m-right_x-small"></lightning-icon>
+                        <span>{validationError}</span>
+                    </div>
+                </template>
+
+                <!-- Action Type -->
+                <lightning-combobox
+                    name="actionType"
+                    label="Action Type"
+                    value={action.actionType}
+                    placeholder="Select Action Type"
+                    options={filteredActionTypeOptions}
+                    onchange={handleTypeChange}
+                    required
+                    disabled={isEditing}>
+                </lightning-combobox>
+
+                <!-- Common Fields (shown for all types) -->
+                <template if:true={showTypeSpecificFields}>
+                    <div class="slds-m-top_small">
+                        <lightning-textarea
+                            name="description"
+                            label="Description"
+                            value={action.description}
+                            onchange={handleDescriptionChange}
+                            placeholder="Describe what this action does (sent to AI for parameter extraction on Update Field / Create Record)"
+                            rows="3">
+                        </lightning-textarea>
+                    </div>
+
+                    <div class="slds-grid slds-gutters slds-m-top_small">
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input
+                                type="number"
+                                label="Sequence"
+                                value={action.sequence}
+                                onchange={handleSequenceChange}
+                                min="0"
+                                max="999">
+                            </lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2 toggle-cell">
+                            <lightning-input
+                                type="toggle"
+                                label="Active"
+                                checked={action.isActive}
+                                onchange={handleActiveChange}
+                                message-toggle-active="Active"
+                                message-toggle-inactive="Inactive">
+                            </lightning-input>
+                        </div>
+                    </div>
+
+                    <!-- ── Type-specific fields ─────────────── -->
+
+                    <!-- Canned Response -->
+                    <template if:true={isCannedResponseAction}>
+                        <div class="type-section">
+                            <div class="type-section-header">
+                                <lightning-icon icon-name="utility:comments" size="x-small"></lightning-icon>
+                                <span class="type-section-title">Canned Response Configuration</span>
+                            </div>
+                            <lightning-combobox
+                                name="language"
+                                label="Language"
+                                value={action.language}
+                                options={languageOptions}
+                                onchange={handleLanguageChange}>
+                            </lightning-combobox>
+                            <div class="slds-m-top_small">
+                                <lightning-textarea
+                                    name="cannedResponse"
+                                    label="Canned Response"
+                                    value={action.cannedResponse}
+                                    onchange={handleCannedResponseChange}
+                                    placeholder="Enter the static response text"
+                                    rows="5"
+                                    required>
+                                </lightning-textarea>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Update Field -->
+                    <template if:true={isUpdateFieldAction}>
+                        <div class="type-section">
+                            <div class="type-section-header">
+                                <lightning-icon icon-name="utility:edit_form" size="x-small"></lightning-icon>
+                                <span class="type-section-title">Update Field Configuration</span>
+                            </div>
+                            <lightning-combobox
+                                name="objectName"
+                                label="Object"
+                                value={action.objectName}
+                                placeholder="Select Object"
+                                options={objectOptions}
+                                onchange={handleObjectNameChange}
+                                required>
+                            </lightning-combobox>
+                            <template if:true={fieldOptions.length}>
+                                <div class="slds-m-top_small">
+                                    <lightning-combobox
+                                        name="fieldApiName"
+                                        label="Field"
+                                        value={action.fieldApiName}
+                                        placeholder="Select Field"
+                                        options={fieldOptions}
+                                        onchange={handleFieldApiNameChange}
+                                        required>
+                                    </lightning-combobox>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Create Record -->
+                    <template if:true={isCreateRecordAction}>
+                        <div class="type-section">
+                            <div class="type-section-header">
+                                <lightning-icon icon-name="utility:new" size="x-small"></lightning-icon>
+                                <span class="type-section-title">Create Record Configuration</span>
+                            </div>
+                            <lightning-combobox
+                                name="objectName"
+                                label="Object"
+                                value={action.objectName}
+                                placeholder="Select Object"
+                                options={objectOptions}
+                                onchange={handleObjectNameChange}
+                                required>
+                            </lightning-combobox>
+
+                            <!-- Field Mappings Table -->
+                            <template if:true={action.objectName}>
+                                <div class="slds-m-top_small">
+                                    <div class="slds-grid slds-grid_align-spread slds-m-bottom_x-small">
+                                        <h3 class="slds-text-heading_x-small">Field Mappings</h3>
+                                        <lightning-button-icon
+                                            icon-name="utility:add"
+                                            alternative-text="Add Field Mapping"
+                                            title="Add Field Mapping"
+                                            onclick={handleAddFieldMapping}
+                                            size="small">
+                                        </lightning-button-icon>
+                                    </div>
+
+                                    <template if:true={hasFieldMappings}>
+                                        <template for:each={fieldMappingsWithIndex} for:item="mapping">
+                                            <div key={mapping._key} class="slds-box slds-box_x-small slds-m-bottom_x-small mapping-row">
+                                                <div class="slds-grid slds-gutters slds-grid_vertical-align-end">
+                                                    <!-- Field Picker -->
+                                                    <div class="slds-col slds-size_3-of-12">
+                                                        <lightning-combobox
+                                                            name="fieldApiName"
+                                                            label="Field"
+                                                            value={mapping.fieldApiName}
+                                                            placeholder="Select Field"
+                                                            options={fieldOptions}
+                                                            onchange={handleMappingFieldChange}
+                                                            data-index={mapping._index}
+                                                            required>
+                                                        </lightning-combobox>
+                                                    </div>
+                                                    <!-- Type Picker -->
+                                                    <div class="slds-col slds-size_3-of-12">
+                                                        <lightning-combobox
+                                                            name="type"
+                                                            label="Type"
+                                                            value={mapping.type}
+                                                            placeholder="Select Type"
+                                                            options={mappingTypeOptions}
+                                                            onchange={handleMappingTypeChange}
+                                                            data-index={mapping._index}
+                                                            required>
+                                                        </lightning-combobox>
+                                                    </div>
+                                                    <!-- Value / Description -->
+                                                    <div class="slds-col slds-size_5-of-12">
+                                                        <template if:true={mapping._isHardcoded}>
+                                                            <lightning-input
+                                                                type="text"
+                                                                label="Value"
+                                                                value={mapping.value}
+                                                                placeholder="e.g. Chat, {UserId}, {TODAY}"
+                                                                onchange={handleMappingValueChange}
+                                                                data-index={mapping._index}>
+                                                            </lightning-input>
+                                                        </template>
+                                                        <template if:false={mapping._isHardcoded}>
+                                                            <lightning-textarea
+                                                                label="AI Description"
+                                                                value={mapping.value}
+                                                                placeholder="Tell the AI what to extract for this field"
+                                                                onchange={handleMappingValueChange}
+                                                                data-index={mapping._index}
+                                                                rows="1">
+                                                            </lightning-textarea>
+                                                        </template>
+                                                    </div>
+                                                    <!-- Delete -->
+                                                    <div class="slds-col slds-size_1-of-12 slds-text-align_center">
+                                                        <lightning-button-icon
+                                                            icon-name="utility:delete"
+                                                            alternative-text="Remove"
+                                                            variant="bare"
+                                                            onclick={handleRemoveFieldMapping}
+                                                            data-index={mapping._index}
+                                                            class="slds-m-top_medium">
+                                                        </lightning-button-icon>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </template>
+
+                                    <template if:false={hasFieldMappings}>
+                                        <div class="slds-text-align_center slds-p-around_small slds-text-color_weak">
+                                            <p>No field mappings yet. Click <strong>+</strong> to add one.</p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Apex -->
+                    <template if:true={isApexAction}>
+                        <div class="type-section">
+                            <div class="type-section-header">
+                                <lightning-icon icon-name="utility:apex" size="x-small"></lightning-icon>
+                                <span class="type-section-title">Apex Configuration</span>
+                            </div>
+                            <lightning-input
+                                type="text"
+                                label="Apex Class Name"
+                                value={action.apexClassName}
+                                onchange={handleApexClassChange}
+                                placeholder="e.g. MyIntentHandler"
+                                required>
+                            </lightning-input>
+                            <div class="slds-m-top_small">
+                                <lightning-combobox
+                                    name="apexReturnType"
+                                    label="Return Type"
+                                    value={action.apexReturnType}
+                                    options={apexReturnTypeOptions}
+                                    onchange={handleApexReturnTypeChange}
+                                    placeholder="Select Return Type">
+                                </lightning-combobox>
+                            </div>
+                            <div class="slds-m-top_x-small">
+                                <p class="slds-text-body_small slds-text-color_weak">
+                                    The class must implement <strong>AIIntentActionInterface</strong>.
+                                </p>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Flow -->
+                    <template if:true={isFlowAction}>
+                        <div class="type-section">
+                            <div class="type-section-header">
+                                <lightning-icon icon-name="utility:flow" size="x-small"></lightning-icon>
+                                <span class="type-section-title">Flow Configuration</span>
+                            </div>
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label">
+                                    <abbr class="slds-required" title="required">*</abbr>
+                                    Flow API Name
+                                </label>
+                                <div class="slds-form-element__control">
+                                    <div class="slds-combobox_container">
+                                        <div class={flowComboboxClass} role="combobox" aria-expanded={showFlowDropdown} aria-haspopup="listbox">
+                                            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                                                <input
+                                                    type="text"
+                                                    class="slds-input slds-combobox__input"
+                                                    placeholder="Search Autolaunched Flows..."
+                                                    value={flowSearchTerm}
+                                                    oninput={handleFlowSearch}
+                                                    onfocusin={handleFlowInputFocus}
+                                                    autocomplete="off"
+                                                    role="textbox" />
+                                                <span class="slds-icon_container slds-icon-utility-search slds-input__icon slds-input__icon_right">
+                                                    <lightning-icon icon-name="utility:search" size="xx-small" alternative-text="Search"></lightning-icon>
+                                                </span>
+                                            </div>
+                                            <template if:true={showFlowDropdown}>
+                                                <div class="slds-dropdown slds-dropdown_length-7 slds-dropdown_fluid" role="listbox">
+                                                    <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                                        <template if:true={hasFilteredFlowOptions}>
+                                                            <template for:each={filteredFlowOptions} for:item="opt">
+                                                                <li key={opt.value} role="presentation" class="slds-listbox__item">
+                                                                    <div class={opt.itemClass}
+                                                                         role="option"
+                                                                         data-value={opt.value}
+                                                                         onclick={handleFlowSelect}>
+                                                                        <span class="slds-media__body">
+                                                                            <span class="slds-truncate">{opt.label}</span>
+                                                                        </span>
+                                                                    </div>
+                                                                </li>
+                                                            </template>
+                                                        </template>
+                                                        <template if:false={hasFilteredFlowOptions}>
+                                                            <li role="presentation" class="slds-listbox__item">
+                                                                <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small">
+                                                                    <span class="slds-media__body">
+                                                                        <span class="slds-truncate slds-text-color_weak">No matching flows found</span>
+                                                                    </span>
+                                                                </div>
+                                                            </li>
+                                                        </template>
+                                                    </ul>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-m-top_x-small">
+                                <p class="slds-text-body_small slds-text-color_weak">
+                                    Only active Autolaunched Flows are shown.
+                                </p>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+            </div>
+
+            <!-- Footer -->
+            <div class="slds-modal__footer">
+                <lightning-button
+                    label="Cancel"
+                    onclick={handleClose}>
+                </lightning-button>
+                <lightning-button
+                    label="Save"
+                    variant="brand"
+                    onclick={handleSave}
+                    disabled={isSaving}
+                    class="slds-m-left_x-small">
+                </lightning-button>
+            </div>
+        </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+</template>

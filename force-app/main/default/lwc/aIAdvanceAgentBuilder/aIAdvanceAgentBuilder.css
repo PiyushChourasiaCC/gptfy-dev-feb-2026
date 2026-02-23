@@ -1,0 +1,369 @@
+/* Host Component Background */
+:host {
+    display: block;
+    background-color: #FFFFFF !important;
+    width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+/* Container */
+.agent-builder-container {
+    padding: 0;
+    margin: 0;
+    min-height: calc(100vh - 150px);
+    background-color: #FFFFFF !important;
+    width: 100%;
+}
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, #5B3AA0 0%, #7B4AC5 50%, #9B6AEA 100%);
+    padding: 2.5rem 2rem 4rem 2rem;
+    border-radius: 10px;
+    margin: 0 0 2rem 0;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--slds-c-shadow-length-3, 0 4px 16px 0 rgba(0, 0, 0, 0.1));
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: pulse 15s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(5%, 5%) scale(1.1);
+    }
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.slds-text-heading_large {
+    color: #FFFFFF;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.agent-icon {
+    fill: #FFF !important;
+}
+
+/* Search Bar Container */
+.search-bar-container {
+    display: flex;
+    align-items: flex-start;
+    background-color: #FFFFFF;
+    border-radius: 1.5rem;
+    padding: 0.75rem 0.75rem 0.75rem 1.25rem;
+    max-width: 900px;
+    margin: 0 auto 2rem auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    gap: 1rem;
+}
+
+.search-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0.5rem;
+}
+
+.gptfy-logo {
+    width: 2.5rem;
+    height: 2.5rem;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(54%) sepia(71%) saturate(1524%) hue-rotate(223deg) brightness(95%) contrast(91%);
+    transition: all 0.3s ease;
+}
+
+.search-bar-container:hover .gptfy-logo {
+    filter: brightness(0) saturate(100%) invert(43%) sepia(86%) saturate(1672%) hue-rotate(223deg) brightness(96%) contrast(92%);
+    transform: scale(1.05);
+}
+
+.search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 1rem;
+    color: #3E3E3C;
+    padding: 0.5rem 0;
+    font-family: inherit;
+    resize: none;
+    line-height: 1.5;
+    min-height: 4.5rem;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.search-input::placeholder {
+    color: #A8A8A8;
+    font-style: italic;
+}
+
+.search-submit-button {
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #5B9BD5 0%, #4A8BC2 100%);
+    border: none;
+    border-radius: 50%;
+    width: 3.5rem;
+    height: 3.5rem;
+    min-width: 3.5rem;
+    min-height: 3.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 0.75rem;
+    align-self: flex-end;
+}
+
+.search-submit-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4A8BC2 0%, #3A7BB2 100%);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(74, 139, 194, 0.4);
+}
+
+.search-submit-button:hover:not(:disabled) .send-icon {
+    transform: translateX(2px) translateY(-2px);
+}
+
+.search-submit-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.send-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+/* Pill Buttons */
+.pill-container {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.pill-button {
+    background-color: rgba(255, 255, 255, 0.25);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 1.5rem;
+    padding: 0.625rem 1.5rem;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.pill-button:hover {
+    background-color: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Explore Agents Section */
+.explore-agents-description {
+    color: #706e6b;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.agent-grid {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+}
+
+.agent-col {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Agent Cards */
+.agent-card {
+    height: 100%;
+    min-height: 160px;
+    max-height: 160px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    border: 1px solid #dddbda;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.agent-card .slds-card__body {
+    padding: 0.875rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.agent-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    border-color: var(--slds-c-button-brand-color-background, #0176d3);
+}
+
+.agent-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    margin-bottom: 0.5rem;
+}
+
+.agent-card-icon {
+    flex-shrink: 0;
+    fill: var(--slds-c-button-brand-color-background, #0176d3);
+}
+
+.agent-card-content {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.agent-title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: #181818;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+}
+
+.agent-description {
+    color: #706e6b;
+    line-height: 1.4;
+    font-size: 0.8125rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+}
+
+/* Status Badges */
+.published-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: linear-gradient(135deg, #2e844a 0%, #57b776 100%);
+    color: #ffffff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(46, 132, 74, 0.3);
+    z-index: 1;
+}
+
+.published-badge lightning-icon {
+    --slds-c-icon-color-foreground: #ffffff;
+    --slds-c-icon-color-foreground-default: #ffffff;
+}
+
+.draft-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: linear-gradient(135deg, #6b6b6b 0%, #8c8c8c 100%);
+    color: #ffffff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(107, 107, 107, 0.3);
+    z-index: 1;
+}
+
+.draft-badge lightning-icon {
+    --slds-c-icon-color-foreground: #ffffff;
+    --slds-c-icon-color-foreground-default: #ffffff;
+}
+
+.badge-text {
+    line-height: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 2rem 1rem;
+    }
+    
+    .search-bar-container {
+        padding: 0.75rem 0.75rem 0.75rem 1rem;
+        margin: 0 1rem 1.5rem 1rem;
+    }
+    
+    .search-icon {
+        padding-top: 0.25rem;
+    }
+    
+    .gptfy-logo {
+        width: 2rem;
+        height: 2rem;
+    }
+    
+    .search-input {
+        font-size: 0.95rem;
+        min-height: 4rem;
+    }
+    
+    .search-submit-button {
+        width: 3rem;
+        height: 3rem;
+        min-width: 3rem;
+        min-height: 3rem;
+    }
+    
+    .pill-container {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0 1rem;
+    }
+    
+    .pill-button {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* Loading State */
+.slds-spinner_container {
+    background-color: rgba(255, 255, 255, 0.8);
+}

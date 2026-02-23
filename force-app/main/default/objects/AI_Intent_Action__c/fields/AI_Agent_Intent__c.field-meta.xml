@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Agent_Intent__c</fullName>
+    <label>AI Agent Intent</label>
+    <referenceTo>AI_Agent_Intent__c</referenceTo>
+    <relationshipLabel>AI Intent Actions</relationshipLabel>
+    <relationshipName>AI_Intent_Actions</relationshipName>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <trackTrending>false</trackTrending>
+    <type>MasterDetail</type>
+    <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

@@ -1,0 +1,140 @@
+<template>
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template if:false={showSpinner}>
+        <template if:true={hasRecords}>
+             <div style="height:400px;overflow:auto;">
+                <table class="slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <template if:false={isImport}>
+                                <th class="slds-p-around_x-small" scope="col">
+                                    <div title="Remove">
+                                        <lightning-input 
+                                            type="checkbox" 
+                                            label="Select" 
+                                            variant="label-hidden"
+                                            name="optionSelect"
+                                            onchange={handleAllPromptSelect}
+                                            checked={allConnectionsSelected}
+                                        ></lightning-input>
+                                    </div>
+                                </th>
+                            </template>
+                            <th class="slds-p-around_x-small" scope="col">
+                                <div title="Name">Name</div>
+                            </th>
+                            <th class="slds-p-around_x-small" scope="col">
+                                <div title="AI Technology">AI Technology</div>
+                            </th>
+                            <th class="slds-p-around_x-small" scope="col">
+                                <div title="Named Credential">Named Credential</div>
+                            </th>
+                            <th class="slds-p-around_x-small" scope="col">
+                                <div title="Security Layer">Security Layer</div>
+                            </th>
+                            <th class="slds-p-around_x-small" scope="col">
+                                <div title="Temperature">Temperature</div>
+                            </th>
+                            <th class="slds-p-around_x-small" scope="col">
+                                <div title="Version">Version</div>
+                            </th>
+                            <th class="slds-p-around_x-small" scope="col">
+                                <div title="Active">Active</div>
+                            </th>
+                            <template if:true={isImport}>
+                                 <th class="slds-p-around_x-small" scope="col">
+                                    <div></div>
+                                </th>
+                            </template>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={connections} for:item="obj" for:index="mIndex">
+                            <tr class="slds-hint-parent" key={obj.salesforceId}>
+                                <td data-label="Select" class="slds-p-around_x-small" if:false={isImport}>
+                                    <div class="slds-truncate" title="Select">
+                                        <lightning-input 
+                                            type="checkbox" 
+                                            label="Select" 
+                                            variant="label-hidden"
+                                            name="optionSelect"
+                                            onchange={handlePromptSelect}
+                                            data-mid={mIndex}
+                                            checked={obj.selected}
+                                        ></lightning-input>
+                                        <!--lightning-button-icon data-mid={mIndex} icon-name="utility:close"  onclick={handlePromptRemove}></lightning-button-icon-->
+                                    </div>
+                                </td>
+                                <td data-label="Name"  class="slds-p-around_x-small">
+                                    <div class="slds-truncate" title="Name">
+                                        {obj.connectionName}
+                                    </div>
+                                </td>
+                                <td data-label="AI Technology" class="slds-p-around_x-small">
+                                    <div class="slds-truncate" title="AI Technology">
+                                        {obj.aiTechnology}
+                                    </div>
+                                </td>
+                                <td data-label="Named Credential" class="slds-p-around_x-small">
+                                    <div title="Named Credential">
+                                        {obj.namedCredential}
+                                    </div>
+                                </td>
+                                <td data-label="Security Layer" class="slds-p-around_x-small">
+                                    <div class="slds-truncate" title="Security Layer">
+                                        {obj.securityLayer}
+                                    </div>
+                                </td>
+                                <td data-label="Temperature" class="slds-p-around_x-small">
+                                    <div class="slds-truncate" title="Temperature">
+                                        {obj.temperature}
+                                    </div>
+                                </td>
+                                <td data-label="Version" class="slds-p-around_x-small">
+                                    <div class="slds-truncate" title="Version">
+                                        {obj.version}
+                                    </div>
+                                </td>
+                                <td data-label="Version" class="slds-p-around_x-small">
+                                    <div class="slds-truncate" title="Active">
+                                        <lightning-input 
+                                            type="checkbox" 
+                                            label="Active" 
+                                            variant="label-hidden"
+                                            name="optionActive"
+                                            checked={obj.active}
+                                            disabled
+                                        ></lightning-input>
+                                        
+                                    </div>
+                                </td>
+                                <td data-label="Remove" class="slds-p-around_x-small" if:true={isImport}>
+                                        <div title="Remove">
+                                            <lightning-button-icon data-mid={mIndex} icon-name="utility:close"  onclick={handleRemove}></lightning-button-icon>
+                                        </div>
+                                    </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="slds-align_absolute-center" style="height:3rem"></div>
+        </template>
+        <template if:false={hasRecords}>
+            <div class="slds-align_absolute-center" style="height:5rem">
+                No Connections to show.
+            </div>
+        </template>
+    </template>
+</template>

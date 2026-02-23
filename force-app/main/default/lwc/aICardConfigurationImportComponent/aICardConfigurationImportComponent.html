@@ -1,0 +1,119 @@
+<template>
+    <div class="slds-page-header slds-page-header_record-home">
+        <div class="slds-page-header__row">
+            <div class="slds-page-header__col-title">
+                <div class="slds-media">
+                    <div class="slds-media__figure">
+                        <span class="slds-icon_container slds-icon-standard-opportunity">
+                            <lightning-icon icon-name="standard:data_mapping" alternative-text="Card Configurations" title="Card Configurations"></lightning-icon>
+                        </span>
+                    </div>
+                    <div class="slds-media__body">
+                        <div class="slds-page-header__name">
+                            <div class="slds-page-header__name-title">
+                                <h1>
+                                    <span class="slds-page-header__title slds-truncate" title="Card Configurations">Card Configurations</span>
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slds-page-header__col-actions">
+                <div class="slds-page-header__controls">
+                    <div class="slds-page-header__control">
+                        <button class="slds-button slds-button_destructive" onclick={handleNavigateToListView}>Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template if:false={showSpinner}>
+        <template if:false={cards}>
+            <div class="slds-p-around_small">
+                <lightning-input 
+                    type="file" 
+                    accept=".json"
+                    onchange={handleFileInputChange}
+                ></lightning-input>
+                {fileName}
+            </div>
+        </template>
+        <template if:true={cards}>
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                <thead>
+                    <tr class="slds-line-height_reset">
+                        <th class="" scope="col">
+                            <div class="slds-truncate" title="Name">Name</div>
+                        </th>
+                        <th class="" scope="col">
+                            <div class="slds-truncate" title="Description">Description</div>
+                        </th>
+                        <th class="" scope="col">
+                            <div class="slds-truncate" title="Feature">Feature</div>
+                        </th>
+                        <th class="" scope="col">
+                            <div class="slds-truncate" title="Sequence">Sequence</div>
+                        </th>
+                        <th class="" scope="col">
+                            <div class="slds-truncate" title="Remove"></div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template for:each={cards} for:item="obj" for:index="mIndex">
+                        <tr class="slds-hint-parent" key={obj.salesforceId}>
+                            <td data-label="Name">
+                                <div class="slds-truncate" title="Name">
+                                    {obj.configName}
+                                </div>
+                            </td>
+                            <td data-label="Description">
+                                <div class="slds-truncate" title="Description">
+                                    {obj.description}
+                                </div>
+                            </td>
+                            <td data-label="Feature">
+                                <div class="slds-truncate" title="Feature">
+                                    {obj.feature}
+                                </div>
+                            </td>
+                            <td data-label="Sequence">
+                                <div class="slds-truncate" title="Sequence">
+                                    {obj.sequence}
+                                </div>
+                            </td>
+                            <td data-label="Remove">
+                                <div class="slds-truncate" title="Remove">
+                                    <lightning-button-icon data-mid={mIndex} icon-name="utility:close"  onclick={handlePromptRemove}></lightning-button-icon>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+            <div class="slds-align_absolute-center" style="height:3rem"></div>
+        </template>
+        <template if:false={cards}>
+            <div class="slds-align_absolute-center" style="height:5rem">
+                No Cards to show.
+            </div>
+        </template>
+        <div class="slds-docked-form-footer">
+            <button class="slds-button slds-button_neutral" onclick={handleReset}>Reset</button>
+            <button class="slds-button slds-button_neutral" onclick={handleNavigateToListView}>Cancel</button>
+            <button class="slds-button slds-button_brand" onclick={handleUpload}>Upload</button>
+        </div>
+    </template>
+</template>

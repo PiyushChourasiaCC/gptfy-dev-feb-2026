@@ -1,0 +1,34 @@
+<template>
+    <lightning-card title="Real-time Voice Assistant">
+        <div class="slds-p-around_medium">
+            <lightning-button-group>
+                <lightning-button 
+                    label={buttonLabel}
+                    onclick={toggleListening}
+                    variant="brand">
+                </lightning-button>
+                <lightning-button 
+                    label="Clear Context"
+                    onclick={clearContext}
+                    variant="neutral">
+                </lightning-button>
+            </lightning-button-group>
+            
+            <div if:true={isListening} class="slds-p-top_medium">
+                <lightning-dynamic-icon 
+                    type="eq" 
+                    alternative-text="Listening">
+                </lightning-dynamic-icon>
+            </div>
+
+            <div class="slds-p-top_medium conversation-container">
+                <template for:each={conversationContext} for:item="message">
+                    <div key={message.id} 
+                         class={message.cssClass}>
+                        {message.content}
+                    </div>
+                </template>
+            </div>
+        </div>
+    </lightning-card>
+</template>

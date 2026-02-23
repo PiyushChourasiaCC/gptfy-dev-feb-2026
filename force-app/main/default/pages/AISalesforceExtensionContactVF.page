@@ -1,0 +1,35 @@
+<apex:page standardController="Contact" extensions="AISalesforceExtensionController">
+    <apex:includeLightning />
+    <html xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    	<head>
+            <apex:slds />
+    		<apex:includeScript value="{!URLFOR($Resource.aljs,'/jquery/jquery-3.6.0.min.js')}" />
+            <script>
+                $(document).ready(function(){     
+                    let namespace = 'c';
+                    let np = '{!JSENCODE(currentPackageName)}';
+                    if(np && np!=null && np!=''){
+                        namespace = np.replace('__','');
+                    }
+                    
+                    let recId = '{!JSENCODE(RecordId)}';
+
+                    document.getElementById('gptfyConsole').style.display = 'block';
+                    $Lightning.use(namespace+":aILightningContainer", function() {
+                        if ($('#gptfyConsole').length){
+                            $Lightning.createComponent(
+                                namespace+":gPTFyConsoleMobileComponent",
+                                {"recordId" : recId},
+                                "gptfyConsole",
+                                function(cmp) {}
+                            );
+                        }
+                    });
+                });
+            </script>
+        </head>
+        <body>
+            <div id="gptfyConsole"/>
+        </body>
+	</html>
+</apex:page>

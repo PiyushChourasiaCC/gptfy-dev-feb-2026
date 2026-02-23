@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Entity_Type__c</fullName>
+    <description>Type of entity being synced. Used to distinguish between different sync operations and to store entity-specific delta tokens.</description>
+    <inlineHelpText>The type of data being synchronized (Email, Calendar Event, Task, or Contact).</inlineHelpText>
+    <label>Entity Type</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Email</fullName>
+                <default>true</default>
+                <label>Email</label>
+            </value>
+            <value>
+                <fullName>Calendar</fullName>
+                <default>false</default>
+                <label>Calendar</label>
+            </value>
+            <value>
+                <fullName>Task</fullName>
+                <default>false</default>
+                <label>Task</label>
+            </value>
+            <value>
+                <fullName>Contact</fullName>
+                <default>false</default>
+                <label>Contact</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

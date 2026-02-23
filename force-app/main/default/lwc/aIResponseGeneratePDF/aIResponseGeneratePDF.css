@@ -1,0 +1,9 @@
+.slds-button-style{
+    padding: 10px;
+    text-align: end;
+}
+@media print {
+    .download{
+      display: none !important;
+    }
+  }

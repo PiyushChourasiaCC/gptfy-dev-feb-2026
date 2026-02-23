@@ -1,0 +1,63 @@
+/* ── Toggle alignment ─────────────────────────────── */
+.toggle-cell {
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 0.25rem;
+}
+
+/* ── Type-specific section ────────────────────────── */
+.type-section {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.5rem;
+    background-color: #fafaf9;
+}
+
+.type-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.type-section-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #181818;
+}
+
+/* ── Flow searchable combobox ─────────────────────── */
+.slds-combobox_container {
+    position: relative;
+}
+
+.slds-combobox__input {
+    width: 100%;
+}
+
+.slds-dropdown_length-7 {
+    max-height: 14rem;
+    overflow-y: auto;
+}
+
+.slds-listbox__option_plain:hover {
+    background-color: #f3f3f3;
+    cursor: pointer;
+}
+
+/* ── Field Mapping rows ───────────────────────────── */
+.mapping-row {
+    background-color: #fff;
+    border-color: #e5e5e5;
+}
+
+.mapping-row:hover {
+    border-color: #0176d3;
+}
+
+.slds-listbox__option_plain.slds-is-selected {
+    background-color: #eef4ff;
+}

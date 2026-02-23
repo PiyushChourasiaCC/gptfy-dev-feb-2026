@@ -1,0 +1,114 @@
+<template>
+    <div class="agent-builder-container">
+        <div class="slds-grid slds-wrap">
+            <!-- Top Section: Agent Creation Hero -->
+            <div class="slds-col slds-size_1-of-1">
+            <div class="hero-section">
+                <div class="hero-content">
+                    <!-- Header -->
+                    <div class="slds-text-heading_large slds-text-align_center slds-m-bottom_large">
+                        Describe your agent to create it
+                    </div>
+                    
+                    <!-- Search Bar -->
+                    <div class="search-bar-container">
+                        <div class="search-icon">
+                            <img src={gptfyLogoUrl} alt="GPTfy" class="gptfy-logo" />
+                        </div>
+                        <textarea 
+                            class="search-input"
+                            rows="3"
+                            placeholder={currentPlaceholder}
+                            value={userInput}
+                            oninput={handleInputChange}
+                            onkeydown={handleKeyDown}
+                        ></textarea>
+                        <button class="search-submit-button" onclick={handleSubmit} disabled={isProcessing} title="Send">
+                            <svg class="send-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M22 2L11 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Pill Suggestions -->
+                    <div class="pill-container">
+                        <template for:each={pillSuggestions} for:item="pill">
+                            <button key={pill.label} class="slds-button pill-button" onclick={handlePillClick} data-label={pill.label}>
+                                {pill.label}
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Section: Explore Agents -->
+        <div class="slds-col slds-size_1-of-1 slds-m-top_xx-large">
+            <div class="slds-m-bottom_medium">
+                <h2 class="slds-text-heading_medium">Explore agents</h2>
+                <p class="slds-text-body_regular slds-m-top_x-small explore-agents-description">
+                    Browse and select from existing agents to view their details and capabilities
+                </p>
+            </div>
+            
+            <!-- Agents Grid -->
+            <template if:true={isLoadingAgents}>
+                <div class="slds-text-align_center slds-p-vertical_large">
+                    <lightning-spinner alternative-text="Loading agents..." size="medium"></lightning-spinner>
+                </div>
+            </template>
+            
+            <template if:false={isLoadingAgents}>
+                <div class="slds-grid slds-wrap slds-gutters agent-grid">
+                    <template for:each={existingAgents} for:item="agent">
+                        <div key={agent.id} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4 agent-col">
+                            <article class="slds-card agent-card" onclick={handleAgentClick} data-agent-id={agent.id}>
+                                <template if:true={agent.isActive}>
+                                    <div class="published-badge">
+                                        <lightning-icon icon-name="utility:check" size="xx-small" alternative-text="Published"></lightning-icon>
+                                        <span class="badge-text">Published</span>
+                                    </div>
+                                </template>
+                                <template if:true={agent.isDraft}>
+                                    <div class="draft-badge">
+                                        <lightning-icon icon-name="utility:edit" size="xx-small" alternative-text="Draft"></lightning-icon>
+                                        <span class="badge-text">Draft</span>
+                                    </div>
+                                </template>
+                                <div class="slds-card__body slds-card__body_inner">
+                                    <div class="agent-card-header">
+                                        <lightning-icon icon-name={agent.iconName} size="medium" class="agent-card-icon"></lightning-icon>
+                                        <div class="agent-card-content">
+                                            <h3 class="slds-text-heading_small agent-title">{agent.name}</h3>
+                                        </div>
+                                    </div>
+                                    <p class="slds-text-body_regular slds-m-top_small agent-description">
+                                        {agent.description}
+                                    </p>
+                                </div>
+                            </article>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+        
+        <!-- Processing Spinner Overlay -->
+        <template if:true={isProcessing}>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+            <lightning-spinner alternative-text="Creating agent..." size="large"></lightning-spinner>
+            <!--section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__content slds-p-around_medium slds-text-align_center">
+                        
+                        <p class="slds-m-top_medium slds-text-heading_small">
+                            AI is generating your agent...
+                        </p>
+                    </div>
+                </div>
+            </section-->
+        </template>
+        </div>
+    </div>
+</template>

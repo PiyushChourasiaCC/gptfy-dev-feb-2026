@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ContactPhone__c</fullName>
+    <externalDeveloperName>ContactPhone</externalDeveloperName>
+    <isFilteringDisabled>false</isFilteringDisabled>
+    <isNameField>false</isNameField>
+    <isSortingDisabled>false</isSortingDisabled>
+    <label>Contact Phone</label>
+    <readOnlyProxy>true</readOnlyProxy>
+    <required>false</required>
+    <type>Phone</type>
+</CustomField>

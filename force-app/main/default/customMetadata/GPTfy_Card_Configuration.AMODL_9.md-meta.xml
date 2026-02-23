@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>OpenAI-4/ChatGPT</label>
+    <protected>false</protected>
+    <values>
+        <field>Card_Type__c</field>
+        <value xsi:type="xsd:string">AMODL</value>
+    </values>
+    <values>
+        <field>Description__c</field>
+        <value xsi:type="xsd:string">Connect with OpenAI-4 hosted by OpenAI</value>
+    </values>
+    <values>
+        <field>Enabled__c</field>
+        <value xsi:type="xsd:boolean">false</value>
+    </values>
+    <values>
+        <field>Icon_Details__c</field>
+        <value xsi:type="xsd:string">OpenAI_ChatGPT</value>
+    </values>
+    <values>
+        <field>Icon_Source__c</field>
+        <value xsi:type="xsd:string">Static Resource</value>
+    </values>
+    <values>
+        <field>Sequence__c</field>
+        <value xsi:type="xsd:double">9.0</value>
+    </values>
+</CustomMetadata>

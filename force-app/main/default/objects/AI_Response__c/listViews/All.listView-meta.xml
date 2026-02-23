@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>All</fullName>
+    <columns>NAME</columns>
+    <columns>AI_Prompt__c</columns>
+    <columns>Prompt_Command__c</columns>
+    <columns>CREATEDBY_USER</columns>
+    <columns>Status__c</columns>
+    <columns>AI_Processed_Data_PII_Added__c</columns>
+    <columns>CREATED_DATE</columns>
+    <columns>Data_Decrypt_PII_Key__c</columns>
+    <columns>Message__c</columns>
+    <columns>AI_Post_Processing_Time__c</columns>
+    <columns>AI_Pre_Processing_Time__c</columns>
+    <columns>AI_Processing_Time__c</columns>
+    <filterScope>Everything</filterScope>
+    <label>All</label>
+</ListView>

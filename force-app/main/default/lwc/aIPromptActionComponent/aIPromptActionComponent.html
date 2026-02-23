@@ -1,0 +1,376 @@
+<template>
+    
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template if:false={showSpinner}>
+        <lightning-card title="Prompt Actions" icon-name="standard:actions_and_buttons">
+
+            <lightning-button-group slot="actions">   
+                <template if:true={showActions}>
+                    <lightning-button-icon 
+                        icon-name="utility:add"  
+                        alternative-text="Add Action" 
+                        title="Add Action" 
+                        onclick={handleAddPromptAction}
+                    ></lightning-button-icon>
+                </template>
+                <lightning-button-icon 
+                    icon-name="utility:refresh"  
+                    alternative-text="Refresh" 
+                    title="Refresh" 
+                    onclick={doInit}
+                ></lightning-button-icon>
+            </lightning-button-group>
+
+            <p class="slds-p-horizontal_small">
+                <template if:true={actions}>
+                    <lightning-datatable
+                        key-field="id"
+                        hide-checkbox-column
+                        show-row-number-column
+                        data={actions}
+                        columns={actionColumns}
+                        onrowaction={handleRowAction}>
+                    </lightning-datatable>
+                </template>
+
+                <template if:false={actions}>
+                    <div class="slds-align_absolute-center" style="height:5rem">
+                        No Prompt Actions found.
+                    </div>
+                </template>
+            </p>
+
+        </lightning-card>
+    </template>
+
+    <template if:true={showAddEditModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-01" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <div class="slds-modal__header">
+                    <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate" tabindex="-1">Prompt Action</h1>
+                </div>
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+
+                    <template if:true={currentAction.id}>
+                        <lightning-combobox
+                            name="actionType"
+                            label="Action Type"
+                            value={currentAction.actionType}
+                            placeholder="Select Action Type"
+                            options={typeOptions}
+                            disabled
+                            required
+                        ></lightning-combobox>
+                    </template>
+                    <template if:false={currentAction.id}>
+                        <lightning-combobox
+                            name="actionType"
+                            label="Action Type"
+                            value={currentAction.actionType}
+                            placeholder="Select Action Type"
+                            options={typeOptions}
+                            onchange={handleTypeChange}
+                            required
+                        ></lightning-combobox>
+                    </template>   
+
+                    <template if:true={currentAction.actionType}>
+
+                        <lightning-textarea 
+                            name="description" 
+                            label="Description" 
+                            value={currentAction.description}
+                            onchange={handleDescriptionChange}
+                        ></lightning-textarea>
+
+                        <lightning-input 
+                            type="number" 
+                            label="Sequence"
+                            value={currentAction.sequence}
+                            onchange={handleSequenceChange}
+                        ></lightning-input>
+                        
+                        <template if:true={isApexAction}>
+                            <lightning-input 
+                                type="text" 
+                                label="Apex Class"
+                                value={currentAction.apexClassName}
+                                onchange={handleApexClassChange}
+                                required
+                            ></lightning-input>
+                        </template>
+
+                        <template if:true={isFlowAction}>
+                            <lightning-input 
+                                type="text" 
+                                label="Flow"
+                                value={currentAction.flowApiName}
+                                onchange={handleFlowNameChange}
+                                required
+                            ></lightning-input>
+                        </template>
+
+                        <template if:true={isUpdateFieldAction}>
+
+                            <template if:true={jsonNodeOptions}>
+                                <lightning-combobox
+                                    name="promptComponent"
+                                    label="AI Response"
+                                    value={currentAction.promptComponent}
+                                    placeholder="Select Response Node"
+                                    options={jsonNodeOptions}
+                                    onchange={handlePromptComponentChange}
+                                    required
+                                ></lightning-combobox> 
+                            </template>
+
+                            <template if:true={currentAction.fieldApiName}>
+                                <div class="slds-grid slds-wrap">
+                                    <div class="slds-col slds-size_11-of-12">
+                                        <span>
+                                            <lightning-input 
+                                                type="text" 
+                                                label="Field"
+                                                value={currentAction.fieldApiName}
+                                                disabled
+                                                required
+                                            ></lightning-input>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-12 slds-align_absolute-center" style="margin-top: 3vh;">
+                                        <span>
+                                            <lightning-button-icon 
+                                                icon-name="utility:close"  
+                                                alternative-text="Remove" 
+                                                title="Remove"
+                                                onclick={handleUpdateFieldTargetFieldRemove}
+                                            ></lightning-button-icon>
+                                        </span>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template if:false={currentAction.fieldApiName}>
+                                <template if:true={currentAction.relatedFieldsData}>
+                                    <template if:true={currentAction.relatedFieldsData.length}>
+                                        <div class="slds-m-top_small">
+                                            <p style="color: #444444;">Field</p>
+                                            <article class="slds-card slds-card_boundary">
+                                                <div class="slds-card__body slds-card__body_inner">
+                                                    <template for:each={currentAction.relatedFieldsData} for:item="field">
+                                                        <div class="slds-p-bottom_x-small" key={field.index}>
+                                                            <template if:true={field.selectedValue}>
+                                                                <lightning-combobox name="relatedField" label="relatedField"
+                                                                    placeholder="Select Field" required options={field.options}
+                                                                    value={field.selectedValue.value} variant="label-hidden"
+                                                                    data-index={field.index}
+                                                                    onchange={handleRelatedFieldChange}></lightning-combobox>
+                                                            </template>
+                                                            <template if:false={field.selectedValue}>
+                                                                <lightning-combobox name="relatedField" label="relatedField"
+                                                                    placeholder="Select Field" required options={field.options}
+                                                                    variant="label-hidden" data-index={field.index}
+                                                                    onchange={handleRelatedFieldChange}></lightning-combobox>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </article>
+                                        </div>
+                                    </template>
+                                </template>
+                            </template>
+
+                            <lightning-input 
+                                type="checkbox" 
+                                variant="label-stacked"     
+                                label="Append Timestamp"
+                                checked={currentAction.appendTimestamp}
+                                onchange={handleAppendTimestampChange}
+                            ></lightning-input>
+                            
+                        </template>
+
+                        <template if:true={isCreateRecordAction}>
+                            <lightning-combobox
+                                name="objectName"
+                                label="Object"
+                                value={currentAction.objectName}
+                                placeholder="Select Object"
+                                options={objectOptions}
+                                onchange={handleObjectNameChange}
+                                required
+                            ></lightning-combobox> 
+
+                            <template if:true={currentAction.fieldOptions}>
+                                <article class="slds-card slds-card_boundary slds-m-top_small">
+                                    <div class="slds-card__body slds-card__body_inner">
+                                        <template if:true={currentAction.fieldMappings}>
+                                            <table class="slds-table slds-table_cell-buffer">
+                                                <thead>
+                                                    <tr class="slds-line-height_reset">
+                                                        <th class="" scope="col">
+                                                            <div class="slds-truncate" title="Field">Field</div>
+                                                        </th>
+                                                        <th class="" scope="col">
+                                                            <div class="slds-truncate" title="Type">Type</div>
+                                                        </th>
+                                                        <th class="" scope="col">
+                                                            <div class="slds-truncate" title="Value">Value</div>
+                                                        </th>
+                                                        <th class="" scope="col" style="width: 20px;">
+                                                            <div class="slds-truncate" title="Action"></div>
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <template for:each={currentAction.fieldMappings} for:item="field" for:index="fIndex">
+                                                        <tr class="slds-hint-parent" key={field.fieldName}>
+                                                            <td data-label="Field">
+                                                                <div title="Field">
+                                                                    <lightning-combobox
+                                                                        name="fieldName"
+                                                                        label="Field"
+                                                                        variant="label-hidden"
+                                                                        data-index={fIndex}
+                                                                        data-fname="fieldName"
+                                                                        value={field.fieldName}
+                                                                        placeholder="Select Field"
+                                                                        options={currentAction.fieldOptions}
+                                                                        onchange={handleFieldChange}
+                                                                        required
+                                                                    ></lightning-combobox> 
+                                                                </div>
+                                                            </td>
+                                                            <td data-label="Type">
+                                                                <div title="Type">
+                                                                    <lightning-combobox
+                                                                        name="type"
+                                                                        label="Type"
+                                                                        variant="label-hidden"
+                                                                        data-index={fIndex}
+                                                                        data-fname="type"
+                                                                        value={field.type}
+                                                                        placeholder="Select Value Type"
+                                                                        options={fieldActionTypeOptions}
+                                                                        onchange={handleFieldChange}
+                                                                        required
+                                                                    ></lightning-combobox> 
+                                                                </div>
+                                                            </td>
+                                                            <td data-label="Value">
+                                                                <div title="Value">
+                                                                    <template if:true={field.isReference}>
+                                                                        <lightning-combobox
+                                                                            name="value"
+                                                                            label="Value"
+                                                                            value={field.value}
+                                                                            placeholder="Select Field"
+                                                                            options={targetObjectFieldOptions}
+                                                                            onchange={handleFieldChange}
+                                                                            variant="label-hidden"
+                                                                            data-index={fIndex}
+                                                                            data-fname="value"
+                                                                            required
+                                                                        ></lightning-combobox> 
+                                                                    </template>
+                                                                    <template if:false={field.isReference}>
+                                                                        <template if:true={field.jsonNode}>
+                                                                            <lightning-combobox
+                                                                                name="value"
+                                                                                label="Value"
+                                                                                value={field.value}
+                                                                                placeholder="Select Response Node"
+                                                                                options={jsonNodeOptions}
+                                                                                onchange={handleFieldChange}
+                                                                                variant="label-hidden"
+                                                                                data-index={fIndex}
+                                                                                data-fname="value"
+                                                                                required
+                                                                            ></lightning-combobox> 
+                                                                        </template>
+                                                                        <template if:false={field.jsonNode}>
+                                                                            <template if:true={field.isHardcoded}>
+                                                                                <lightning-input 
+                                                                                    type="text" 
+                                                                                    name="value"
+                                                                                    label="Value"
+                                                                                    value={field.value}
+                                                                                    onchange={handleFieldChange}
+                                                                                    variant="label-hidden"
+                                                                                    data-index={fIndex}
+                                                                                    data-fname="value"
+                                                                                ></lightning-input>
+                                                                            </template>
+                                                                        </template>
+                                                                    </template>
+                                                                    
+                                                                </div>
+                                                            </td>
+                                                            <td data-label="Action">
+                                                                <div title="Action">
+                                                                    <lightning-button-icon 
+                                                                        icon-name="utility:delete" 
+                                                                        alternative-text="Delete" 
+                                                                        variant="container"
+                                                                        title="Delete" 
+                                                                        onclick={handleDeleteField} 
+                                                                        data-index={fIndex}
+                                                                    ></lightning-button-icon>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    </template>
+                                                </tbody>
+                                            </table>
+                                            <lightning-button variant="base" label="+ Add Row" onclick={handleAddField}></lightning-button>
+                                        </template>
+                                        <template if:false={currentAction.fieldMappings}>
+                                            <div class="slds-align_absolute-center" style="height:5rem; text-align:center;">
+                                                <div class="slds-grid slds-grid_vertical">
+                                                    <div class="slds-col">
+                                                        <span>
+                                                            No Field Mappings present.
+                                                        </span>
+                                                    </div>
+                                                    <div class="slds-col">
+                                                        <span>
+                                                            <lightning-button 
+                                                                variant="base" 
+                                                                label="Click here" 
+                                                                onclick={handleAddField}
+                                                            ></lightning-button> to create a new one.
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </article>
+                            </template>
+                            
+                        </template>
+
+                    </template>
+                </div>
+                <div class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" aria-label="Cancel and close" onclick={handleAddPromptAction}>Cancel</button>
+                    <button class="slds-button slds-button_brand" onclick={handleSave}>Save</button>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+    </template>
+
+</template>

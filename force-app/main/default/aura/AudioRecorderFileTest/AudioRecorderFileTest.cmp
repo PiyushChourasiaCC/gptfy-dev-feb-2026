@@ -1,0 +1,5 @@
+<aura:component implements="flexipage:availableForRecordHome,force:hasRecordId" access="global" >
+    <aura:attribute name="mediaRecorder" type="Object"/>
+	<lightning:button label="Record Audio" title="Record Audio" onclick="{!c.handleClick }"/>
+	<lightning:button label="Record Stop" title="Record Audio" onclick="{!c.handleStop }"/>
+</aura:component>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Blocklist</fullName>
+    <columns>NAME</columns>
+    <columns>Blocklist__c</columns>
+    <columns>Replacement_Value__c</columns>
+    <columns>Type__c</columns>
+    <columns>Status__c</columns>
+    <filterScope>Everything</filterScope>
+    <filters>
+        <field>RECORDTYPE</field>
+        <operation>equals</operation>
+        <value>AI_Security_Filters__c.Blocklist</value>
+    </filters>
+    <label>Blocklist</label>
+</ListView>

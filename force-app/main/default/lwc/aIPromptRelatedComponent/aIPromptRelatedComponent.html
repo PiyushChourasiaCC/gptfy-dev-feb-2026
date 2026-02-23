@@ -1,0 +1,47 @@
+<template>
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+    <template if:false={showSpinner}>
+        <lightning-card variant="Narrow" title="AI Prompt Components" icon-name="standard:dashboard_component">
+            <lightning-button label="New" slot="actions" onclick={handleAddModal}></lightning-button>
+            <!--lightning-button-icon icon-name="utility:refresh"  alternative-text="Refresh" title="Refresh" onclick={getObjectsFromMapping} slot="actions"></lightning-button-icon-->
+            <p class="slds-p-horizontal_small">
+                <template if:true={records}>
+                    <lightning-datatable
+                        key-field="Id"
+                        data={records}
+                        columns={fields}
+                        hide-checkbox-column
+                        show-row-number-column
+                        default-sort-direction={defaultSortDirection}
+                        sorted-direction={sortDirection}
+                        sorted-by={sortedBy}
+                        onsort={onHandleSort}
+                        onrowaction={handleRowAction}
+                    ></lightning-datatable>
+                </template>
+                <template if:false={records}>
+                    <div class="slds-align_absolute-center" style="height:5rem">
+                        No components present.
+                    </div>
+                </template>
+            </p>
+        </lightning-card>
+    </template>
+    <template if:true={showAddModal}>
+        <c-a-i-prompt-component-override
+            parent-id={recordId}
+            record-id={selectedRecordId}
+            onclose={handleAddModal}
+        ></c-a-i-prompt-component-override>
+    </template>
+</template>

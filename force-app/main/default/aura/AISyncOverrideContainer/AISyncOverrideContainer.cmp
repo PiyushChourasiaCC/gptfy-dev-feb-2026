@@ -1,0 +1,8 @@
+<aura:component implements="lightning:actionOverride,lightning:isUrlAddressable,force:hasRecordId,force:hasSObjectName" access="global">
+    <aura:handler name="change" value="{!v.pageReference}" action="{!c.reInit}" />
+	<c:aISyncOverrideComponent
+    	recordId="{!v.recordId}" 
+        objectApiName="{!v.sObjectName}"                       
+        oncancel="{!c.handleCancel}"                          
+    ></c:aISyncOverrideComponent>
+</aura:component>

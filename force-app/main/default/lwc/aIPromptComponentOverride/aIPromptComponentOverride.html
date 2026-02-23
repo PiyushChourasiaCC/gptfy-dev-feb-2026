@@ -1,0 +1,238 @@
+<template>
+    <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" class="slds-modal slds-fade-in-open">
+        <div class="slds-modal__container">
+            <div class="slds-modal__header">
+                <lightning-button-icon class="slds-modal__close slds-button_icon-inverse" size="large" icon-name="utility:close" variant="bare" alternative-text="Close" title="Close" onclick={handleCancel}></lightning-button-icon>
+                <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">AI Prompt Component</h1>
+            </div>
+            <div class="slds-modal__content slds-var-p-around_medium" id="modal-content-id-1" style="min-height:550px;">
+                <template if:true={showSpinner}>
+                    <div style="height:19rem;position:relative">
+                        <div class="slds-spinner_container">
+                            <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                                <span class="slds-assistive-text">Loading</span>
+                                <div class="slds-spinner__dot-a"></div>
+                                <div class="slds-spinner__dot-b"></div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <template if:false={showSpinner}>
+                    
+                    <template if:true={objectName}>
+
+                        <template if:true={showExtraFields}>
+                            <lightning-record-edit-form
+                                object-api-name={objectName}
+                                record-id={recordId}>
+                                
+                                <lightning-input-field field-name={nameFieldApi} required></lightning-input-field>
+
+                                <div class="slds-grid slds-wrap">
+                                    <div class="slds-col slds-size_1-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={befObjFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-5">
+                                        <span>
+                                            <template if:false={recordId}>
+                                                <template if:true={parentId}>
+                                                    <template if:true={objects}>
+                                                        <div class="slds-p-around_xx-small">
+                                                            <lightning-combobox
+                                                                name="selectedObject"
+                                                                label="Object"
+                                                                value={selectedObject}
+                                                                placeholder="Select Object"
+                                                                options={objects}
+                                                                onchange={handleObjectChange}
+                                                                required
+                                                            ></lightning-combobox>
+                                                        </div>
+                                                    </template>
+                                                </template>
+                                            </template>
+                                            <template if:true={recordId}>
+                                                <lightning-input-field field-name={objNameFieldApi} required disabled></lightning-input-field>
+                                            </template>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={aftObjFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-wrap">
+                                    <div class="slds-col slds-size_1-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={befActFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={actionFieldApi} required></lightning-input-field>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={aftActFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-wrap">
+                                    <div class="slds-col slds-size_1-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={befLenFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={lenghtFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={aftLenFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-wrap">
+                                    <div class="slds-col slds-size_1-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={befLangFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={langFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={aftLangFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-wrap">
+                                    <div class="slds-col slds-size_1-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={befToneFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={toneFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={aftToneFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                </div>
+    
+                                <div class="slds-grid slds-wrap">
+                                    <div class="slds-col slds-size_1-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={befFormatFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={formatFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-5">
+                                        <span>
+                                            <lightning-input-field field-name={aftFormatFieldApi}></lightning-input-field>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <lightning-accordion allow-multiple-sections-open>
+                                    <lightning-accordion-section name="A" label="Advanced Settings">
+
+                                        <div class="slds-grid slds-wrap">
+                                            <div class="slds-col slds-size_1-of-5">
+                                                <span>
+                                                    <lightning-input-field field-name={befConsFieldApi}></lightning-input-field>
+                                                </span>
+                                            </div>
+                                            <div class="slds-col slds-size_3-of-5">
+                                                <span>
+                                                    <lightning-input-field field-name={consValFieldApi}></lightning-input-field>
+                                                </span>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-5">
+                                                <span>
+                                                    <lightning-input-field field-name={aftConsFieldApi}></lightning-input-field>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <lightning-input-field field-name={addInsFieldApi}></lightning-input-field>
+                                        <!-- <lightning-input-field field-name={userCustFieldApi}></lightning-input-field> -->
+                                    </lightning-accordion-section>
+                                </lightning-accordion> 
+                            </lightning-record-edit-form>
+                        </template>
+
+                        <template if:false={showExtraFields}>
+                            <lightning-record-edit-form
+                                object-api-name={objectName}
+                                record-id={recordId}>
+                                
+                                <lightning-input-field field-name={nameFieldApi} required></lightning-input-field>
+                                <template if:false={recordId}>
+                                    <template if:true={parentId}>
+                                        <template if:true={objects}>
+                                            <div class="slds-p-around_xx-small">
+                                                <lightning-combobox
+                                                    name="selectedObject"
+                                                    label="Object"
+                                                    value={selectedObject}
+                                                    placeholder="Select Object"
+                                                    options={objects}
+                                                    onchange={handleObjectChange}
+                                                    required
+                                                ></lightning-combobox>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </template>
+                                <template if:true={recordId}>
+                                    <lightning-input-field field-name={objNameFieldApi} required disabled></lightning-input-field>
+                                </template>
+                                <lightning-input-field field-name={actionFieldApi} required></lightning-input-field>
+                                <lightning-input-field field-name={lenghtFieldApi}></lightning-input-field>
+                                <lightning-input-field field-name={langFieldApi}></lightning-input-field>
+                                <lightning-input-field field-name={toneFieldApi}></lightning-input-field>
+                                <lightning-input-field field-name={formatFieldApi}></lightning-input-field>
+                                <lightning-accordion allow-multiple-sections-open>
+                                    <lightning-accordion-section name="A" label="Advanced Settings">
+                                        <lightning-input-field field-name={consValFieldApi}></lightning-input-field>
+                                        <lightning-input-field field-name={addInsFieldApi}></lightning-input-field>
+                                        <!-- <lightning-input-field field-name={userCustFieldApi}></lightning-input-field> -->
+                                    </lightning-accordion-section>
+                                </lightning-accordion> 
+                            </lightning-record-edit-form>
+                        </template>
+                        
+                    </template>
+                    
+                </template>
+            </div>
+            <div class="slds-modal__footer">
+                <lightning-button label="Cancel" title="Cancel" onclick={handleCancel}></lightning-button>
+                <lightning-button label="Save" title="Save" onclick={handleSave} variant="brand" class="slds-m-left_x-small"></lightning-button>
+            </div>
+        </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+</template>

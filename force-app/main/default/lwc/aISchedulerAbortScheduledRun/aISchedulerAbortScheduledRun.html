@@ -1,0 +1,16 @@
+<template>
+    <template if:true={showSpinner}>
+        <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+    </template>
+    <lightning-quick-action-panel header={header}>
+        <lightning-layout multiple-rows="true">
+            <lightning-layout-item padding="around-small" size="12" class="slds-text-align_center">
+                <b>Are you sure you want to abort the Schedule Run Job?</b>
+            </lightning-layout-item>
+        </lightning-layout>
+        <div slot="footer">
+            <lightning-button variant="neutral" label="No" onclick={handleClose}></lightning-button>
+            <lightning-button variant="brand" label="Yes" class="slds-m-left_x-small" onclick={handleConfirm}></lightning-button>
+        </div>
+    </lightning-quick-action-panel>
+</template>

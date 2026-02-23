@@ -1,0 +1,18 @@
+{
+  "status": 0,
+  "result": [
+    {
+      "createdById": "005J7000000VIg4IAG",
+      "createdByName": "Piyush Chourasia",
+      "createdDate": "1970-01-01T00:00:00.000Z",
+      "fileName": "labels/CustomLabels.labels",
+      "fullName": "CustomLabels",
+      "id": "",
+      "lastModifiedById": "005J7000000VIg4IAG",
+      "lastModifiedByName": "Piyush Chourasia",
+      "lastModifiedDate": "1970-01-01T00:00:00.000Z",
+      "namespacePrefix": "",
+      "type": "CustomLabels"
+    }
+  ]
+}

@@ -1,0 +1,261 @@
+<template>
+    <div class="modal-overlay show" onclick={handleClose}>
+        <div class="modal-container" onclick={handleModalContentClick}>
+            <div class="modal-header">
+                <h2 class="modal-title">{modalTitle}</h2>
+                <button class="modal-close-btn" onclick={handleClose} aria-label="Close modal">
+                    ✕
+                </button>
+            </div>
+
+            <div class="modal-body" onclick={handleModalBodyClick}>
+                <template if:true={isLoading}>
+                    <div class="modal-loading">
+                        <div class="spinner-large"></div>
+                        <p>Loading smart matches...</p>
+                    </div>
+                </template>
+
+                <template if:false={isLoading}>
+                    <template if:true={hasItems}>
+                        <div class="modal-table">
+                            <!-- Modal Table Rows -->
+                            <template for:each={modalItems} for:item="modalItem" for:index="itemIndex">
+                                <div key={modalItem.item.id} class="modal-row">
+                                    <!-- Column 0: Delete Icon -->
+                                    <div class="modal-col modal-col-delete">
+                                        <button class="delete-row-btn" 
+                                                data-item-index={itemIndex}
+                                                onclick={handleDeleteRow}
+                                                title="Remove this item from import">
+                                            <lightning-icon icon-name="utility:delete" 
+                                                            size="small" 
+                                                            alternative-text="Delete">
+                                            </lightning-icon>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Column 1: Item Details (Generic) -->
+                                    <div class="modal-col modal-col-email">
+                                        <div class="modal-email-subject">{modalItem.item.subject}</div>
+                                        <div class="modal-email-from">
+                                            <span class="from-label">From:</span> {modalItem.item.fromName}
+                                        </div>
+                                        <div class="modal-email-preview">{modalItem.item.bodyPreview}</div>
+                                    </div>
+
+                                    <!-- Column 2: Contact/Lead Pills -->
+                                    <div class="modal-col modal-col-contacts">
+                                        <label class="modal-col-label">Contacts & Leads</label>
+                                        
+                                        <!-- Search Input First -->
+                                        <input type="text" 
+                                               class="modal-search-input"
+                                               placeholder="Search Contact or Lead..."
+                                               data-item-index={itemIndex}
+                                               oninput={handleSearch}
+                                               onfocus={handleSearchFocus}
+                                               onblur={handleSearchBlur}
+                                               onclick={handleDropdownClick} />
+
+                                        <!-- Pills Display Below Search -->
+                                        <div class="pills-container">
+                                            <template for:each={modalItem.selectedContactPills} for:item="pill">
+                                                <span key={pill.recordId} class="pill pill-contact">
+                                                    <lightning-icon icon-name="standard:contact" 
+                                                                    size="x-small"
+                                                                    class="pill-icon-lwc">
+                                                    </lightning-icon>
+                                                    <span class="pill-name">{pill.recordName}</span>
+                                                    <button class="pill-remove" 
+                                                            data-item-index={itemIndex}
+                                                            data-record-id={pill.recordId}
+                                                            data-object-type={pill.objectType}
+                                                            onclick={handleRemovePill}
+                                                            aria-label="Remove">
+                                                        ✕
+                                                    </button>
+                                                </span>
+                                            </template>
+                                            <template for:each={modalItem.selectedLeadPills} for:item="pill">
+                                                <span key={pill.recordId} class="pill pill-lead">
+                                                    <lightning-icon icon-name="standard:lead" 
+                                                                    size="x-small"
+                                                                    class="pill-icon-lwc">
+                                                    </lightning-icon>
+                                                    <span class="pill-name">{pill.recordName}</span>
+                                                    <button class="pill-remove" 
+                                                            data-item-index={itemIndex}
+                                                            data-record-id={pill.recordId}
+                                                            data-object-type={pill.objectType}
+                                                            onclick={handleRemovePill}
+                                                            aria-label="Remove">
+                                                        ✕
+                                                    </button>
+                                                </span>
+                                            </template>
+                                            <template for:each={modalItem.selectedAccountPills} for:item="pill">
+                                                <span key={pill.recordId} class="pill pill-account">
+                                                    <lightning-icon icon-name="standard:account" 
+                                                                    size="x-small"
+                                                                    class="pill-icon-lwc">
+                                                    </lightning-icon>
+                                                    <span class="pill-name">{pill.recordName}</span>
+                                                    <button class="pill-remove" 
+                                                            data-item-index={itemIndex}
+                                                            data-record-id={pill.recordId}
+                                                            data-object-type={pill.objectType}
+                                                            onclick={handleRemovePill}
+                                                            aria-label="Remove">
+                                                        ✕
+                                                    </button>
+                                                </span>
+                                            </template>
+                                        </div>
+
+                                        <!-- Search Results Dropdown -->
+                                        <template if:true={modalItem.searchResults}>
+                                            <template if:true={modalItem.searchResults.length}>
+                                                <div class="modal-search-results">
+                                                    <template for:each={modalItem.searchResults} for:item="result">
+                                                        <div key={result.recordId} 
+                                                             class={result.resultItemClass}
+                                                             data-item-index={itemIndex}
+                                                             data-record-id={result.recordId}
+                                                             data-record-name={result.recordName}
+                                                             data-object-type={result.objectType}
+                                                             data-is-selected={result.isSelected}
+                                                             onclick={handleSearchResultClick}>
+                                                            <template lwc:if={result.isContact}>
+                                                                <lightning-icon icon-name="standard:contact" 
+                                                                                size="small"
+                                                                                class="result-icon-lwc">
+                                                                </lightning-icon>
+                                                            </template>
+                                                            <template lwc:elseif={result.isLead}>
+                                                                <lightning-icon icon-name="standard:lead" 
+                                                                                size="small"
+                                                                                class="result-icon-lwc">
+                                                                </lightning-icon>
+                                                            </template>
+                                                            <template lwc:elseif={result.isAccount}>
+                                                                <lightning-icon icon-name="standard:account" 
+                                                                                size="small"
+                                                                                class="result-icon-lwc">
+                                                                </lightning-icon>
+                                                            </template>
+                                                            <div class="result-details">
+                                                                <div class="result-name">{result.recordName}</div>
+                                                                <div class="result-email">{result.email}</div>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </template>
+                                    </div>
+
+                                    <!-- Column 3: Account Dropdown -->
+                                    <div class="modal-col modal-col-account">
+                                        <label class="modal-col-label">Account</label>
+                                        <template if:true={modalItem.accountOptions.length}>
+                                            <div class="custom-dropdown" onclick={handleDropdownClick}>
+                                                <div class="custom-dropdown-trigger" 
+                                                     data-item-index={itemIndex}
+                                                     onclick={handleAccountDropdownToggle}>
+                                                    <span class="dropdown-selected-value">
+                                                        <template if:true={modalItem.selectedAccountName}>
+                                                            {modalItem.selectedAccountName}
+                                                        </template>
+                                                        <template if:false={modalItem.selectedAccountName}>
+                                                            Select Account
+                                                        </template>
+                                                    </span>
+                                                    <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M7 10l5 5 5-5z"/>
+                                                    </svg>
+                                                </div>
+                                                <template if:true={modalItem.showAccountDropdown}>
+                                                    <div class="custom-dropdown-list">
+                                                        <template for:each={modalItem.accountOptions} for:item="option">
+                                                            <div key={option.value} 
+                                                                 class="custom-dropdown-item"
+                                                                 data-item-index={itemIndex}
+                                                                 data-account-id={option.value}
+                                                                 data-account-name={option.label}
+                                                                 onclick={handleAccountOptionClick}>
+                                                                {option.label}
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <template if:false={modalItem.accountOptions.length}>
+                                            <div class="empty-message">No account available</div>
+                                        </template>
+                                    </div>
+
+                                    <!-- Column 4: Opportunity Dropdown -->
+                                    <div class="modal-col modal-col-opportunity">
+                                        <label class="modal-col-label">Opportunity</label>
+                                        <template if:true={modalItem.opportunityOptions.length}>
+                                            <div class="custom-dropdown" onclick={handleDropdownClick}>
+                                                <div class="custom-dropdown-trigger" 
+                                                     data-item-index={itemIndex}
+                                                     onclick={handleOpportunityDropdownToggle}>
+                                                    <span class="dropdown-selected-value">
+                                                        <template if:true={modalItem.selectedOpportunityName}>
+                                                            {modalItem.selectedOpportunityName}
+                                                        </template>
+                                                        <template if:false={modalItem.selectedOpportunityName}>
+                                                            Select Opportunity
+                                                        </template>
+                                                    </span>
+                                                    <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="currentColor">
+                                                        <path d="M7 10l5 5 5-5z"/>
+                                                    </svg>
+                                                </div>
+                                                <template if:true={modalItem.showOpportunityDropdown}>
+                                                    <div class="custom-dropdown-list">
+                                                        <template for:each={modalItem.opportunityOptions} for:item="option">
+                                                            <div key={option.value} 
+                                                                 class="custom-dropdown-item"
+                                                                 data-item-index={itemIndex}
+                                                                 data-opportunity-id={option.value}
+                                                                 data-opportunity-name={option.label}
+                                                                 onclick={handleOpportunityOptionClick}>
+                                                                {option.label}
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <template if:false={modalItem.opportunityOptions.length}>
+                                            <div class="empty-message">No opportunities</div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+            </div>
+
+            <div class="modal-footer" onclick={handleDropdownClick}>
+                <button class="btn btn-secondary" onclick={handleClose}>
+                    Cancel
+                </button>
+                <button class="btn btn-primary" onclick={handleAssociate} disabled={isAssociateDisabled}>
+                    <template if:true={isProcessing}>
+                        Processing...
+                    </template>
+                    <template if:false={isProcessing}>
+                        Import
+                    </template>
+                </button>
+            </div>
+        </div>
+    </div>
+</template>

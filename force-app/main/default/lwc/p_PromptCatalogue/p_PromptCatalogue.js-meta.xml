@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>64.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Prompt Catalog</masterLabel>
+    <description>Modern AI Prompt Catalog with metrics dashboard, progress tracking, and color-coded categories. Features enhanced UX with grid/list view toggle, search functionality, and real-time statistics.</description>
+
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightning__RecordPage</target>
+        <target>lightning__Tab</target>
+    </targets>
+
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage,lightning__HomePage,lightning__RecordPage">
+            <property name="showHeader" type="Boolean" default="true" label="Show Header (Legacy)" description="Legacy property - not used in redesigned component" />
+            <property name="headerTitle" type="String" default="Prompt Catalogue" label="Header Title (Legacy)" description="Legacy property - not used in redesigned component" />
+            <property name="showSearchBar" type="Boolean" default="true" label="Show Search Bar (Legacy)" description="Legacy property - not used in redesigned component" />
+            <property name="cardsPerRow" type="Integer" default="3" label="Cards Per Row (Legacy)" description="Legacy property - not used in redesigned component" min="1" max="4" />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

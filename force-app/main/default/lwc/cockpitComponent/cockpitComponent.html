@@ -1,0 +1,376 @@
+<template>
+    
+    <template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template if:false={showSpinner}>
+        
+        <!-- Main Container with White Background -->
+        <div class="main-container">
+            
+            <!-- Setup Wizard Alert (Retained from original) -->
+            <template if:true={incompleteSetup}>
+                <div class="setup-alert" role="alert">
+                    <span class="slds-assistive-text">info</span>
+                    <h2 class="setup-alert-text">Setup is incomplete. Click <a class="setup-alert-link" href={setupWizardUrl} target="_blank">here</a> to navigate to Setup page.</h2>
+                </div>
+            </template>
+            
+            <!-- Fixed Header: Metrics + Tabs -->
+        <div class="fixed-header">
+            <!-- Top Metric Cards Section -->
+            <div class="metric-cards-container">
+                <div class="slds-grid slds-gutters slds-wrap">
+                    
+                    <!-- Time Saved Card -->
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                        <div class="metric-card">
+                            <div class="metric-label">TIME SAVED</div>
+                            <div class="metric-value">{timeSaved}</div>
+                            <div class="metric-subtitle">Total Time</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Money Saved Card -->
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                        <div class="metric-card">
+                            <div class="metric-label">MONEY SAVED</div>
+                            <div class="metric-value">
+                                <lightning-formatted-number value={moneySaved} format-style="currency"></lightning-formatted-number>
+                            </div>
+                            <div class="metric-subtitle">Total Value</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Active Prompts Card -->
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                        <div class="metric-card">
+                            <div class="metric-label">ACTIVE PROMPTS</div>
+                            <div class="metric-value">{activePrompts}</div>
+                            <div class="metric-subtitle">Deployed</div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="tabs-container">
+                <ul class="slds-tabs_default__nav" role="tablist">
+                    <li class={analyticsTabClass} role="presentation">
+                        <a class="slds-tabs_default__link" href="javascript:void(0);" role="tab"
+                           onclick={handleScrollToAnalytics}
+                           aria-selected={analyticsTabSelected}
+                           aria-controls="analytics-section">Analytics</a>
+                    </li>
+                    <li class={agenticTabClass} role="presentation">
+                        <a class="slds-tabs_default__link" href="javascript:void(0);" role="tab"
+                           onclick={handleScrollToAgentic}
+                           aria-selected={agenticTabSelected}
+                           aria-controls="agentic-section">Agentic</a>
+                    </li>
+                    <li class={workspaceSyncTabClass} role="presentation">
+                        <a class="slds-tabs_default__link" href="javascript:void(0);" role="tab"
+                           onclick={handleScrollToWorkspaceSync}
+                           aria-selected={workspaceSyncTabSelected}
+                           aria-controls="workspace-sync-section">Workspace Sync</a>
+                    </li>
+                    <li class={advancedTabClass} role="presentation">
+                        <a class="slds-tabs_default__link" href="javascript:void(0);" role="tab"
+                           onclick={handleScrollToAdvanced}
+                           aria-selected={advancedTabSelected}
+                           aria-controls="advanced-section">Advanced</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Scrollable Content: All Cards -->
+        <div class="scrollable-content">
+            <!-- Analytics Section -->
+            <div class="slds-m-bottom_x-large" data-id="analytics-section">
+            <h2 class="slds-text-heading_medium slds-m-bottom_medium slds-p-left_small">Analytics</h2>
+            <div class="slds-grid slds-gutters slds-wrap">
+                
+                    <!-- ROI Dashboard Card -->
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                        <div class="nav-card" onclick={handleROIDashboard}>
+                            <div class="nav-card-header">
+                                <lightning-icon icon-name="custom:custom17" size="medium" class="nav-card-icon"></lightning-icon>
+                                <h3 class="nav-card-title">ROI Dashboard</h3>
+                            </div>
+                            <p class="nav-card-description">See revenue & productivity gain metrics.</p>
+                            <div class="nav-card-metric">{roiSavings}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- AI Insights Dashboard Card -->
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                        <div class="nav-card" onclick={handleAIInsightsDashboard}>
+                            <div class="nav-card-header">
+                                <lightning-icon icon-name="custom:custom100" size="medium" class="nav-card-icon"></lightning-icon>
+                                <h3 class="nav-card-title">AI Insights Dashboard</h3>
+                            </div>
+                            <p class="nav-card-description">Track prompt effectiveness & usage by user.</p>
+                            <div class="nav-card-metric">{aiInsightsUsers}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quality Insights Card -->
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                        <div class="nav-card" onclick={handleQualityInsights}>
+                            <div class="nav-card-header">
+                                <lightning-icon icon-name="custom:custom79" size="medium" class="nav-card-icon"></lightning-icon>
+                                <h3 class="nav-card-title">Quality Insights</h3>
+                            </div>
+                            <p class="nav-card-description">Track the quality of responses.</p>
+                            <div class="nav-card-metric">{qualityFeedbacks}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Trending Card -->
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                        <div class="nav-card" onclick={handleTrending}>
+                            <div class="nav-card-header">
+                                <lightning-icon icon-name="utility:trending" class="nav-card-icon backgroundColor" size='small' title='trending' variant="inverse"></lightning-icon>
+                                <h3 class="nav-card-title">Trending</h3>
+                            </div>
+                            <p class="nav-card-description">View trending prompts and usage patterns.</p>
+                            <div class="nav-card-metric">Top 10 Prompts</div>
+                        </div>
+                    </div>
+                
+                </div>
+        </div>
+        
+        <!-- Agentic Section -->
+        <div class="slds-m-bottom_x-large" data-id="agentic-section">
+            <h2 class="slds-text-heading_medium slds-m-bottom_medium slds-p-left_small">Agentic</h2>
+            <div class="slds-grid slds-gutters slds-wrap">
+                
+                <!-- Agents Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleAgents}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:bot" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">Agents</h3>
+                                        </div>
+                        <p class="nav-card-description">Deploy autonomous AI agents for workflows.</p>
+                        <div class="nav-card-metric">{agentsMetric}</div>
+                    </div>
+                </div>
+                
+                <!-- Prompt Catalog Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handlePromptCatalog}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:catalog" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">Prompt Catalog</h3>
+                        </div>
+                        <p class="nav-card-description">Manage & deploy prompts aligned to business goals.</p>
+                        <div class="nav-card-metric">{promptCatalogMetric}</div>
+                    </div>
+            </div>
+                
+                <!-- Skills & Prompts Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleSkillsPrompts}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:skill_entity" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">Skills & Prompts</h3>
+                                        </div>
+                        <p class="nav-card-description">Pre-configured AI capabilities and integrations.</p>
+                        <div class="nav-card-metric">{skillsPromptsMetric}</div>
+                    </div>
+                                        </div>
+                
+                <!-- RAG & Knowledge Base Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleRAGKnowledgeBase}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:knowledge" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">RAG & Knowledge Base</h3>
+                                                </div>
+                        <p class="nav-card-description">Connect AI to knowledge bases and data sources.</p>
+                        <div class="nav-card-metric">{ragKnowledgeMetric}</div>
+                    </div>
+                                        </div>
+                
+                <!-- Data Context Mapping Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleDataContextMapping}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="custom:custom87" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">Data Context Mapping</h3>
+                                                </div>
+                        <p class="nav-card-description">Specify Salesforce data for AI processing.</p>
+                        <div class="nav-card-metric">{dataContextMappingMetric}</div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <!-- Workspace Sync Section -->
+        <div class="slds-m-bottom_x-large" data-id="workspace-sync-section">
+            <h2 class="slds-text-heading_medium slds-m-bottom_medium slds-p-left_small">Workspace Sync</h2>
+            <div class="slds-grid slds-gutters slds-wrap">
+                
+                <!-- Workspace Authentication Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleWorkspaceAuthentication}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:product_workspace" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">Workspace Authentication</h3>
+                        </div>
+                        <p class="nav-card-description">Configure workspace authentication and credentials.</p>
+                        <div class="nav-card-metric">{workspaceAuthenticationMetric}</div>
+                    </div>
+                </div>
+                
+                <!-- Email Sync Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleEmailSync}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:email_chatter" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">Email Sync</h3>
+                        </div>
+                        <p class="nav-card-description">Configure and manage email synchronization settings.</p>
+                        <div class="nav-card-metric">{emailSyncMetric}</div>
+                    </div>
+                </div>
+                
+                <!-- Calendar Sync Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleCalendarSync}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:event" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">Calendar Sync</h3>
+                        </div>
+                        <p class="nav-card-description">Configure and manage calendar synchronization settings.</p>
+                        <div class="nav-card-metric">{calendarSyncMetric}</div>
+                    </div>
+                </div>
+                
+                <!-- Task Sync Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleTaskSync}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:task" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">Task Sync</h3>
+                        </div>
+                        <p class="nav-card-description">Configure and manage task synchronization settings.</p>
+                        <div class="nav-card-metric">{taskSyncMetric}</div>
+                    </div>
+                </div>
+                
+                <!-- Workspace Sync Scheduler Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleWorkspaceSyncScheduler}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:scheduling_workspace" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">Workspace Sync Scheduler</h3>
+                        </div>
+                        <p class="nav-card-description">Schedule and manage workspace synchronization jobs.</p>
+                        <div class="nav-card-metric">{workspaceSyncSchedulerMetric}</div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <!-- Advanced Section -->
+        <div class="slds-m-bottom_x-large" data-id="advanced-section">
+            <h2 class="slds-text-heading_medium slds-m-bottom_medium slds-p-left_small">Advanced</h2>
+            <div class="slds-grid slds-gutters slds-wrap">
+                
+                <!-- API Data Sources Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleAPIDataSources}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:connected_apps" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">API Data Sources</h3>
+                        </div>
+                        <p class="nav-card-description">Configure connections to external data sources.</p>
+                        <div class="nav-card-metric">{apiDataSourcesMetric}</div>
+                    </div>
+            </div>
+                
+                <!-- AI Models Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleAIModels}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:proposition" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">AI Models</h3>
+                                        </div>
+                        <p class="nav-card-description">Configure "Bring your own AI Model" connections.</p>
+                        <div class="nav-card-metric">{aiModelsMetric}</div>
+                    </div>
+                                        </div>
+                
+                <!-- AI Settings Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleAISettings}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:settings" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">AI Settings</h3>
+                                                </div>
+                        <p class="nav-card-description">Manage Licenses, Preferences and Retention.</p>
+                        <div class="nav-card-metric">{aiSettingsMetric}</div>
+                    </div>
+                                        </div>
+                
+                <!-- Security Audits Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleSecurityAudits}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="custom:custom87" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">Security Audits</h3>
+                                                </div>
+                        <p class="nav-card-description">Review AI responses & masking effectiveness.</p>
+                        <div class="nav-card-metric">{securityAuditsMetric}</div>
+                    </div>
+                                        </div>
+                
+                <!-- Security Layers Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleSecurityLayers}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="custom:custom91" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">Security Layers</h3>
+                                                </div>
+                        <p class="nav-card-description">Set masking rules - RegEx & Block lists.</p>
+                        <div class="nav-card-metric">{securityLayersMetric}</div>
+                    </div>
+                </div>
+
+                <!-- AI Mass Processing -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleAIMassProcessing}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:process" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">AI Mass Processing</h3>
+                                                </div>
+                        <p class="nav-card-description">Set schedule to create and run batch jobs.</p>
+                        <div class="nav-card-metric">{massProcessingMetric}</div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        </div><!-- End Scrollable Content -->
+        
+        </div><!-- End Main Container -->
+        
+    </template>
+    
+</template>

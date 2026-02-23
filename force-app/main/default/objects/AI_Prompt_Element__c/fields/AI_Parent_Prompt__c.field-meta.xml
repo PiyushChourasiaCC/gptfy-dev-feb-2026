@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Parent_Prompt__c</fullName>
+    <description>The Parent prompt for this element</description>
+    <label>Parent Prompt</label>
+    <referenceTo>AI_Prompt__c</referenceTo>
+    <relationshipLabel>Prompt Elements</relationshipLabel>
+    <relationshipName>AI_Prompt_Elements</relationshipName>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <trackTrending>false</trackTrending>
+    <type>MasterDetail</type>
+    <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

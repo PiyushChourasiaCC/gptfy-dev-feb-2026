@@ -1,0 +1,448 @@
+/* Chat Container - Dynamic Height */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background: #ffffff;
+    position: relative;
+    overflow: hidden;
+    height: 100%; /* Takes full height of parent */
+    padding-bottom: 145px; /* Height to match input area */
+}
+
+/* Messages Area - Scrollable */
+.chat-messages-area {
+    position: relative;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    background: #f8f9fa;
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+.chat-messages-area::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chat-messages-area::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.chat-messages-area::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Messages List */
+.chat-messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.message-item {
+    width: 100%;
+}
+
+/* Message Wrappers - Key for alignment */
+.message-wrapper {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+    width: 100%;
+}
+
+/* AI Messages - Left Aligned */
+.ai-message {
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+/* User Messages - Right Aligned */
+.user-message {
+    justify-content: flex-end;
+    flex-direction: row;
+}
+
+/* Avatar Styling */
+.message-avatar {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+}
+/* @JIRA V2-7339 */
+
+.avatar-image {
+    width: 20px;
+    height: 20px;
+}
+
+/* @JIRA V2-7339 */
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #5B21B6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Message Content */
+.message-content {
+    max-width: 70%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* AI Message Content - Left Aligned */
+.ai-message .message-content {
+    align-items: flex-start;
+}
+
+/* User Message Content - Right Aligned */
+.user-message .message-content {
+    align-items: flex-end;
+}
+/* @JIRA V2-7339 */
+.message-input input:focus {
+    border-color: #5B21B6 !important;  /* Changed from #1976d2 */
+    box-shadow: 0 0 0 2px rgba(139, 6, 228, 0.2) !important;  /* Changed from rgba(25, 118, 210, 0.2) */
+}
+/* Message Bubbles */
+.message-bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    word-wrap: break-word;
+    line-height: 1.4;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    max-width: 100%;
+}
+
+/* @JIRA V2-7339 */
+.ai-bubble {
+    background: #e9ecee;
+    border-bottom-left-radius: 4px;
+}
+
+/* @JIRA V2-7339 */
+.user-bubble {
+    background: #5B21B6;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.message-timestamp {
+    font-size: 11px;
+    color: #666;
+    margin-top: 2px;
+    padding: 0 4px;
+}
+
+/* Typing Indicator */
+.typing-indicator-bubble {
+    padding: 12px 16px;
+}
+
+.typing-dots {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+/* @JIRA V2-7339 */
+.dot {
+    width: 6px;
+    height: 6px;
+    background: #5B21B6;
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+.dot:nth-child(3) { animation-delay: 0s; }
+
+@keyframes typing {
+    0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* Fixed Input Area
+.chat-input-area {
+    flex-shrink: 0;
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    padding: 31px 16px;
+} */
+
+.input-container {
+    display: flex;
+    gap: 8px;
+}
+
+/* Input Styling */
+.message-input {
+    flex: 1;
+}
+
+/* @JIRA V2-7339 */
+.message-input input {
+    border-radius: 20px !important;
+    padding: 10px 16px !important;
+    border: 1px solid #5B21B6 !important;
+    font-size: 14px !important;
+}
+/* @JIRA V2-7339 */
+.message-input input:focus {
+    border-color: #5B21B6 !important;
+    box-shadow: 0 0 0 2px #5B21B6 !important;
+}
+
+/* Disabled input styling */
+.message-input input:disabled {
+    background-color: #f3f3f3 !important;
+    border-color: #c9c9c9 !important;
+    color: #706e6b !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+}
+
+/* Send Button */
+.send-button {
+    border-radius: 20px;
+    height: 40px;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+/* Disabled icon styling */
+.icon-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Responsive */ 
+ @media (max-width: 480px) { 
+    .chat-messages-area {
+        padding: 12px;
+    }
+    
+    .chat-input-area .chat-input-area-message  {
+        padding: 8px 12px;
+    }
+    
+    
+    .message-content {
+        max-width: 85%;
+    }
+}
+
+/* @JIRA V2-7339 */
+/*Add the class name below to the lightning-icon element.*/
+.custom-icon-send {
+    --slds-c-icon-color-foreground-default: #5B21B6; 
+}
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 300px; /* Adjust as needed */
+    opacity: 0.5;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+}
+/* @JIRA V2-7339 */
+.empty-bot-icon {
+    width: 64px !important;
+    height: 64px !important;
+    margin-bottom: 16px;
+    border-radius: 35px;
+    text-align: center;
+    opacity: 0.5;
+}
+/* @JIRA V2-7339 */
+.empty-message {
+    font-size: 1rem;
+    color: #5B21B6;
+    text-align: center;
+    opacity: 0.5;
+}
+.chat-input-area {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    z-index: 100; /* Ensure above utility bar */
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    padding-bottom: 16px; /* Extra padding for clearance */
+  }
+  .chat-header {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #e3f2fd;
+    z-index: 101;
+  }
+  /* @JIRA V2-7339 */
+  .start-chat-btn {
+    width: 100%;
+    background: #5B21B6;
+    color: white;
+    border: none;
+    padding: 13px;
+    font-size: 16px;
+    border-radius: 0;
+    cursor: pointer;
+  }
+  /* @JIRA V2-7339 */
+  .settings-popup {
+    position: absolute;
+    bottom: 100px; /* above chat input area */
+    right: 20px;
+    width: 365px;
+    border: 1px solid #5B21B6;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2);
+    padding: 18px;
+    z-index: 102;
+  }
+
+  .input-container-message{
+    gap: 8px;
+    font-weight: bold;
+  }
+  .chat-input-area-message {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    z-index: 100; /* Ensure above utility bar */
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    padding-bottom: 16px; /* Extra padding for clearance */
+    text-align: center;
+  }
+  .chat-input-area-console {
+    position: fixed;
+    bottom: 0;
+    width: 24rem;
+    z-index: 100; /* Ensure above utility bar */
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    padding-bottom: 50px; /* Extra padding for clearance */
+  }
+  .chat-container-console {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background: #ffffff;
+    position: relative;
+    overflow: hidden;
+    height: 100%; /* Takes full height of parent */
+    padding-bottom: 90px; /* Height to match input area */
+}
+/* @JIRA V2-7339 */
+/* Precise override for a single brand button */
+.brand-done-btn {
+    /* base */
+    --slds-c-button-brand-color-background: #5B21B6;
+    --slds-c-button-brand-color-border: #5B21B6;
+    --slds-c-button-text-color: #ffffff;
+}
+/* @JIRA V2-7339 */
+.bare-cancel-btn {
+    --slds-c-button-brand-color-border: #5B21B6;
+    --slds-c-button-text-color: #5B21B6;
+    --slds-c-button-text-color-hover: #5B21B6;
+}
+/* @JIRA V2-7339 */
+.image-bot-avatar{
+    background-color: #5B21B6;
+    text-align: center;
+    padding-top: 5px;
+    border-radius: 16px;
+}
+
+  .autonav-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  .autonav-checkbox input[type="checkbox"] {
+    width: 14px;       /* control box size */
+    height: 14px;
+    accent-color: #5B21B6; /* modern browsers */
+  }
+  
+  .autonav-label {
+    font-size: 12px;   /* shrink label text */
+    line-height: 1.2;
+    color: #5B21B6;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  .autonav-icon {
+    --slds-c-icon-color-foreground-default: #5B21B6;
+  }
+
+  .autonav-status {
+    margin-top: 0.5rem;
+    margin-left: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background-color: rgba(91, 33, 182, 0.1);
+    border-radius: 4px;
+    font-size: 11px;
+  }
+
+  .status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .status-indicator.active {
+    background-color: #2e844a;
+    animation: pulse 2s infinite;
+  }
+
+  .status-text {
+    color: #5B21B6;
+    font-weight: 500;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }

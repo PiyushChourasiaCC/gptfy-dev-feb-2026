@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Model_Datastore_Import__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>AI Model (Datastore Import)</label>
+    <lookupFilter>
+        <active>true</active>
+        <filterItems>
+            <field>AI_Connection__c.Type__c</field>
+            <operation>equals</operation>
+            <value>RAG Sync</value>
+        </filterItems>
+        <isOptional>false</isOptional>
+    </lookupFilter>
+    <referenceTo>AI_Connection__c</referenceTo>
+    <relationshipLabel>RAG Syncs (AI Model (Datastore Import))</relationshipLabel>
+    <relationshipName>AI_RAG_Sync_Schedulers_Datastore</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

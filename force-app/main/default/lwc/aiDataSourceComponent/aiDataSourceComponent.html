@@ -1,0 +1,83 @@
+<template>
+<template if:true={showSpinner}>
+        <div style="height:19rem;position:relative">
+            <div class="slds-spinner_container">
+                <div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+                    <span class="slds-assistive-text">Loading</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </template>
+        
+    <template if:false={showSpinner}>
+        <div class="slds-page-header">
+            <div class="slds-page-header__row">
+                <div class="slds-page-header__col-title">
+                    <div class="slds-media">
+                        <div class="slds-media__figure">
+                            <span class="slds-icon_container slds-icon-standard-opportunity" title="opportunity">
+                                <lightning-icon icon-name="standard:connected_apps" style="--slds-c-icon-color-background:#43A6C6;" title="API Data Source" size="large"></lightning-icon>
+                                <span class="slds-assistive-text">API Data Source</span>
+                            </span>
+                        </div>
+                        <div class="slds-media__body">
+                            <div class="slds-page-header__name">
+                                <div class="slds-page-header__name-title">
+                                    <h1>
+                                        <span class="slds-page-header__title slds-truncate" title="API Data Source">API Data Source</span>
+                                    </h1>
+                                </div>
+                            </div>
+                            <p class="slds-page-header__name-meta">
+                                <lightning-formatted-rich-text value={label.API_DataSource_Header_Label}></lightning-formatted-rich-text>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="height: 5px;"></div>
+        <template if:false={isLicensePresent}>
+            <div class="bottomUpgradeLabel"><lightning-formatted-rich-text value={yellowLabelLicensesMessage}></lightning-formatted-rich-text></div>
+        </template>
+        <div style="height: 5px;"></div>
+        <div style={disableCSS}>
+        <article class="slds-card">
+            <div class="slds-card__body slds-card__body_inner">
+                <!--<div class="slds-grid slds-wrap">
+                    <template if:true={sourceOption}>
+                        <template for:each={sourceOption} for:item="conn">
+                            <div class="slds-col slds-size_1-of-3 slds-p-around_xxx-small" key={conn.aiName} data-id={conn.aiName} onclick={handleConnectionNavigate}>
+                                <span data-id={conn.aiName} onclick={handleConnectionNavigate}>
+                                    <a href={conn.conUrl} class="slds-box slds-box_link slds-box_large slds-media" target="_blank" data-id={conn.aiName} onclick={handleConnectionNavigate}>
+                                        <div class="slds-media__figure slds-media__figure_fixed-width slds-align_absolute-center slds-m-left_xx-small" data-id={conn.aiName} onclick={handleConnectionNavigate}>
+                                            <span class="slds-icon_container slds-icon-utility-knowledge_base" data-id={conn.aiName} onclick={handleConnectionNavigate}>
+                                                <img class="slds-button__icon slds-button__icon_left" src={conn.iconUrl} alt={conn.aiLabel} style="width: 50px; height: 50px;" data-id={conn.aiName} onclick={handleConnectionNavigate}>
+                                            </span>
+                                        </div>
+                                        <div class="slds-media__body slds-border_left slds-p-around_small" style="position:relative;" data-id={conn.aiName} onclick={handleConnectionNavigate}>
+                                            <h2 class="slds-truncate slds-text-heading_small" title={conn.aiLabel} data-id={conn.aiName} onclick={handleConnectionNavigate}>{conn.aiLabel}</h2>
+                                            <p class="slds-m-top_small" data-id={conn.aiName} onclick={handleConnectionNavigate}>{conn.aiDesc}</p>
+                                            <template if:true={conn.conId}>
+                                                <span style="position: absolute; top: 0; right: 0; font-size: 10px;">
+                                                    <lightning-icon icon-name="utility:check" alternative-text={conn.aiLabel} title={conn.aiLabel} size="small" variant="success"></lightning-icon>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </a>
+                                </span>
+                            </div>
+                        </template>
+                    </template>
+                </div>-->
+                <c-gptfy-card-detail-component card-type="APIDS" onnavigate={handleConnectionNavigate} oncreateown={handleCreateYourOwn} onedit={handleEditCard}></c-gptfy-card-detail-component>
+            </div>
+        </article>
+        <template if:true={showCCComponent}>
+            <c-gptfy-add-card-component fields={fields}  object-api-name={objectApiName} header="API Data Source" card-type="APIDS" oncancel={handleCancel} onsuccess={handleSuccess} record={metadata} sobj={sobj} show-edit-btn={showEditBtn}></c-gptfy-add-card-component>
+        </template>
+    </div>
+    </template>
+</template>

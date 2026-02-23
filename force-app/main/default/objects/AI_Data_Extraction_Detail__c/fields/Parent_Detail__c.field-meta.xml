@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Parent_Detail__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Parent Detail</label>
+    <referenceTo>AI_Data_Extraction_Detail__c</referenceTo>
+    <relationshipName>AI_Data_Extraction_Details</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

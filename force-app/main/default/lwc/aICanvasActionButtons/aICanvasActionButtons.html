@@ -1,0 +1,48 @@
+<template>
+    <lightning-button-icon 
+        icon-name="utility:email" 
+        variant="border-filled" 
+        alternative-text="Send Email" 
+        title="Send Email" 
+        onclick={handleEmail}
+        class="slds-m-right_x-small">
+    </lightning-button-icon>
+    <lightning-button-icon 
+        icon-name="utility:copy_to_clipboard" 
+        variant="border-filled" 
+        alternative-text="Copy to Clipboard" 
+        title="Copy to Clipboard" 
+        onclick={handleCopy} 
+        class="slds-m-right_x-small">
+    </lightning-button-icon>
+    <template lwc:if={settings.showZoomButton}>
+        <lightning-button-icon 
+            icon-name="utility:print" 
+            variant="border-filled" 
+            alternative-text="Print" 
+            title="Print" 
+            onclick={handlePreviewAndDownload} 
+            class="slds-m-right_x-small">
+        </lightning-button-icon>
+    </template>
+    <template lwc:if={settings.showRefreshButton}>
+        <template lwc:if={settings.showZoomButton}>
+            <lightning-button-icon 
+                icon-name="utility:zoomin" 
+                variant="border-filled" 
+                alternative-text="Zoom" 
+                title="Zoom" 
+                onclick={handleZoomOut} 
+                class="slds-m-right_x-small">
+            </lightning-button-icon>
+        </template>
+        <lightning-button-icon 
+            icon-name="utility:refresh" 
+            variant="border-filled" 
+            alternative-text="Refresh cards" 
+            title="Refresh" 
+            class="slds-p-right_small"
+            onclick={handleRefresh}>
+        </lightning-button-icon>
+    </template>
+</template>

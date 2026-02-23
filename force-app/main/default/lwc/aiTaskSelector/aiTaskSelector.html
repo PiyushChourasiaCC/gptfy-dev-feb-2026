@@ -1,0 +1,243 @@
+<template>
+    <div class="task-container">
+        <!-- No Provider Enabled Message -->
+        <template if:true={showNoProviderMessage}>
+            <div class="no-provider-state">
+                <div class="no-provider-content">
+                    <div class="no-provider-icon">⚙️</div>
+                    <h2>Task Sync Not Configured</h2>
+                    <p>Please enable at least one task provider (Outlook or Gmail) from:</p>
+                    <p class="settings-path"><strong>AI Settings → Workspace Sync</strong></p>
+                </div>
+            </div>
+        </template>
+        
+        <template if:false={showNoProviderMessage}>
+        <!-- Header Section -->
+        <div class="header-section">
+            <div class="header-content">
+                <div class="title-area">
+                    <h1 class="slds-text-heading_medium">
+                        <img src={logoUrl} alt="GPTfy" class="gptfy-logo" onerror={handleLogoError} />
+                        {taskTitle}
+                    </h1>
+                </div>
+                <div class="stats-area">
+                    <div class="stat-card">
+                        <span class="stat-value">{totalTasksDisplay}</span>
+                        <span class="stat-label">Tasks</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <template if:true={isTaskAccessible}>
+            <div class="main-content">
+                <!-- Toolbar -->
+                <div class="toolbar">
+                    <div class="search-container">
+                        <lightning-icon icon-name="utility:search" size="x-small" class="search-icon"></lightning-icon>
+                        <input type="text" placeholder="Search tasks..." value={searchKey} oninput={handleSearch} class="search-input" />
+                    </div>
+                    <div class="filters-container">
+                        <button class={pendingFilterClass} onclick={handleFilterChange} data-filter="pending">
+                            📋 Pending
+                        </button>
+                        <button class={allFilterClass} onclick={handleFilterChange} data-filter="all">
+                            📑 All Tasks
+                        </button>
+                        <button class={completedFilterClass} onclick={handleFilterChange} data-filter="completed">
+                            ✅ Completed
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <template if:true={showProviderSwitch}>
+                            <div class="provider-switch" title="Switch task provider">
+                                <button class={outlookSwitchClass} onclick={handleProviderSwitch} data-provider="MICROSOFT_GRAPH">
+                                    <span class="provider-icon outlook-icon">O</span>
+                                    Outlook
+                                </button>
+                                <button class={googleSwitchClass} onclick={handleProviderSwitch} data-provider="GOOGLE_TASKS">
+                                    <span class="provider-icon google-icon">G</span>
+                                    Google
+                                </button>
+                            </div>
+                        </template>
+                        <button class="refresh-btn" onclick={handleRefresh} title="Refresh Tasks" disabled={isLoading}>
+                            🔄
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Task List -->
+                <div class="task-list-container">
+                    <template if:true={isLoading}>
+                        <div class="spinner-container">
+                            <div class="spinner-large"></div>
+                            <p class="loading-text">Loading your tasks...</p>
+                        </div>
+                    </template>
+
+                    <template if:false={isLoading}>
+                        <template if:true={hasTasks}>
+                            <div class="task-table">
+                                <template for:each={filteredTasks} for:item="task">
+                                    <div key={task.taskId} class={task.rowClass} onclick={handleRowClick} data-task-id={task.taskId}>
+                                        <div class="col-checkbox">
+                                            <input type="checkbox" checked={task.selected} onclick={handleCheckboxClick} data-task-id={task.taskId} disabled={task.isImported} />
+                                        </div>
+                                        <div class="col-avatar">
+                                            <div class="avatar" style={task.avatarStyle}>
+                                                {task.initials}
+                                            </div>
+                                        </div>
+                                        <div class="col-content">
+                                            <div class="subject-line">
+                                                <span class="subject-text">{task.title}</span>
+                                                <template if:true={task.isImported}>
+                                                    <span class="badge imported">✓ Imported</span>
+                                                </template>
+                                                <template if:true={task.isHighPriority}>
+                                                    <span class="badge priority-high">🔥 HIGH</span>
+                                                </template>
+                                            </div>
+                                            <div class="preview-text">
+                                                <template if:true={task.listName}>
+                                                    <span class="list-name">📁 {task.listName}</span>
+                                                </template>
+                                                <template if:true={task.hasDueDate}>
+                                                    <span class={task.dueDateClass}>
+                                                        📅 Due: {task.formattedDueDate}
+                                                    </span>
+                                                </template>
+                                            </div>
+                                            <!-- Association Badges - Clickable links to records -->
+                                            <template if:true={task.hasMultipleLinkedRecords}>
+                                                <div class="association-badges">
+                                                    <template for:each={task.linkedRecordsFormatted} for:item="lr">
+                                                        <span key={lr.key} 
+                                                              class={lr.badgeClass}
+                                                              data-record-id={lr.recordId}
+                                                              data-record-type={lr.recordType}
+                                                              onclick={handleBadgeClick}
+                                                              title="Click to open {lr.recordType}"
+                                                              style="cursor: pointer;">{lr.recordName}</span>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                            <template if:false={task.hasMultipleLinkedRecords}>
+                                                <template if:true={task.linkedBadgeLabel}>
+                                                    <div class="association-badges">
+                                                        <span class={task.linkedBadgeClass}
+                                                              data-record-id={task.linkedRecordId}
+                                                              data-record-type={task.linkedRecordType}
+                                                              onclick={handleBadgeClick}
+                                                              title="Click to open {task.linkedRecordType}"
+                                                              style="cursor: pointer;">{task.linkedBadgeLabel}</span>
+                                                    </div>
+                                                </template>
+                                            </template>
+                                        </div>
+                                        <div class="col-time">{task.formattedDueDate}</div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Pagination - only show when there are tasks -->
+                            <div class="pagination">
+                                <div class="page-info">Showing {pageStart}-{pageEnd} of {totalTasksDisplay} tasks</div>
+                                <div class="page-controls">
+                                    <button disabled={isPreviousDisabled} onclick={handlePreviousPage}>← Previous</button>
+                                    <button disabled={isNextDisabled} onclick={handleNextPage}>Next →</button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template if:false={hasTasks}>
+                            <div class="empty-state">
+                                <div class="empty-icon">✅</div>
+                                <h3>No Tasks Found</h3>
+                                <p>No tasks found in {providerName} for the selected filter.</p>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Floating Selection Bar -->
+            <div class={selectionBarClass}>
+                <div class="selection-content">
+                    <div class="selection-count">
+                        <span class="count-number">{selectedCount}</span>
+                        <span class="count-label">tasks selected</span>
+                    </div>
+                    <div class="selection-actions">
+                        <button class="import-btn" onclick={handleImportSelected} disabled={isImporting}>
+                            🚀 Import Selected
+                        </button>
+                        <button class="clear-btn" onclick={handleClearSelection}>Clear</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Not Accessible State -->
+        <template if:false={isTaskAccessible}>
+            <!-- Loading state when checking access -->
+            <template if:true={isLoading}>
+                <div class="loading-access-state">
+                    <div class="spinner-large"></div>
+                    <p class="loading-text">Checking task access...</p>
+                </div>
+            </template>
+            <template if:false={isLoading}>
+                <div class="not-accessible-state">
+                    <!-- Provider Switch in not-accessible state -->
+                    <template if:true={showProviderSwitch}>
+                        <div class="provider-switch-large" title="Switch task provider">
+                            <button class={outlookSwitchClass} onclick={handleProviderSwitch} data-provider="MICROSOFT_GRAPH">
+                                <span class="provider-icon outlook-icon">O</span>
+                                Outlook
+                            </button>
+                            <button class={googleSwitchClass} onclick={handleProviderSwitch} data-provider="GOOGLE_TASKS">
+                                <span class="provider-icon google-icon">G</span>
+                                Google
+                            </button>
+                        </div>
+                    </template>
+                    <div class="lock-icon">🔒</div>
+                    <h2>Task Access Required</h2>
+                    <p>{notAccessibleMessage}</p>
+                    <div class="action-buttons">
+                        <button class="retry-connection-btn" onclick={handleRetryConnection} title="Refresh connection without leaving this page">
+                            🔄 Refresh Connection
+                        </button>
+                        <a href={authenticationSettingsUrl} class="auth-link">🔐 Connect Tasks</a>
+                    </div>
+                </div>
+            </template>
+        </template>
+        </template>
+
+        <!-- Import Progress Overlay -->
+        <div class={loadingOverlayClass}>
+            <div class="overlay-content">
+                <div class="spinner-large"></div>
+                <h2 class="overlay-title">✨ Importing Tasks...</h2>
+                <p class="overlay-subtext">Creating Salesforce Task records</p>
+            </div>
+        </div>
+
+        <!-- Quick Match Modal -->
+        <template if:true={showQuickMatchModal}>
+            <c-ai-auto-record-matching-modal
+                source-type="TASK"
+                provider-type={modalProviderType}
+                items={modalItems}
+                onclose={handleCloseModal}
+                onsuccess={handleModalSuccess}
+                onerror={handleModalError}>
+            </c-ai-auto-record-matching-modal>
+        </template>
+    </div>
+</template>

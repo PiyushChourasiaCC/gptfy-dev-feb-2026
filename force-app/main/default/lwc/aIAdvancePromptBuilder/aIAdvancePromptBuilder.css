@@ -1,0 +1,388 @@
+/* Host Component Background */
+:host {
+    display: block;
+    background-color: #FFFFFF !important;
+    width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+/* Full Screen Card */
+.full-screen-card {
+    min-height: calc(100vh - 100px);
+    padding: 0 !important;
+    margin: 0 !important;
+    background-color: #FFFFFF !important;
+}
+
+.prompt-builder-container {
+    padding: 0;
+    margin: 0;
+    min-height: calc(100vh - 150px);
+    background-color: #FFFFFF !important;
+    width: 100%;
+}
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, #5B3AA0 0%, #7B4AC5 50%, #9B6AEA 100%);
+    padding: 2.5rem 2rem 4rem 2rem;
+    border-radius: 10px;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(91, 58, 160, 0.15);
+}
+
+.build-your-own-button-container {
+    position: absolute;
+    top: 0.75rem;
+    right: 1rem;
+    z-index: 10;
+    display: flex;
+    gap: 0.75rem;
+}
+
+.back-btn,
+.build-your-own-btn {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.92)) !important;
+    color: #5B3AA0 !important;
+    box-shadow: 0 4px 12px rgba(91, 58, 160, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 600 !important;
+    border-radius: 0.5rem !important;
+    letter-spacing: 0.01em;
+}
+
+.back-btn:hover:not(:disabled),
+.build-your-own-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #FFFFFF, rgba(255, 255, 255, 0.95)) !important;
+    border-color: rgba(91, 58, 160, 0.3) !important;
+    box-shadow: 0 6px 20px rgba(91, 58, 160, 0.18), 0 3px 6px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px) scale(1.02);
+}
+
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: pulse 15s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(5%, 5%) scale(1.1);
+    }
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.header-text {
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+/* AI Icon Styling */
+.ai-icon {
+    --slds-c-icon-color-foreground: #5B3AA0;
+    --slds-c-icon-color-foreground-default: #5B3AA0;
+}
+
+/* Search Bar Container */
+.search-bar-container {
+    display: flex;
+    align-items: flex-start;
+    background-color: #FFFFFF;
+    border-radius: 1.5rem;
+    padding: 0.75rem 0.75rem 0.75rem 1.25rem;
+    max-width: 900px;
+    margin: 0 auto 2rem auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    gap: 1rem;
+}
+
+.search-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0.5rem;
+}
+
+.gptfy-logo {
+    width: 2.5rem;
+    height: 2.5rem;
+    object-fit: contain;
+    filter: brightness(0) saturate() invert(50%) sepia(54%) saturate(1492%) hue-rotate(226deg) brightness(79%) contrast(94%);
+    transition: all 0.3s ease;
+}
+.search-bar-container:hover .gptfy-logo {
+    filter: brightness(0) saturate(100%) invert(43%) sepia(86%) saturate(1672%) hue-rotate(223deg) brightness(96%) contrast(92%);
+    transform: scale(1.05);
+}
+.search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 1rem;
+    color: #3E3E3C;
+    padding: 0.5rem 0;
+    font-family: 'Salesforce Sans', Arial, sans-serif;
+    resize: none;
+    line-height: 1.5;
+    min-height: 4.5rem;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.search-input::placeholder {
+    color: #A8A8A8;
+    font-style: italic;
+}
+
+.search-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.search-submit-button {
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #5B9BD5 0%, #4A8BC2 100%);
+    border: none;
+    border-radius: 50%;
+    width: 3.5rem;
+    height: 3.5rem;
+    min-width: 3.5rem;
+    min-height: 3.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 0.75rem;
+    align-self: flex-end;
+}
+
+.search-submit-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4A8BC2 0%, #3A7BB2 100%);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(74, 139, 194, 0.4);
+}
+
+.search-submit-button:hover:not(:disabled) .send-icon {
+    transform: translateX(2px) translateY(-2px);
+}
+
+.search-submit-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.send-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+/* Pill Buttons */
+.pill-container {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.pill-button {
+    background: rgba(255, 255, 255, 0.25);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 1.5rem;
+    padding: 0.625rem 1.5rem;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    font-size: 0.95rem;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+}
+
+.pill-button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.pill-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Loading Spinner Overlay */
+.spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.spinner-message {
+    margin-top: 2rem;
+    text-align: center;
+    max-width: 500px;
+}
+
+.spinner-message h3 {
+    color: #080707;
+    margin-bottom: 0.5rem;
+}
+
+.spinner-message p {
+    color: #706e6b;
+}
+
+/* Information Section */
+.info-section {
+    padding: 3rem 2rem 2rem 2rem;
+    background-color: #FFFFFF;
+    margin-bottom: 0;
+}
+
+.info-card {
+    background-color: #FFFFFF;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    min-height: 240px;
+    height: 240px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(91, 58, 160, 0.08);
+    transition: all 0.3s ease;
+}
+
+.info-card:hover {
+    box-shadow: 0 8px 24px rgba(91, 58, 160, 0.15);
+    transform: translateY(-4px);
+    border-color: rgba(91, 58, 160, 0.15);
+}
+
+.info-icon-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, rgba(91, 58, 160, 0.1) 0%, rgba(155, 106, 234, 0.1) 100%);
+    border-radius: 50%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.info-icon {
+    --slds-c-icon-color-foreground: #5B3AA0;
+    --slds-c-icon-color-foreground-default: #5B3AA0;
+}
+
+.info-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #080707;
+    margin-bottom: 0.75rem;
+    flex-shrink: 0;
+}
+
+.info-description {
+    font-size: 0.875rem;
+    color: #706e6b;
+    line-height: 1.5;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 1.5rem 1rem 3rem 1rem;
+    }
+    
+    .build-your-own-button-container {
+        top: 0.5rem;
+        right: 0.75rem;
+    }
+    
+    .header-text {
+        font-size: 1.5rem;
+        padding-right: 8rem;
+    }
+    
+    .search-bar-container {
+        padding: 0.75rem 0.75rem 0.75rem 1rem;
+        margin: 0 1rem 1.5rem 1rem;
+    }
+    
+    .search-icon {
+        padding-top: 0.25rem;
+    }
+    
+    .search-input {
+        font-size: 0.95rem;
+        min-height: 4rem;
+    }
+    
+    .search-submit-button {
+        width: 3rem;
+        height: 3rem;
+        min-width: 3rem;
+        min-height: 3rem;
+    }
+    
+    .pill-container {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0 1rem;
+    }
+    
+    .pill-button {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .info-section {
+        padding: 2rem 1rem 1.5rem 1rem;
+    }
+    
+    .info-card {
+        min-height: 200px;
+        height: 200px;
+    }
+}

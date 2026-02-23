@@ -1,0 +1,53 @@
+<template>
+    <template if:true={showSpinner}>
+		<div style="height:19rem;position:relative">
+			<div class="slds-spinner_container">
+				<div role="status" class="slds-spinner slds-spinner_medium slds-spinner_brand">
+					<span class="slds-assistive-text">Loading</span>
+					<div class="slds-spinner__dot-a"></div>
+					<div class="slds-spinner__dot-b"></div>
+				</div>
+			</div>
+		</div>
+	</template>
+	<template if:false={showSpinner}>
+		<lightning-card variant="Narrow" title="Prompts" icon-name="standard:dashboard_component">
+            <lightning-button-group slot="actions">   
+                <lightning-button label="New" onclick={handleAddModal}></lightning-button>
+                <lightning-button-icon icon-name="utility:refresh"  alternative-text="Refresh" title="Refresh" onclick={getPromptSchedulers}></lightning-button-icon>
+            </lightning-button-group>
+			
+			<p class="slds-p-horizontal_small">
+				<template if:true={records}>
+					<lightning-datatable 
+                        key-field="Id" 
+                        data={records} 
+                        columns={fields} 
+                        hide-checkbox-column
+						show-row-number-column 
+                        default-sort-direction={defaultSortDirection}
+						sorted-direction={sortDirection} 
+                        sorted-by={sortedBy} 
+                        onsort={onHandleSort}
+						onrowaction={handleRowAction}
+                    ></lightning-datatable>
+				</template>
+				<template if:false={records}>
+					<div class="slds-align_absolute-center" style="height:5rem">
+						No records present.
+					</div>
+				</template>
+			</p>
+		</lightning-card>
+	</template>
+	
+    <template if:true={showAddModal}>
+		<c-ai-prompt-scheduler-override 
+			record-id={selectedRecordId} 
+			scheduler-id={recordId}
+			selected-object-name={selectedObjectName}
+			oncancel={handleCancel}>
+		</c-ai-prompt-scheduler-override>
+	</template>
+
+</template>
