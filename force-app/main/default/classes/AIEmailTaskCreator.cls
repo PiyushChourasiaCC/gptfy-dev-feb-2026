@@ -356,32 +356,35 @@ public with sharing class AIEmailTaskCreator {
         }
 
         // Insert Tasks
-        Database.SaveResult[] taskResults = Database.insert(tasks, false);
 
-        // Track successful task IDs for TaskRelation creation
-        Map<Id, List<Id>> taskIdToRelationIds = new Map<Id, List<Id>>();
+        tasks = (List<Task>)FLSCheck.getInstance().insertCheck(tasks);
+        if(tasks != null && !tasks.isEmpty()){
 
-        for (Integer i = 0; i < taskResults.size(); i++) {
-            if (taskResults[i].isSuccess()) {
-                result.successCount++;
-                Id taskId = taskResults[i].getId();
-                result.taskIds.add(taskId);
+            Database.SaveResult[] taskResults = Database.insert(tasks, false);
+            Map<Id, List<Id>> taskIdToRelationIds = new Map<Id, List<Id>>();
 
-                // Collect relations for Shared Activities
-                if (sharedActivitiesEnabled && taskIndexToRelationIds.containsKey(i)) {
-                    taskIdToRelationIds.put(taskId, taskIndexToRelationIds.get(i));
-                }
-            } else {
-                result.failedCount++;
-                for (Database.Error err : taskResults[i].getErrors()) {
-                    result.errors.add(tasks[i].Subject + ': ' + err.getMessage());
+            for (Integer i = 0; i < taskResults.size(); i++) {
+                if (taskResults[i].isSuccess()) {
+                    result.successCount++;
+                    Id taskId = taskResults[i].getId();
+                    result.taskIds.add(taskId);
+    
+                    // Collect relations for Shared Activities
+                    if (sharedActivitiesEnabled && taskIndexToRelationIds.containsKey(i)) {
+                        taskIdToRelationIds.put(taskId, taskIndexToRelationIds.get(i));
+                    }
+                } else {
+                    result.failedCount++;
+                    for (Database.Error err : taskResults[i].getErrors()) {
+                        result.errors.add(tasks.get(i).get('Subject') + ': ' + err.getMessage());
+                    }
                 }
             }
-        }
-
-        // Create TaskRelations if Shared Activities is enabled
-        if (sharedActivitiesEnabled && !taskIdToRelationIds.isEmpty()) {
-            createTaskRelations(taskIdToRelationIds);
+    
+            // Create TaskRelations if Shared Activities is enabled
+            if (sharedActivitiesEnabled && !taskIdToRelationIds.isEmpty()) {
+                createTaskRelations(taskIdToRelationIds);
+            }
         }
     }
 
@@ -415,13 +418,9 @@ public with sharing class AIEmailTaskCreator {
         }
 
         if (!relationsToInsert.isEmpty()) {
-            Database.SaveResult[] relationResults = Database.insert(relationsToInsert, false);
-            for (Integer i = 0; i < relationResults.size(); i++) {
-                if (!relationResults[i].isSuccess()) {
-                    for (Database.Error err : relationResults[i].getErrors()) {
-                        System.debug(LoggingLevel.ERROR, 'Error creating TaskRelation: ' + err.getMessage());
-                    }
-                }
+            List<SObject> relationsToBeInserted = FLSCheck.getInstance().insertCheck(relationsToInsert);
+            if(relationsToBeInserted != null && !relationsToBeInserted.isEmpty()){
+                Database.insert(relationsToBeInserted, false);
             }
         }
     }

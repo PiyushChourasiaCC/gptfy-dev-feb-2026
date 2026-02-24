@@ -272,71 +272,27 @@ public class AIAgenticCalloutService {
 
         // ALWAYS add mandatory response format - this applies regardless of whether intents exist
         // IMPORTANT: Do NOT include markdown code fences in these instructions; the model may echo them.
-        systemInstructions += '\n\n## MANDATORY RESPONSE FORMAT\n\n' +
-            'You MUST ALWAYS respond with ONLY a valid JSON object. No text, markdown, or code fences before or after it.\n\n' +
-            '{"message": "your response", "intents": [], "language": "en", "additionalParameters": {}}\n\n' +
-            'Fields:\n' +
-            '- **message**: Your helpful response (ALL conversational text goes here).\n' +
-            '- **intents**: Array of matched intent NAME strings ([] if none). Names must exactly match top-level intent keys below.\n' +
-            '- **language**: ISO 639-1 code.\n' +
-            '- **additionalParameters**: Object keyed by intent name. {} if no intents triggered.\n\n';
+        systemInstructions += '\n\n' + System.Label.AI_Agentic_Mandatory_Response_Format + '\n\n';
         
         if (agentIntents != null && !agentIntents.isEmpty()) {
             System.debug('AgentIntents: Adding Agent Intents format to instructions');
-            systemInstructions += '## Agent Intent Detection System\n\n' +
-                '### Available Intents\n' +
-                'BEGIN_AVAILABLE_INTENTS_JSON\n' + JSON.serialize(agentIntents) + '\nEND_AVAILABLE_INTENTS_JSON\n\n' +
-                '### How It Works\n\n' +
-                '**Matching:** Each intent has a "description" field. An intent matches when the user\'s message semantically aligns with that description. ' +
-                'Intents may also have an "actions" array -- each action has a "type" (Update Field or Create Record), an "object", a "description", and field information.\n\n' +
-                '**Update Field actions** have a single "field" key and an "object" key (e.g., Case, Account, Contact). You must extract the field value AND determine the target recordId:\n' +
-                '- The action\'s "object" tells you WHICH type of record to look for. Search the ENTIRE conversation thread for a recordId or record number matching that object type.\n' +
-                '- CRITICAL: If a matching recordId appeared ANYWHERE earlier in this thread (in your own previous responses OR in user messages), and the user now says "this record", "this case", "this account", "it", or similar, you MUST reuse that recordId and TRIGGER the intent. Do NOT ask again for a recordId that already exists in the thread.\n' +
-                '- Only ask the user for a recordId if NO matching record has been mentioned ANYWHERE in the entire conversation thread.\n' +
-                '- Return: additionalParameters.INTENT_NAME = { "recordId": "id", "FieldApiName": "value" }\n\n' +
-                '**Create Record actions** have a "fields" array. Each field has a "field" (API name) and "description" (what to extract).\n' +
-                '- ALWAYS trigger immediately when the intent description matches -- do NOT ask follow-up questions.\n' +
-                '- Extract a value for EVERY field in the array using each field\'s "description" as guidance.\n' +
-                '- No recordId is needed -- a new record will be created. Do NOT include recordId.\n' +
-                '- NEVER return an empty {} for a Create Record intent. You MUST populate all fields.\n' +
-                '- Return: additionalParameters.INTENT_NAME = { "Field1": "value1", "Field2": "value2" } (include ALL fields)\n\n' +
-                '**Field value mapping:** Map user language intelligently (urgent/critical/asap -> High, normal/standard -> Medium, not urgent/whenever -> Low). ' +
-                'If a field description specifies valid values, only use those values. Keys MUST be exact Salesforce Field API Names.\n\n' +
-                '### additionalParameters Rules\n' +
-                '- Intent WITHOUT actions -> additionalParameters.INTENT_NAME = {}\n' +
-                '- Intent with Update Field action -> { "recordId": "id_if_known", "FieldApiName": "extracted_value" }\n' +
-                '- Intent with Create Record action -> { "Field1": "value1", "Field2": "value2" } (ALL fields, NEVER empty)\n\n' +
-                '### Examples\n\n' +
-                '**No intent match (general conversation):**\n' +
-                '{"message": "I can help with that. What would you like to know?", "intents": [], "language": "en", "additionalParameters": {}}\n\n' +
-                '**Intent without actions (e.g., EMERGENCY):**\n' +
-                '{"message": "I am flagging this as an emergency.", "intents": ["EMERGENCY"], "language": "en", "additionalParameters": {"EMERGENCY": {}}}\n\n' +
-                '**Update Field (recordId from thread context -- "this record" reference):**\n' +
-                'Previous assistant response: Here are the details: Record ID: 500J700000LjY85IAF\n' +
-                'User: I want to update this record\'s priority to High\n' +
-                '{"message": "I have updated the priority to High.", "intents": ["UPDATE_PRIORITY"], "language": "en", "additionalParameters": {"UPDATE_PRIORITY": {"recordId": "500J700000LjY85IAF", "Priority": "High"}}}\n\n' +
-                '**Update Field (no record mentioned ANYWHERE in thread -- DO NOT trigger):**\n' +
-                'This is the very first message in a brand new conversation with no prior context.\n' +
-                'User: Update the priority to high\n' +
-                '{"message": "Could you please provide the record ID you would like me to update?", "intents": [], "language": "en", "additionalParameters": {}}\n\n' +
-                '**Create Record (trigger immediately, populate ALL fields):**\n' +
-                'User: Create a case for my broken laptop, it is urgent\n' +
-                '{"message": "I have created a support case for your broken laptop.", "intents": ["CREATE_CASE"], "language": "en", "additionalParameters": {"CREATE_CASE": {"Subject": "Broken laptop", "Priority": "High", "Description": "User reports a broken laptop and requests urgent assistance."}}}\n\n';
+            systemInstructions += System.Label.AI_Agentic_Intent_Detection_Header + '\n'
+                + JSON.serialize(agentIntents) + '\nEND_AVAILABLE_INTENTS_JSON\n\n'
+                + System.Label.AI_Agentic_Intent_Matching + '\n\n'
+                + System.Label.AI_Agentic_Update_Field_Instructions + '\n\n'
+                + System.Label.AI_Agentic_Create_Record_Instructions + '\n\n'
+                + System.Label.AI_Agentic_Field_Mapping_Param_Rules + '\n\n'
+                + System.Label.AI_Agentic_Examples_Basic + '\n\n'
+                + System.Label.AI_Agentic_Example_Update_Context + '\n\n'
+                + System.Label.AI_Agentic_Example_Update_And_Create + '\n\n';
             System.debug('AgentIntents: Agent Intents format ADDED to instructions');
         } else {
             System.debug('AgentIntents: No intents available, but mandatory response format still enforced');
-            systemInstructions += '### Example Response\n' +
-                '{"message": "Hello! How can I assist you today?", "intents": [], "language": "en", "additionalParameters": {}}\n\n';
+            systemInstructions += System.Label.AI_Agentic_No_Intents_Example + '\n\n';
         }
         
         // Add critical reminders that apply to ALL responses
-        systemInstructions += '### CRITICAL RULES\n' +
-            '1. Return ONLY valid JSON -- no text, markdown, or code fences outside the JSON object.\n' +
-            '2. ALL four fields (message, intents, language, additionalParameters) are required in every response.\n' +
-            '3. For Create Record intents: ALWAYS populate ALL field values. NEVER return an empty {} -- extract values from the conversation.\n' +
-            '4. For Update Field intents: if a recordId exists ANYWHERE in the conversation thread (in user messages OR your own previous responses), reuse it. Only ask for a recordId when no record has ever been mentioned in the entire thread.\n' +
-            '5. Map user expressions to valid field values (urgent -> High, medium -> Medium, not urgent -> Low).\n' +
-            '6. If you cannot produce valid JSON, return: {"message": "I encountered an error processing your request.", "intents": [], "language": "en", "additionalParameters": {}}';
+        systemInstructions += System.Label.AI_Agentic_Critical_Rules;
         
         System.debug('@System Prompt' + systemInstructions);
         return systemInstructions;

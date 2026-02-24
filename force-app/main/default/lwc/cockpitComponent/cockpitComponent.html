@@ -44,9 +44,7 @@
                     <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
                         <div class="metric-card">
                             <div class="metric-label">MONEY SAVED</div>
-                            <div class="metric-value">
-                                <lightning-formatted-number value={moneySaved} format-style="currency"></lightning-formatted-number>
-                            </div>
+                            <div class="metric-value">{moneySaved}</div>
                             <div class="metric-subtitle">Total Value</div>
                         </div>
                     </div>
@@ -232,7 +230,7 @@
                             <lightning-icon icon-name="standard:product_workspace" size="medium" class="nav-card-icon"></lightning-icon>
                             <h3 class="nav-card-title">Workspace Authentication</h3>
                         </div>
-                        <p class="nav-card-description">Configure workspace authentication and credentials.</p>
+                        <p class="nav-card-description">Connect your Gmail or Outlook account to get started.</p>
                         <div class="nav-card-metric">{workspaceAuthenticationMetric}</div>
                     </div>
                 </div>
@@ -244,7 +242,7 @@
                             <lightning-icon icon-name="standard:email_chatter" size="medium" class="nav-card-icon"></lightning-icon>
                             <h3 class="nav-card-title">Email Sync</h3>
                         </div>
-                        <p class="nav-card-description">Configure and manage email synchronization settings.</p>
+                        <p class="nav-card-description">Keep your emails in sync with Salesforce.</p>
                         <div class="nav-card-metric">{emailSyncMetric}</div>
                     </div>
                 </div>
@@ -256,7 +254,7 @@
                             <lightning-icon icon-name="standard:event" size="medium" class="nav-card-icon"></lightning-icon>
                             <h3 class="nav-card-title">Calendar Sync</h3>
                         </div>
-                        <p class="nav-card-description">Configure and manage calendar synchronization settings.</p>
+                        <p class="nav-card-description">Keep your calendar events in sync with Salesforce.</p>
                         <div class="nav-card-metric">{calendarSyncMetric}</div>
                     </div>
                 </div>
@@ -268,7 +266,7 @@
                             <lightning-icon icon-name="standard:task" size="medium" class="nav-card-icon"></lightning-icon>
                             <h3 class="nav-card-title">Task Sync</h3>
                         </div>
-                        <p class="nav-card-description">Configure and manage task synchronization settings.</p>
+                        <p class="nav-card-description">Keep your tasks in sync with Salesforce.</p>
                         <div class="nav-card-metric">{taskSyncMetric}</div>
                     </div>
                 </div>

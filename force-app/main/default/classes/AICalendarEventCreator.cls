@@ -384,11 +384,14 @@ public with sharing class AICalendarEventCreator {
 
         if (!relationsToInsert.isEmpty()) {
             // Use partial success to handle any permission issues
-            Database.SaveResult[] results = Database.insert(relationsToInsert, false);
-            Integer successCount = 0;
-            for (Database.SaveResult sr : results) {
-                if (sr.isSuccess()) {
-                    successCount++;
+            List<SObject> relationsToBeInserted = FLSCheck.getInstance().insertCheck(relationsToInsert);
+            if(relationsToBeInserted != null && !relationsToBeInserted.isEmpty()){
+                Database.SaveResult[] results = Database.insert(relationsToBeInserted, false);
+                Integer successCount = 0;
+                for (Database.SaveResult sr : results) {
+                    if (sr.isSuccess()) {
+                        successCount++;
+                    }
                 }
             }
         }

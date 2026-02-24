@@ -43,7 +43,7 @@
  * @date 2026-01-19
  * @Jira V2-7695, V2-7696, V2-7796
  */
-public class AIEmailSyncChainableQueueable implements Queueable, Database.AllowsCallouts, Finalizer {
+public with sharing class AIEmailSyncChainableQueueable implements Queueable, Database.AllowsCallouts, Finalizer {
     
     // Limit reserves - calculated for worst case scenario:
     // - Token refresh: 1 callout

@@ -144,11 +144,14 @@ public with sharing class AIStagingEmailMatcherBatch implements Database.Batchab
         
         // Update staging records
         if (!stagingToUpdate.isEmpty()) {
-            Database.SaveResult[] updateResults = Database.update(stagingToUpdate, false);
-            for (Integer i = 0; i < updateResults.size(); i++) {
-                if (!updateResults[i].isSuccess()) {
-                    for (Database.Error err : updateResults[i].getErrors()) {
-                        trackError('Update staging ' + stagingToUpdate[i].Id + ': ' + err.getMessage());
+            stagingToUpdate = (List<AI_Workspace_Staging__c>)FLSCheck.getInstance().updateCheck(stagingToUpdate);
+            if(stagingToUpdate != null && !stagingToUpdate.isEmpty()){
+                Database.SaveResult[] updateResults = Database.update(stagingToUpdate, false);
+                for (Integer i = 0; i < updateResults.size(); i++) {
+                    if (!updateResults[i].isSuccess()) {
+                        for (Database.Error err : updateResults[i].getErrors()) {
+                            trackError('Update staging ' + stagingToUpdate.get(i).get('Id') + ': ' + err.getMessage());
+                        }
                     }
                 }
             }
@@ -281,14 +284,9 @@ public with sharing class AIStagingEmailMatcherBatch implements Database.Batchab
                     batch.add(relations[j]);
                 }
                 
-                Database.SaveResult[] results = Database.insert(batch, false);
-                for (Integer k = 0; k < results.size(); k++) {
-                    if (!results[k].isSuccess()) {
-                        for (Database.Error err : results[k].getErrors()) {
-                            // Log but don't fail the batch for relation errors
-                            System.debug(LoggingLevel.ERROR, 'EmailMessageRelation error: ' + err.getMessage());
-                        }
-                    }
+                batch = (List<EmailMessageRelation>)FLSCheck.getInstance().insertCheck(batch);
+                if(batch != null && !batch.isEmpty()){
+                    Database.insert(batch, false);
                 }
             }
         }

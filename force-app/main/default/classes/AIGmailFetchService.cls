@@ -133,8 +133,12 @@ public with sharing class AIGmailFetchService {
         
         try {
             // Build Gmail query with date filter
-            Long startTimestamp = startDate.getTime() / 1000;
-            Long endTimestamp = endDate.getTime() / 1000;
+            // IMPORTANT: Gmail's after: and before: operators are EXCLUSIVE (not inclusive)
+            // after:TIMESTAMP means "received AFTER this timestamp" (excludes the exact timestamp)
+            // before:TIMESTAMP means "received BEFORE this timestamp" (excludes the exact timestamp)
+            // To ensure we capture all emails in the range, we subtract 1 second from start and add 1 second to end
+            Long startTimestamp = (startDate.getTime() / 1000) - 1;
+            Long endTimestamp = (endDate.getTime() / 1000) + 1;
             
             String labelQuery = label == 'INBOX' ? 'in:inbox' : (label == 'SENT' ? 'in:sent' : 'label:' + label);
             String dateQuery = 'after:' + startTimestamp + ' before:' + endTimestamp;
@@ -156,8 +160,16 @@ public with sharing class AIGmailFetchService {
             Http http = new Http();
             HttpResponse response = http.send(req);
             
-            if (response.getStatusCode() != 200) {
-                throw new GmailFetchException('Failed to fetch emails from ' + label + ': ' + response.getStatusCode());
+            Integer statusCode = response.getStatusCode();
+            
+            // 200 = OK with data, 204 = OK but no content (empty result)
+            if (statusCode != 200 && statusCode != 204) {
+                throw new GmailFetchException('Failed to fetch emails from ' + label + ': ' + statusCode);
+            }
+            
+            // 204 or empty body means no emails - return empty list
+            if (statusCode == 204 || String.isBlank(response.getBody())) {
+                return new List<Map<String, Object>>();
             }
             
             Map<String, Object> listData = (Map<String, Object>) JSON.deserializeUntyped(response.getBody());
@@ -167,13 +179,53 @@ public with sharing class AIGmailFetchService {
                 return new List<Map<String, Object>>();
             }
             
-            // Extract message IDs
+            // Extract message IDs and thread IDs
+            // IMPORTANT: Gmail returns one result per thread, but we need ALL messages in each thread
             List<String> messageIds = new List<String>();
+            Set<String> threadIds = new Set<String>();
+            
             for (Object msgObj : messageList) {
                 Map<String, Object> msg = (Map<String, Object>) msgObj;
                 String messageId = (String) msg.get('id');
+                String threadId = (String) msg.get('threadId');
+                
                 if (String.isNotBlank(messageId)) {
                     messageIds.add(messageId);
+                }
+                if (String.isNotBlank(threadId)) {
+                    threadIds.add(threadId);
+                }
+            }
+            
+            // If we have threads, expand them to get ALL messages in each thread
+            // This ensures we don't miss emails in multi-message threads
+            // IMPORTANT: Respect the maxResults limit even after thread expansion
+            if (!threadIds.isEmpty() && threadIds.size() < maxResults) {
+                Set<String> allMessageIds = new Set<String>(messageIds);
+                
+                for (String threadId : threadIds) {
+                    try {
+                        List<String> threadMessageIds = getThreadMessageIds(accessToken, threadId);
+                        allMessageIds.addAll(threadMessageIds);
+                        
+                        // Stop expanding if we've already exceeded the limit
+                        if (allMessageIds.size() >= maxResults) {
+                            break;
+                        }
+                    } catch (Exception e) {
+                        // Continue with other threads
+                    }
+                }
+                
+                messageIds = new List<String>(allMessageIds);
+                
+                // Trim to maxResults to respect the limit
+                if (messageIds.size() > maxResults) {
+                    List<String> trimmedIds = new List<String>();
+                    for (Integer i = 0; i < maxResults; i++) {
+                        trimmedIds.add(messageIds[i]);
+                    }
+                    messageIds = trimmedIds;
                 }
             }
             
@@ -184,6 +236,49 @@ public with sharing class AIGmailFetchService {
         } catch (Exception e) {
             throw new GmailFetchException('Error fetching emails: ' + e.getMessage());
         }
+    }
+    
+    /**
+     * Get all message IDs from a specific thread
+     * @param accessToken Valid access token
+     * @param threadId Gmail thread ID
+     * @return List of message IDs in the thread
+     */
+    private static List<String> getThreadMessageIds(String accessToken, String threadId) {
+        List<String> messageIds = new List<String>();
+        
+        try {
+            String endpoint = GMAIL_ENDPOINT + '/users/me/threads/' + threadId + '?format=minimal';
+            
+            HttpRequest req = new HttpRequest();
+            req.setEndpoint(endpoint);
+            req.setMethod('GET');
+            req.setTimeout(DEFAULT_TIMEOUT);
+            req.setHeader('Authorization', 'Bearer ' + accessToken);
+            req.setHeader('Content-Type', 'application/json');
+            
+            Http http = new Http();
+            HttpResponse response = http.send(req);
+            
+            if (response.getStatusCode() == 200) {
+                Map<String, Object> threadData = (Map<String, Object>) JSON.deserializeUntyped(response.getBody());
+                List<Object> messages = (List<Object>) threadData.get('messages');
+                
+                if (messages != null) {
+                    for (Object msgObj : messages) {
+                        Map<String, Object> msg = (Map<String, Object>) msgObj;
+                        String messageId = (String) msg.get('id');
+                        if (String.isNotBlank(messageId)) {
+                            messageIds.add(messageId);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Return empty list on error
+        }
+        
+        return messageIds;
     }
     
     /**
@@ -291,13 +386,14 @@ public with sharing class AIGmailFetchService {
             
             // CRITICAL FIX: Gmail's after/before operators work on UNIX timestamps (seconds since epoch)
             // They filter emails based on the internal date of the email
-            // after:TIMESTAMP means "received after this timestamp"
-            // before:TIMESTAMP means "received before this timestamp"
-            Long startTimestamp = startDate.getTime() / 1000;
-            Long endTimestamp = endDate.getTime() / 1000;
+            // IMPORTANT: Gmail's operators are EXCLUSIVE (not inclusive):
+            // after:TIMESTAMP means "received AFTER this timestamp" (excludes the exact timestamp)
+            // before:TIMESTAMP means "received BEFORE this timestamp" (excludes the exact timestamp)
+            // To ensure we capture all emails in the range, we subtract 1 second from start and add 1 second to end
+            Long startTimestamp = (startDate.getTime() / 1000) - 1;
+            Long endTimestamp = (endDate.getTime() / 1000) + 1;
             
             // Build date query - Gmail uses "after:" for start and "before:" for end
-            // NOTE: Gmail's operators are INCLUSIVE on the boundaries
             String dateQuery = 'after:' + startTimestamp + ' before:' + endTimestamp;
             String fullQuery = labelQuery + ' ' + dateQuery;
             
@@ -352,13 +448,53 @@ public with sharing class AIGmailFetchService {
             result.hasMore = String.isNotBlank(nextToken);
             
             
-            // Extract message IDs
+            // Extract message IDs and thread IDs
+            // IMPORTANT: Gmail returns one result per thread, but we need ALL messages in each thread
             List<String> messageIds = new List<String>();
+            Set<String> threadIds = new Set<String>();
+            
             for (Object msgObj : messageList) {
                 Map<String, Object> msg = (Map<String, Object>) msgObj;
                 String messageId = (String) msg.get('id');
+                String threadId = (String) msg.get('threadId');
+                
                 if (String.isNotBlank(messageId)) {
                     messageIds.add(messageId);
+                }
+                if (String.isNotBlank(threadId)) {
+                    threadIds.add(threadId);
+                }
+            }
+            
+            // If we have threads, expand them to get ALL messages in each thread
+            // This ensures we don't miss emails in multi-message threads
+            // IMPORTANT: Respect the batchSize limit even after thread expansion
+            if (!threadIds.isEmpty() && threadIds.size() < batchSize) {
+                Set<String> allMessageIds = new Set<String>(messageIds);
+                
+                for (String threadId : threadIds) {
+                    try {
+                        List<String> threadMessageIds = getThreadMessageIds(accessToken, threadId);
+                        allMessageIds.addAll(threadMessageIds);
+                        
+                        // Stop expanding if we've already exceeded the limit
+                        if (allMessageIds.size() >= batchSize) {
+                            break;
+                        }
+                    } catch (Exception e) {
+                        // Continue with other threads
+                    }
+                }
+                
+                messageIds = new List<String>(allMessageIds);
+                
+                // Trim to batchSize to respect the limit
+                if (messageIds.size() > batchSize) {
+                    List<String> trimmedIds = new List<String>();
+                    for (Integer i = 0; i < batchSize; i++) {
+                        trimmedIds.add(messageIds[i]);
+                    }
+                    messageIds = trimmedIds;
                 }
             }
             

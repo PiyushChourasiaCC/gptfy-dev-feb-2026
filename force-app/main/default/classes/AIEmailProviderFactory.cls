@@ -6,12 +6,9 @@
  * - 'MICROSOFT_GRAPH', 'MICROSOFT_EMAIL', 'Outlook' -> AIMicrosoftGraphProvider
  * - 'GMAIL', 'GMAIL_EMAIL', 'Gmail' -> AIGmailProvider
  * 
- * Note: Uses 'without sharing' to ensure consistent access to org-wide 
- * AI_Workspace_Sync_Settings__c custom settings regardless of user permissions.
- * 
  * @Jira V2-7695, V2-7696, V2-7796
  */
-public without sharing class AIEmailProviderFactory {
+public with sharing class AIEmailProviderFactory {
 
     // Supported provider types (normalized to uppercase)
     public static final String PROVIDER_OUTLOOK = 'OUTLOOK';

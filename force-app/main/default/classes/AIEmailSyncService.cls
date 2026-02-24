@@ -180,20 +180,24 @@ public with sharing class AIEmailSyncService {
         List<String> folderErrors = new List<String>();
         List<String> foldersSucceeded = new List<String>();
         
-        // Calculate emails per folder with priority to Inbox
-        // If Max_Emails_Per_User__c is odd, Inbox gets the extra email
-        // Example: 15 emails -> 8 inbox + 7 sent
+        // CRITICAL FIX: For Gmail, fetch from BOTH folders with a high limit, then merge and sort by date
+        // This ensures we don't lose emails due to arbitrary folder limits
+        // We'll fetch more than needed, merge, sort by date, and trim to the actual limit
         Integer maxEmails = (Integer) settings.Max_Emails_Per_User__c;
-        Integer inboxLimit = (maxEmails + 1) / 2;  // Rounds up for odd numbers
-        Integer sentLimit = maxEmails / 2;          // Rounds down for odd numbers
+        
+        // For Gmail: Fetch generously from both folders (2x the limit to ensure we get all emails in the time window)
+        // For Outlook: Keep the old behavior (split limit between folders)
+        Integer fetchLimit = ctx.provider == 'Gmail' ? (maxEmails * 2) : ((maxEmails + 1) / 2);
         
         for (FolderConfig folderConfig : foldersToSync) {
             try {
                 List<Map<String, Object>> folderEmails;
-                Boolean isInbox = (folderConfig.folderName == 'inbox' || folderConfig.folderName == 'INBOX');
-                Integer folderLimit = isInbox ? inboxLimit : sentLimit;
                 
                 if (ctx.provider == 'Outlook') {
+                    // Outlook: Use split limits (old behavior)
+                    Boolean isInbox = (folderConfig.folderName == 'inbox');
+                    Integer folderLimit = isInbox ? ((maxEmails + 1) / 2) : (maxEmails / 2);
+                    
                     if (folderConfig.folderName == 'inbox') {
                         folderEmails = AIOutlookFetchService.fetchInboxEmails(
                             ctx.accessToken, syncWindowStart, syncWindowEnd, folderLimit
@@ -204,14 +208,14 @@ public with sharing class AIEmailSyncService {
                         );
                     }
                 } else {
-                    // Gmail
+                    // Gmail: Fetch generously from both folders
                     if (folderConfig.folderName == 'INBOX') {
                         folderEmails = AIGmailFetchService.fetchInboxEmails(
-                            ctx.accessToken, syncWindowStart, syncWindowEnd, folderLimit
+                            ctx.accessToken, syncWindowStart, syncWindowEnd, fetchLimit
                         );
                     } else {
                         folderEmails = AIGmailFetchService.fetchSentEmails(
-                            ctx.accessToken, syncWindowStart, syncWindowEnd, folderLimit
+                            ctx.accessToken, syncWindowStart, syncWindowEnd, fetchLimit
                         );
                     }
                     
@@ -231,6 +235,18 @@ public with sharing class AIEmailSyncService {
                 String errorMsg = 'Failed to fetch from ' + folderConfig.folderName + ': ' + e.getMessage();
                 folderErrors.add(errorMsg);
             }
+        }
+        
+        // CRITICAL FIX: For Gmail, sort all fetched emails by date and trim to the limit
+        // This ensures we sync emails in chronological order regardless of folder
+        if (ctx.provider == 'Gmail' && fetchedEmails.size() > maxEmails) {
+            fetchedEmails = sortAndTrimEmailsByDate(fetchedEmails, maxEmails);
+        }
+        
+        // CRITICAL FIX: For Gmail, sort all fetched emails by date and trim to the limit
+        // This ensures we sync emails in chronological order regardless of folder
+        if (ctx.provider == 'Gmail' && fetchedEmails.size() > maxEmails) {
+            fetchedEmails = sortAndTrimEmailsByDate(fetchedEmails, maxEmails);
         }
         
         // If ANY folder failed, mark sync as Partial
@@ -812,6 +828,100 @@ public with sharing class AIEmailSyncService {
             return null;
         }
     }
+    
+    /**
+     * Sort emails by date (oldest first) and trim to the specified maximum count.
+     * This ensures we sync emails in chronological order across all folders.
+     * CRITICAL for Gmail to prevent losing emails when sync window advances.
+     * 
+     * @param emails List of email data maps
+     * @param maxCount Maximum number of emails to return
+     * @return Sorted and trimmed list of emails
+     */
+    private static List<Map<String, Object>> sortAndTrimEmailsByDate(List<Map<String, Object>> emails, Integer maxCount) {
+        if (emails == null || emails.isEmpty()) {
+            return emails;
+        }
+        
+        // Create a wrapper class for sorting
+        List<EmailWithDate> emailsWithDates = new List<EmailWithDate>();
+        
+        for (Map<String, Object> email : emails) {
+            DateTime emailDate = null;
+            
+            // Try receivedDateTime first (for inbox), then sentDateTime (for sent), then internalDate (Gmail)
+            String dateStr = (String) email.get('receivedDateTime');
+            if (String.isBlank(dateStr)) {
+                dateStr = (String) email.get('sentDateTime');
+            }
+            
+            if (String.isNotBlank(dateStr)) {
+                emailDate = parseISODateTime(dateStr);
+            }
+            
+            // Fallback to internalDate for Gmail
+            if (emailDate == null) {
+                Object internalDateObj = email.get('internalDate');
+                if (internalDateObj != null) {
+                    try {
+                        Long internalDateMs;
+                        if (internalDateObj instanceof Long) {
+                            internalDateMs = (Long) internalDateObj;
+                        } else {
+                            internalDateMs = Long.valueOf(String.valueOf(internalDateObj));
+                        }
+                        emailDate = DateTime.newInstance(internalDateMs);
+                    } catch (Exception e) {
+                        // Use current time as fallback
+                        emailDate = DateTime.now();
+                    }
+                }
+            }
+            
+            // If still no date, use current time
+            if (emailDate == null) {
+                emailDate = DateTime.now();
+            }
+            
+            emailsWithDates.add(new EmailWithDate(email, emailDate));
+        }
+        
+        // Sort by date (oldest first)
+        emailsWithDates.sort();
+        
+        // Trim to maxCount and extract emails
+        List<Map<String, Object>> result = new List<Map<String, Object>>();
+        Integer itemsToTake = Math.min(maxCount, emailsWithDates.size());
+        for (Integer idx = 0; idx < itemsToTake; idx++) {
+            result.add(emailsWithDates[idx].email);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Wrapper class for sorting emails by date
+     */
+    private class EmailWithDate implements Comparable {
+        public Map<String, Object> email;
+        public DateTime emailDate;
+        
+        public EmailWithDate(Map<String, Object> email, DateTime emailDate) {
+            this.email = email;
+            this.emailDate = emailDate;
+        }
+        
+        public Integer compareTo(Object other) {
+            EmailWithDate otherEmail = (EmailWithDate) other;
+            
+            if (this.emailDate == otherEmail.emailDate) {
+                return 0;
+            }
+            
+            // Sort oldest first (ascending order)
+            return this.emailDate < otherEmail.emailDate ? -1 : 1;
+        }
+    }
 
     /**
      * Wrapper class for provider context
@@ -902,8 +1012,10 @@ public with sharing class AIEmailSyncService {
             return dateField + ' ge ' + startStr + ' and ' + dateField + ' le ' + endStr;
         } else if (providerType == 'GMAIL_EMAIL') {
             // Gmail search query format
-            Long startEpoch = startDate.getTime() / 1000;
-            Long endEpoch = endDate.getTime() / 1000;
+            // IMPORTANT: Gmail's after: and before: operators are EXCLUSIVE (not inclusive)
+            // To ensure we capture all emails in the range, subtract 1 second from start and add 1 second to end
+            Long startEpoch = (startDate.getTime() / 1000) - 1;
+            Long endEpoch = (endDate.getTime() / 1000) + 1;
             return 'after:' + startEpoch + ' before:' + endEpoch;
         }
         return null;

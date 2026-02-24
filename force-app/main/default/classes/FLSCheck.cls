@@ -30,7 +30,8 @@ public with sharing class FLSCheck {
         
         Boolean isSuccess=false;
         if(isObjDeletable){
-            delete devObjs;
+            Database.delete(devObjs, true, AccessLevel.USER_MODE);
+            //delete devObjs;
             isSuccess=true;
         }
         return isSuccess;

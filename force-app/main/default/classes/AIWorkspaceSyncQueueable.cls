@@ -14,7 +14,7 @@
  * @date 2026-01-16
  * @Jira V2-7695, V2-7696, V2-7796
  */
-public class AIWorkspaceSyncQueueable implements Queueable, Database.AllowsCallouts, Finalizer {
+public with sharing class AIWorkspaceSyncQueueable implements Queueable, Database.AllowsCallouts, Finalizer {
     
     public enum SyncType { EMAIL, CALENDAR, TASK }
     

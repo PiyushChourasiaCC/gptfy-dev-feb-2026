@@ -399,7 +399,7 @@ public with sharing class AIWorkspaceSyncSettingsController {
             if (settings.SetupOwnerId != UserInfo.getOrganizationId()) {
                 // Fix the SetupOwnerId
                 settings.SetupOwnerId = UserInfo.getOrganizationId();
-                update settings;
+                FLSCheck.getInstance().updateDML(new List<AI_Workspace_Sync_Settings__c>{settings});
                 
                 return new Map<String, Object>{
                     'success' => true,

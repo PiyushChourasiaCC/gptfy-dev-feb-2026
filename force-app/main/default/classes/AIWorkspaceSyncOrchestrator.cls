@@ -8,14 +8,11 @@
  * 1. startScheduledSync() - Called by scheduler, processes ALL workspace users
  * 2. runNowForCurrentUser() - Called by "Run Now" button, processes ONLY current user
  * 
- * Note: Uses 'without sharing' to ensure consistent access to org-wide 
- * AI_Workspace_Sync_Settings__c custom settings regardless of user permissions.
- * 
  * @author GPTfy
  * @date 2026-01-16
  * @Jira V2-7695, V2-7696, V2-7796
  */
-public without sharing class AIWorkspaceSyncOrchestrator {
+public with sharing class AIWorkspaceSyncOrchestrator {
     
     /**
      * Start scheduled sync for ALL workspace users.

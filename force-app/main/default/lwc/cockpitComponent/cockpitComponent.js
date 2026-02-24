@@ -15,7 +15,7 @@ export default class CockpitComponent extends NavigationMixin(LightningElement) 
 
     @track showSpinner = false;
     @track timeSaved = '0h';
-    @track moneySaved = '0';
+    @track moneySaved = '$0';
     @track activePrompts = 0;
     @track namespace = '';
     @track incompleteSetup = false;
@@ -35,11 +35,11 @@ export default class CockpitComponent extends NavigationMixin(LightningElement) 
     @track dataContextMappingMetric = '0 Deployed';
     
     // Workspace Sync section metrics
-    @track workspaceAuthenticationMetric = 'Configure Auth';
-    @track emailSyncMetric = 'Configure Email';
-    @track calendarSyncMetric = 'Configure Calendar';
-    @track taskSyncMetric = 'Configure Tasks';
-    @track workspaceSyncSchedulerMetric = 'Configure Scheduler';
+    @track workspaceAuthenticationMetric = 'Manage Authentication';
+    @track emailSyncMetric = 'Manage Email Sync';
+    @track calendarSyncMetric = 'Manage Calendar Sync';
+    @track taskSyncMetric = 'Manage Tasks Sync';
+    @track workspaceSyncSchedulerMetric = 'Manage Scheduler and Logs';
     
     // Advanced section metrics
     @track apiDataSourcesMetric = '0 Active';
@@ -72,7 +72,7 @@ export default class CockpitComponent extends NavigationMixin(LightningElement) 
                 
                 // Format money saved with currency symbol
                 const money = result.moneySaved || 0;
-                this.moneySaved = money;//this.formatNumber(money);
+                this.moneySaved = '$' + this.formatNumber(money);
                 
                 // Set active prompts count
                 this.activePrompts = result.activePrompts || 0;
@@ -82,7 +82,7 @@ export default class CockpitComponent extends NavigationMixin(LightningElement) 
                 
                 // Analytics section metrics
                 this.promptsDeployed = (result.noOfPrompts || 0) + ' Prompts Deployed';
-                this.roiSavings = (result.totalSavings || '0') + ' Saved';
+                this.roiSavings = (result.totalSavings || '0 USD') + ' Saved';
                 this.aiInsightsUsers = result.usageDetail || '0 Active Users';
                 this.qualityFeedbacks = (result.noOfFeedbacks || 0) + ' Feedbacks';
                 

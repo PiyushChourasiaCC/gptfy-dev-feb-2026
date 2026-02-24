@@ -558,7 +558,7 @@ public with sharing class AIWorkspaceTokenService {
         
         if (!workspaceUsers.isEmpty()) {
             if (deleteRecord) {
-                delete workspaceUsers;
+                FLSCheck.getInstance().deleteDML(workspaceUsers);
             } else {
                 for (AI_Workspace_User__c wu : workspaceUsers) {
                     wu.Access_Token__c = null;

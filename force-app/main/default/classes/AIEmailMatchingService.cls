@@ -12,7 +12,7 @@
  * These can hit governor limits with large batches. QuickMatchService implements
  * a fully bulkified approach that pre-loads all data in 5 queries.
  */
-public class AIEmailMatchingService {
+public with sharing class AIEmailMatchingService {
 
     // Confidence thresholds
     private static final Integer HIGH_CONFIDENCE = 80;
