@@ -70,7 +70,7 @@ private class AIWorkspaceAuthControllerTest {
         String url = AIWorkspaceAuthController.getAuthorizationUrl('Outlook');
         Test.stopTest();
         
-        Assert.isTrue(url.contains('/apex/OutlookOAuth'), 'URL should contain OutlookOAuth VF page');
+        Assert.isTrue(url.contains('/apex/') && url.containsIgnoreCase('OutlookOAuth'), 'URL should contain OutlookOAuth VF page');
     }
     
     @isTest
@@ -79,7 +79,7 @@ private class AIWorkspaceAuthControllerTest {
         String url = AIWorkspaceAuthController.getAuthorizationUrl('Gmail');
         Test.stopTest();
         
-        Assert.isTrue(url.contains('/apex/GmailOAuth'), 'URL should contain GmailOAuth VF page');
+        Assert.isTrue(url.contains('/apex/') && url.containsIgnoreCase('GmailOAuth'), 'URL should contain GmailOAuth VF page');
     }
     
     @isTest

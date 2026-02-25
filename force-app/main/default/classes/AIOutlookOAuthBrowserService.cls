@@ -43,11 +43,12 @@ public without sharing class AIOutlookOAuthBrowserService {
     private static AI_Workspace_Sync_Settings__c cachedSettings;
     
     // Callback URL - This needs to be registered in Azure AD
-    // Format: https://YOUR_DOMAIN.my.salesforce.com/apex/OutlookOAuth
+    // Format: https://YOUR_DOMAIN.my.salesforce.com/apex/OutlookOAuth (or with namespace prefix)
     private static String REDIRECT_URI {
         get {
             String baseUrl = URL.getOrgDomainUrl().toExternalForm();
-            return baseUrl + '/apex/OutlookOAuth';
+            PageReference pageRef = Page.OutlookOAuth;
+            return baseUrl + pageRef.getUrl();
         }
     }
     

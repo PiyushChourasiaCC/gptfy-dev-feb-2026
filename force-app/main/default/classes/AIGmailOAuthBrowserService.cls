@@ -43,11 +43,12 @@ public without sharing class AIGmailOAuthBrowserService {
     private static AI_Workspace_Sync_Settings__c cachedSettings;
     
     // Callback URL - This needs to be registered in Google Cloud Console
-    // Format: https://YOUR_DOMAIN.my.salesforce.com/apex/GmailOAuth
+    // Format: https://YOUR_DOMAIN.my.salesforce.com/apex/GmailOAuth (or with namespace prefix)
     private static String REDIRECT_URI {
         get {
             String baseUrl = URL.getOrgDomainUrl().toExternalForm();
-            return baseUrl + '/apex/GmailOAuth';
+            PageReference pageRef = Page.GmailOAuth;
+            return baseUrl + pageRef.getUrl();
         }
     }
     

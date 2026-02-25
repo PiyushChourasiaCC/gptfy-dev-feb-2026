@@ -62,16 +62,18 @@ public with sharing class AIWorkspaceAuthController {
     @AuraEnabled
     public static String getAuthorizationUrl(String provider) {
         try {
-            // Return the VF page URL for OAuth flow
             String baseUrl = URL.getOrgDomainUrl().toExternalForm();
+            PageReference pageRef;
             
             if (provider == 'Gmail') {
-                return baseUrl + '/apex/GmailOAuth';
+                pageRef = Page.GmailOAuth;
             } else if (provider == 'Outlook') {
-                return baseUrl + '/apex/OutlookOAuth';
+                pageRef = Page.OutlookOAuth;
             } else {
                 throw new AuraHandledException('Invalid provider: ' + provider);
             }
+            
+            return baseUrl + pageRef.getUrl();
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'Exception in getAuthorizationUrl: ' + e.getMessage());
             throw new AuraHandledException('Error getting authorization URL: ' + e.getMessage());

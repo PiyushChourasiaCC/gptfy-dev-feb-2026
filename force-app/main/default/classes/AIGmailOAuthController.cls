@@ -325,7 +325,7 @@ public with sharing class AIGmailOAuthController {
         apiResponse = null;
         
         // Redirect to clean URL
-        PageReference pageRef = new PageReference('/apex/GmailOAuth');
+        PageReference pageRef = Page.GmailOAuth;
         pageRef.setRedirect(true);
         return pageRef;
     }

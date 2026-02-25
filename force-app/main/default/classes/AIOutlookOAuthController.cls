@@ -371,7 +371,7 @@ public with sharing class AIOutlookOAuthController {
         apiResponse = null;
         
         // Redirect to clean URL
-        PageReference pageRef = new PageReference('/apex/OutlookOAuth');
+        PageReference pageRef = Page.OutlookOAuth;
         pageRef.setRedirect(true);
         return pageRef;
     }

@@ -528,7 +528,7 @@ private class AIGmailOAuthControllerTest {
         Test.stopTest();
         
         Assert.isNotNull(result, 'PageReference should not be null');
-        Assert.isTrue(result.getUrl().contains('GmailOAuth'), 'Should redirect to GmailOAuth page');
+        Assert.isTrue(result.getUrl().containsIgnoreCase('GmailOAuth'), 'Should redirect to GmailOAuth page');
     }
     
     /**
