@@ -108,7 +108,9 @@ public with sharing class AISyncSObjectUploadBatch implements Database.Batchable
     public Database.QueryLocator start(Database.BatchableContext bc) {
         String query = 'SELECT ' + getFieldAPIs() + ' FROM ' + String.escapeSingleQuotes(scheduler.Object__c);
         // Jira v2/7550 : Issues/Feedbacks Reported in 1.13
-        query+=String.escapeSingleQuotes(AIUtility.getFormattedWhereClause(scheduler.Where_Clause__c,NULL,NULL,true));
+        System.debug('query : '+query);
+        query+=String.escapeSingleQuotes(AIUtility.getFormattedWhereClause(scheduler.Where_Clause__c,NULL,NULL,false));
+        System.debug('after query : '+query);
         return Database.getQueryLocator(query);
     }
     
@@ -166,7 +168,6 @@ public with sharing class AISyncSObjectUploadBatch implements Database.Batchable
                  heapUsed > heapThreshold)) {
                 pushAccumulatedContent(true);
             }
-            
             totalCount += scope.size();
         } catch (Exception e) {
             errorMessages.add('Execute error: ' + e.getMessage() + ' \n\n ' + e.getStackTraceString());
@@ -377,8 +378,7 @@ public with sharing class AISyncSObjectUploadBatch implements Database.Batchable
                 // Defer save for finish() - store only the last file to avoid batch size limit
                 pendingFileName = fileName;
                 pendingFileContent = contentToSave;
-            }
-            
+            }          
             filePartCounter++;
         } catch (Exception e) {
             errorMessages.add('Push error for part ' + filePartCounter + ': ' + e.getMessage() + ' \n\n ' + e.getStackTraceString());

@@ -5,7 +5,7 @@
     <div class="slds-scope">
         <aura:if isTrue="{!empty(v.recordId)}">
             <div class="prompt-builder-wrapper">
-                <c:aIAdvancePromptBuilder />
+                <c:aIPromptFactory />
             </div>
         </aura:if> 
     </div>

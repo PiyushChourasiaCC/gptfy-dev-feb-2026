@@ -1,0 +1,421 @@
+<template>
+    <template if:false={showPromptOverride}>
+        <div class="builder-container">
+            <!-- Navigation Header -->
+            <div class="navigation-header">
+                <div class="header-title">
+                    <h1 class="title-text">AI Prompt Factory</h1>
+                    <p class="subtitle-text">Create intelligent prompts with AI assistance</p>
+                </div>
+                <div class="header-actions">
+                    <lightning-button 
+                        label="Back" 
+                        variant="neutral" 
+                        onclick={handleBack}
+                        icon-name="utility:back"
+                        icon-position="left"
+                        class="nav-back-btn"
+                    ></lightning-button>
+                    
+                    <lightning-button 
+                        label="Build Your Own" 
+                        variant="neutral" 
+                        onclick={handleBuildYourOwn}
+                        icon-name="utility:builder"
+                        icon-position="left"
+                        class="nav-build-btn"
+                    ></lightning-button>
+                </div>
+            </div>
+
+            <div class="builder-panels">
+                <!-- Left Panel: Input Configuration -->
+                <div class="panel-left">
+                    <div class="input-panel">
+                        <!-- Message Thread (shown after generation starts) -->
+                        <template if:true={hasStartedGeneration}>
+                            <div class="message-thread">
+                                <template for:each={messages} for:item="msg">
+                                    <div key={msg.id} class={msg.cssClass}>
+                                        <div class="message-header">
+                                            <lightning-icon 
+                                                icon-name={msg.icon} 
+                                                size="xx-small" 
+                                                class="message-icon">
+                                            </lightning-icon>
+                                            <span class="message-sender">{msg.senderLabel}</span>
+                                            <span class="message-time">{msg.timeLabel}</span>
+                                        </div>
+                                        <div class="message-content">{msg.content}</div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Input Area (shown before generation starts) -->
+                        <template if:false={hasStartedGeneration}>
+                            <div class="input-area">
+                                <!-- Target Object -->
+                                <div class="input-group">
+                                    <label class="input-label">TARGET OBJECT <span class="required">*</span></label>
+                                    <lightning-combobox
+                                        name="targetObject"
+                                        variant="label-hidden"
+                                        value={selectedTargetObject}
+                                        placeholder="e.g., Quote, Custom_Object__c"
+                                        options={objectOptions}
+                                        onchange={handleTargetObjectChange}
+                                        class="custom-combobox">
+                                    </lightning-combobox>
+                                </div>
+
+                                <!-- Business Context -->
+                                <div class="input-group">
+                                    <label class="input-label">BUSINESS CONTEXT</label>
+                                    <textarea
+                                        class="context-input"
+                                        placeholder="Describe the purpose of this prompt. E.g., 'Executive-level account renewal risk report focusing on pipeline health, case escalation trends, and contact engagement gaps.'"
+                                        value={businessContext}
+                                        onchange={handleBusinessContextChange}
+                                        rows="3"
+                                    ></textarea>
+                                </div>
+
+                                <!-- Sample Record (Conditional with Search) -->
+                                <template if:true={showSampleRecordField}>
+                                    <div class="input-group">
+                                        <label class="input-label">SAMPLE RECORD <span class="optional">(optional)</span></label>
+                                        
+                                        <div class="custom-lookup-container">
+                                            <div class="slds-combobox_container">
+                                                <div class={comboboxClass} role="combobox" aria-expanded={isDropdownOpen} aria-haspopup="listbox">
+                                                    
+                                                    <!-- Selected Record Display -->
+                                                    <template if:true={selectedSampleRecordName}>
+                                                        <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_left-right" role="none">
+                                                            <span class="slds-icon_container slds-combobox__input-entity-icon">
+                                                                <lightning-icon icon-name={selectedTargetObjectIcon} size="small"></lightning-icon>
+                                                            </span>
+                                                            <input type="text" 
+                                                                   class="slds-input slds-combobox__input slds-combobox__input-value record-input" 
+                                                                   readonly 
+                                                                   value={selectedSampleRecordName} />
+                                                            <button class="slds-button slds-button_icon slds-input__icon slds-input__icon_right" 
+                                                                    onclick={handleClearSelection} 
+                                                                    title="Remove selected record">
+                                                                <lightning-icon icon-name="utility:close" size="x-small"></lightning-icon>
+                                                            </button>
+                                                        </div>
+                                                    </template>
+                                                    
+                                                    <!-- Search Input -->
+                                                    <template if:false={selectedSampleRecordName}>
+                                                        <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                                                            <input type="text" 
+                                                                   class="slds-input slds-combobox__input record-input" 
+                                                                   value={recordSearchTerm}
+                                                                   placeholder="Select a record"
+                                                                   onfocus={handleSearchFocus}
+                                                                   onclick={handleSearchFocus}
+                                                                   oninput={handleRecordSearch}
+                                                                   aria-autocomplete="list" />
+                                                            <template if:true={isLoadingRecords}>
+                                                                <span class="slds-icon_container slds-input__icon slds-input__icon_right">
+                                                                    <lightning-spinner alternative-text="Searching" size="x-small"></lightning-spinner>
+                                                                </span>
+                                                            </template>
+                                                            <template if:false={isLoadingRecords}>
+                                                                <span class="slds-icon_container slds-icon-utility-search slds-input__icon slds-input__icon_right" 
+                                                                      onclick={handleSearchIconClick}>
+                                                                    <lightning-icon icon-name="utility:search" size="x-small"></lightning-icon>
+                                                                </span>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                    
+                                                    <!-- Dropdown Results -->
+                                                    <template if:true={showDropdown}>
+                                                        <div class="slds-dropdown slds-dropdown_length-with-icon-7 slds-dropdown_fluid" role="listbox">
+                                                            <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                                                <template if:true={hasRecords}>
+                                                                    <template for:each={recordOptions} for:item="record">
+                                                                        <li key={record.value} 
+                                                                            role="presentation" 
+                                                                            class="slds-listbox__item">
+                                                                            <div data-record-id={record.value}
+                                                                                 data-record-name={record.label}
+                                                                                 onclick={handleRecordSelect}
+                                                                                 class="slds-media slds-listbox__option slds-listbox__option_entity slds-listbox__option_has-meta" 
+                                                                                 role="option">
+                                                                                <span class="slds-media__figure slds-listbox__option-icon">
+                                                                                    <lightning-icon icon-name={selectedTargetObjectIcon} size="small"></lightning-icon>
+                                                                                </span>
+                                                                                <span class="slds-media__body">
+                                                                                    <span class="slds-listbox__option-text slds-listbox__option-text_entity">{record.label}</span>
+                                                                                </span>
+                                                                            </div>
+                                                                        </li>
+                                                                    </template>
+                                                                </template>
+                                                                <template if:false={hasRecords}>
+                                                                    <li role="presentation" class="slds-listbox__item">
+                                                                        <div class="slds-align_absolute-center slds-p-vertical_small">
+                                                                            <span class="slds-text-color_weak">No records found</span>
+                                                                        </div>
+                                                                    </li>
+                                                                </template>
+                                                            </ul>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- AI Model -->
+                                <div class="input-group">
+                                    <label class="input-label">AI MODEL <span class="required">*</span></label>
+                                    <lightning-combobox
+                                        name="aiModel"
+                                        variant="label-hidden"
+                                        value={selectedAIModel}
+                                        placeholder="Select AI Model"
+                                        options={aiModelOptions}
+                                        onchange={handleAIModelChange}
+                                        class="custom-combobox">
+                                    </lightning-combobox>
+                                </div>
+                            </div>
+
+                            <!-- Generate Button Footer -->
+                            <div class="panel-footer-generate">
+                                <button
+                                    class="generate-btn"
+                                    onclick={handleGeneratePrompt}
+                                    disabled={isGenerateDisabled}
+                                >
+                                    <lightning-icon icon-name="utility:magicwand" size="xx-small" class="btn-icon"></lightning-icon>
+                                    Generate Prompt
+                                </button>
+                            </div>
+                        </template>
+
+                        <!-- Generating State -->
+                        <template if:true={isProcessing}>
+                            <div class="panel-footer-generating">
+                                <div class="generating-indicator">
+                                    <lightning-spinner alternative-text="Generating" size="small"></lightning-spinner>
+                                    <span class="generating-text">Generating golden prompt... This may take up to 2 minutes.</span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Run/Refine/Deploy Actions Footer -->
+                        <template if:true={showOutput}>
+                            <template if:false={isProcessing}>
+                                <template if:false={isRunning}>
+                                    <div class="panel-footer-actions">
+                                        <div class="input-row preview-row">
+                                            <div class="input-group input-group-flex">
+                                                <label class="input-label">Record ID <span class="optional">(to run against)</span></label>
+                                                <input
+                                                    type="text"
+                                                    class="record-input-small"
+                                                    placeholder="001XXXXXXXXXXXX"
+                                                    value={testRecordId}
+                                                    onchange={handleTestRecordIdChange}
+                                                />
+                                            </div>
+                                            <div class="input-group input-group-flex">
+                                                <label class="input-label">Prompt Name <span class="optional">(for deploy)</span></label>
+                                                <input
+                                                    type="text"
+                                                    class="record-input-small"
+                                                    placeholder={defaultPromptName}
+                                                    value={promptName}
+                                                    onchange={handlePromptNameChange}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div class="preview-actions">
+                                            <button
+                                                class="run-btn"
+                                                onclick={handleRun}
+                                                disabled={isRunDisabled}
+                                            >
+                                                <lightning-icon icon-name="utility:play" size="xx-small" class="btn-icon-white"></lightning-icon>
+                                                Run
+                                            </button>
+                                            <button class="refine-btn" onclick={handleStartRefine}>
+                                                <lightning-icon icon-name="utility:edit" size="xx-small" class="btn-icon"></lightning-icon>
+                                                Refine
+                                            </button>
+                                            <button
+                                                class="deploy-btn"
+                                                onclick={handleDeploy}
+                                                disabled={isDeployDisabled}
+                                            >
+                                                <lightning-icon icon-name="utility:upload" size="xx-small" class="btn-icon-white"></lightning-icon>
+                                                Deploy
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </template>
+                        </template>
+
+                        <!-- Running State -->
+                        <template if:true={isRunning}>
+                            <div class="panel-footer-generating">
+                                <div class="generating-indicator">
+                                    <lightning-spinner alternative-text="Running" size="small"></lightning-spinner>
+                                    <span class="generating-text">Running prompt against record... This may take up to 2 minutes.</span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Refine Input Section -->
+                        <template if:true={showRefineInput}>
+                            <div class="panel-footer-refine">
+                                <div class="input-group">
+                                    <label class="input-label">Refinement Instruction</label>
+                                    <textarea
+                                        class="context-input"
+                                        placeholder="E.g., 'Add more emphasis on case escalation patterns' or 'Make the opportunity section more concise'"
+                                        value={refinementInput}
+                                        onchange={handleRefinementChange}
+                                        rows="2"
+                                    ></textarea>
+                                </div>
+                                <div class="refine-actions">
+                                    <button
+                                        class="run-btn"
+                                        onclick={handleApplyRefinement}
+                                        disabled={isRefineApplyDisabled}
+                                    >
+                                        <lightning-icon icon-name="utility:refresh" size="xx-small" class="btn-icon-white"></lightning-icon>
+                                        Apply Refinement
+                                    </button>
+                                    <button class="action-btn-cancel" onclick={handleCancelRefine}>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Preview -->
+                <div class="panel-right">
+                    <div class="preview-panel">
+                        <!-- Header with Tabs -->
+                        <div class="panel-header">
+                            <div class="tab-bar">
+                                <button class={promptTabClass} data-tab="prompt" onclick={handlePromptTab}>
+                                    <lightning-icon icon-name="utility:text" size="xx-small" class="tab-icon"></lightning-icon>
+                                    Prompt Text
+                                </button>
+                                <button class={outputTabClass} data-tab="output" onclick={handleOutputTab}>
+                                    <lightning-icon icon-name="utility:display_rich_text" size="xx-small" class="tab-icon"></lightning-icon>
+                                    Output
+                                </button>
+                            </div>
+                            
+                            <!-- Character Count Badge and Actions -->
+                            <template if:true={showOutput}>
+                                <div class="panel-actions">
+                                    <span class="char-badge">{formattedCharCount} chars</span>
+                                    <button class="action-btn" onclick={handleCopy} title={copyTooltip}>
+                                        <lightning-icon icon-name="utility:copy_to_clipboard" size="xx-small"></lightning-icon>
+                                    </button>
+                                    <button class="action-btn" onclick={handleExpand} title="Expand to full view">
+                                        <lightning-icon icon-name="utility:expand" size="xx-small"></lightning-icon>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Content Area -->
+                        <div class="panel-content">
+                            <!-- Empty State -->
+                            <template if:false={showOutput}>
+                                <div class="empty-state">
+                                    <div class="empty-icon-wrapper">
+                                        <lightning-icon icon-name="utility:magicwand" size="large" class="empty-icon"></lightning-icon>
+                                    </div>
+                                    <h3 class="empty-title">No prompt generated yet</h3>
+                                    <p class="empty-text">Select a template and provide your business context to generate a golden prompt. The prompt text will appear here.</p>
+                                </div>
+                            </template>
+
+                            <!-- Prompt Text Tab -->
+                            <template if:true={showOutput}>
+                                <template if:true={isPromptTabActive}>
+                                    <div class="prompt-text-container">
+                                        <pre class="prompt-text">{generatedPrompt}</pre>
+                                    </div>
+                                </template>
+
+                                <!-- Output Tab -->
+                                <template if:true={isOutputTabActive}>
+                                    <template if:true={isRunning}>
+                                        <div class="empty-state">
+                                            <lightning-spinner alternative-text="Running" size="medium"></lightning-spinner>
+                                            <p class="generating-text">Running prompt against record...</p>
+                                        </div>
+                                    </template>
+                                    <template if:false={isRunning}>
+                                        <template if:true={hasHtmlOutput}>
+                                            <div class="output-container">
+                                                <div class="output-frame"></div>
+                                            </div>
+                                        </template>
+                                        <template if:false={hasHtmlOutput}>
+                                            <div class="empty-state">
+                                                <div class="empty-icon-wrapper">
+                                                    <lightning-icon icon-name="utility:play" size="large" class="empty-icon"></lightning-icon>
+                                                </div>
+                                                <h3 class="empty-title">No output yet</h3>
+                                                <p class="empty-text">Click "Run" below to execute this prompt against a record. The GPTfy output will appear here.</p>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </template>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Prompt Override Component (Build Your Own) -->
+    <template if:true={showPromptOverride}>
+        <c-a-i-prompt-override oncancel={handlePromptOverrideCancel}></c-a-i-prompt-override>
+    </template>
+
+    <!-- Fullscreen Modal -->
+    <template if:true={isModalOpen}>
+        <section class="modal-backdrop" onclick={handleModalClose}>
+            <div class="modal-container" onclick={handleModalContentClick}>
+                <div class="modal-header">
+                    <span class="modal-title">{modalTitle}</span>
+                    <button class="modal-close-btn" onclick={handleModalClose} title="Close">
+                        <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                    </button>
+                </div>
+                <div class="modal-content">
+                    <template if:true={isPromptTabActive}>
+                        <pre class="modal-text">{generatedPrompt}</pre>
+                    </template>
+                    <template if:true={isOutputTabActive}>
+                        <template if:true={hasHtmlOutput}>
+                            <div class="modal-output-frame"></div>
+                        </template>
+                    </template>
+                </div>
+            </div>
+        </section>
+    </template>
+</template>

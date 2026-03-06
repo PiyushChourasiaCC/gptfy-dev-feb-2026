@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Value__c</fullName>
+    <label>Value</label>
+    <description>Value stored in warehouse</description>
+    <type>LongTextArea</type>
+    <length>131000</length>
+    <visibleLines>5</visibleLines>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+</CustomField>

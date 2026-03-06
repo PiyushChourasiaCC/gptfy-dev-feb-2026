@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_GPTfy_Warehouse_Compact_Layout</fullName>
+    <fields>Name</fields>
+    <fields>Type__c</fields>
+    <fields>Sub_Type__c</fields>
+    <label>GPTfy Warehouse Compact Layout</label>
+</CompactLayout>

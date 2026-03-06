@@ -211,8 +211,9 @@ public with sharing class AddCardController implements Metadata.DeployCallback {
                     }
                     String money = '';
                     if(!mapMoneyTotal.isEmpty() && mapMoneyTotal.containsKey(cardConfiguration.Name)){
-                        String currencySymbol = Test.isRunningTest() ? '$' : ConnectApi.Organization.getSettings().UserSettings.currencySymbol;
-                        money = mapMoneyTotal.get(cardConfiguration.Name) > 1000 ? currencySymbol+(mapMoneyTotal.get(cardConfiguration.Name)/1000).round(System.RoundingMode.CEILING) +'k Saved' : currencySymbol+mapMoneyTotal.get(cardConfiguration.Name).round(System.RoundingMode.CEILING)+' Saved';
+                        //String currencySymbol = Test.isRunningTest() ? '$' : ConnectApi.Organization.getSettings().UserSettings.currencySymbol;
+                        //money = mapMoneyTotal.get(cardConfiguration.Name) > 1000 ? currencySymbol+(mapMoneyTotal.get(cardConfiguration.Name)/1000).round(System.RoundingMode.CEILING) +'k Saved' : currencySymbol+mapMoneyTotal.get(cardConfiguration.Name).round(System.RoundingMode.CEILING)+' Saved';
+                        money = mapMoneyTotal.get(cardConfiguration.Name) > 1000 ? (mapMoneyTotal.get(cardConfiguration.Name)/1000).round(System.RoundingMode.CEILING) +'k Saved' : mapMoneyTotal.get(cardConfiguration.Name).round(System.RoundingMode.CEILING)+' Saved';
                     }else{
                         money = '0 Saved';
                     }
@@ -223,7 +224,7 @@ public with sharing class AddCardController implements Metadata.DeployCallback {
         } else if(feature == CARD_TYPE_AMODL){
             Map<String, AI_Connection__c> mapAIConnection = new Map<String, AI_Connection__c>();
             if(mapRecordName.containsKey(CARD_TYPE_AMODL) && mapRecordName.get(CARD_TYPE_AMODL).size() > 0){
-                for(AI_Connection__c c : [SELECT Id, Name, AI_Technology__c FROM AI_Connection__c WHERE  Name IN : mapRecordName.get(CARD_TYPE_AMODL)]){
+                for(AI_Connection__c c : [SELECT Id, Name, AI_Technology__c, Named_Credential__c FROM AI_Connection__c WHERE  Name IN : mapRecordName.get(CARD_TYPE_AMODL)]){
                     mapAIConnection.put(c.Name, c);
                 }
             }
@@ -369,134 +370,151 @@ public with sharing class AddCardController implements Metadata.DeployCallback {
     }
     
     @AuraEnabled
-    public static boolean handleCardActivate(Map<String, Object> params){
+    public static String handleCardActivate(Map<String, Object> params){
         boolean hasError = false;
-        String recName = (String)params.get(NAME);
-        String feature = (String)params.get(feature);
-        String SOQL = '';
-        if(feature == CARD_TYPE_AMODL){
-            SOQL = 'SELECT AI_Technology__c, Connector_Class__c, Processing_Class__c, Type__c, Custom_Metadata__c, Additional_Parameters__c, Enable_in_Sandbox__c, EndPoint_URL__c, Infrastructure__c, Key__c, Max_Tokens__c, Model__c, Named_Credential__c, Security_Layer__c, Temperature__c, Top_P__c, Version__c, External_Id__c, AI_Response_Mapping__c, AI_Request_Mapping__c, Id, Name FROM AI_Connection__c WHERE Name =: recName ';
-        }else if(feature == CARD_TYPE_APIDS){
-            SOQL = 'SELECT Id, Name, Named_Credential__c, Source__c, EndPoint_URL__c, Connector_Class__c FROM AI_Data_Source__c WHERE Name =: recName ';
-        }
-        List<AI_Card_Configuration__c> mdt = [SELECT Id, Name, Enabled__c FROM AI_Card_Configuration__c WHERE Name =: recName AND Feature__c =: feature LIMIT 1];
-        List<sObject> records = database.query(SOQL);
-        if(mdt.size() < 1 || records.size() < 1){
-            hasError = true;
-            throw new AuraHandledException('Missing required steps, please complete all necessary actions.'); 
-        }
-        
-        if(records.size() == 1){
-            List<String> requiredFields = new List<String>();
-            sObject c = records[0];
+        String supportData = 'Parameters: '+JSON.serialize(params);
+        List<sObject> records = new List<sObject>();
+        try{
             
+            String recName = (String)params.get(NAME);
+            String feature = (String)params.get(feature);
+            String SOQL = '';
             if(feature == CARD_TYPE_AMODL){
-                if(String.isBlank((String)c.get(NAMESPACE +'Named_Credential__c')) && String.isBlank((String)c.get(NAMESPACE +'Connector_Class__c')) && String.isBlank((String)c.get(NAMESPACE +'Processing_Class__c'))){
-               		requiredFields.add(' Named Credential or Connector Class or Processing Class');
-            	}
-                
-                if(String.isBlank((String)c.get(NAMESPACE +'AI_Technology__c'))){
-                    requiredFields.add(' AI Technology');
-                }
-                
-                if(String.isBlank((String)c.get(NAMESPACE +'Infrastructure__c'))){
-                    requiredFields.add(' Platform');
-                }
-                
-                if(String.isBlank((String)c.get(NAMESPACE +'Version__c'))){
-                    requiredFields.add(' Version');
-                }
-                
-                if(c.get(NAMESPACE+'Temperature__c') == null){
-                    requiredFields.add(' Temperature');
-                }
+                SOQL = 'SELECT AI_Technology__c, Connector_Class__c, Processing_Class__c, Type__c, Custom_Metadata__c, Additional_Parameters__c, Enable_in_Sandbox__c, EndPoint_URL__c, Infrastructure__c, Key__c, Max_Tokens__c, Model__c, Named_Credential__c, Security_Layer__c, Temperature__c, Top_P__c, Version__c, External_Id__c, AI_Response_Mapping__c, AI_Request_Mapping__c, Id, Name FROM AI_Connection__c WHERE Name =: recName ';
+            }else if(feature == CARD_TYPE_APIDS){
+                SOQL = 'SELECT Id, Name, Named_Credential__c, Source__c, EndPoint_URL__c, Connector_Class__c FROM AI_Data_Source__c WHERE Name =: recName ';
             }
-            if(feature == CARD_TYPE_APIDS){
-                if(String.isBlank((String)c.get(NAMESPACE +'Connector_Class__c'))){
-               		requiredFields.add(' Connector Class');
-            	}
-                if(String.isBlank((String)c.get(NAMESPACE +'Source__c'))){
-                    requiredFields.add(' Source'); 
-                }
-            }
-            
-            
-            if(requiredFields.size() > 0){
-                String errorMessage = 'Error: The:';
-                String glue = '';
-                for(String field : requiredFields){
-                    errorMessage += glue + field;
-                    glue = ',';
-                }
-                
-                if(requiredFields.size() > 1){
-                    errorMessage += ' fields are mandatory in Step 2. Please fill in the required information.';
-                }else if(requiredFields.size() == 1){
-                    errorMessage += ' field is mandatory in Step 2. Please fill in the required information.';
-                }
-                
-                
+            List<AI_Card_Configuration__c> mdt = [SELECT Id, Name, Enabled__c FROM AI_Card_Configuration__c WHERE Name =: recName AND Feature__c =: feature LIMIT 1];
+            records = database.query(SOQL);
+            if(mdt.size() < 1 || records.size() < 1){
                 hasError = true;
+                throw AIUtility.getMessageAuraHandledException('Missing required steps, please complete all necessary actions.'); 
+            }
+            
+            if(records.size() == 1){
+                List<String> requiredFields = new List<String>();
+                sObject c = records[0];
                 
-                throw new AuraHandledException(errorMessage);
-            }else{
-                if(String.isNotBlank((String)c.get(NAMESPACE +'Named_Credential__c'))){
-                    List<NamedCredential> namedCreds = [SELECT Id, DeveloperName, MasterLabel FROM NamedCredential WHERE DeveloperName =: (String)c.get(NAMESPACE +'Named_Credential__c') LIMIT 1];
-                    if(namedCreds.size() < 1){
-                        hasError = true;
-                        throw new AuraHandledException('Card activation failed. The provided Named Credential could not be found.');
+                if(feature == CARD_TYPE_AMODL){
+                    if(String.isBlank((String)c.get(NAMESPACE +'Named_Credential__c')) && String.isBlank((String)c.get(NAMESPACE +'Connector_Class__c')) && String.isBlank((String)c.get(NAMESPACE +'Processing_Class__c'))){
+                           requiredFields.add(' Named Credential or Connector Class or Processing Class');
                     }
-                }if(String.isNotBlank((String)c.get(NAMESPACE +'Connector_Class__c'))){
-                    List<ApexClass> apexCls = [SELECT Id FROM ApexClass WHERE Name =: (String)c.get(NAMESPACE +'Connector_Class__c') LIMIT 1];
-                    if(apexCls.size() < 1 && !Test.isRunningTest()){
-                        hasError = true;
-                        throw new AuraHandledException('Card activation failed. The provided Connector Class could not be found.');
+                    
+                    if(String.isBlank((String)c.get(NAMESPACE +'AI_Technology__c'))){
+                        requiredFields.add(' AI Technology');
+                    }
+                    
+                    if(String.isBlank((String)c.get(NAMESPACE +'Infrastructure__c'))){
+                        requiredFields.add(' Platform');
+                    }
+                    
+                    if(String.isBlank((String)c.get(NAMESPACE +'Version__c'))){
+                        requiredFields.add(' Version');
+                    }
+                    
+                    if(c.get(NAMESPACE+'Temperature__c') == null){
+                        requiredFields.add(' Temperature');
+                    }
+                }
+                if(feature == CARD_TYPE_APIDS){
+                    if(String.isBlank((String)c.get(NAMESPACE +'Connector_Class__c'))){
+                           requiredFields.add(' Connector Class');
+                    }
+                    if(String.isBlank((String)c.get(NAMESPACE +'Source__c'))){
+                        requiredFields.add(' Source'); 
+                    }
+                }
+                
+                
+                if(requiredFields.size() > 0){
+                    String errorMessage = 'Error: The:';
+                    String glue = '';
+                    for(String field : requiredFields){
+                        errorMessage += glue + field;
+                        glue = ',';
+                    }
+                    
+                    if(requiredFields.size() > 1){
+                        errorMessage += ' fields are mandatory in Connection Details. Please fill in the required information.';
+                    }else if(requiredFields.size() == 1){
+                        errorMessage += ' field is mandatory in Connection Details. Please fill in the required information.';
+                    }
+                    
+                    
+                    hasError = true;
+                    
+                    throw AIUtility.getMessageAuraHandledException(errorMessage);
+                }else{
+                    if(String.isNotBlank((String)c.get(NAMESPACE +'Named_Credential__c'))){
+                        List<NamedCredential> namedCreds = [SELECT Id, DeveloperName, MasterLabel FROM NamedCredential WHERE DeveloperName =: (String)c.get(NAMESPACE +'Named_Credential__c') LIMIT 1];
+                        if(namedCreds.size() < 1){
+                            hasError = true;
+                            throw AIUtility.getMessageAuraHandledException('Card activation failed. The provided Named Credential could not be found.');
+                        }
+                    }if(String.isNotBlank((String)c.get(NAMESPACE +'Connector_Class__c'))){
+                        List<ApexClass> apexCls = [SELECT Id FROM ApexClass WHERE Name =: (String)c.get(NAMESPACE +'Connector_Class__c') LIMIT 1];
+                        if(apexCls.size() < 1 && !Test.isRunningTest()){
+                            hasError = true;
+                            throw AIUtility.getMessageAuraHandledException('Card activation failed. The provided Connector Class could not be found.');
+                        }
+                    }
+                    
+                    if(feature == CARD_TYPE_AMODL){
+                        if(String.isNotBlank((String)c.get(NAMESPACE +'Processing_Class__c'))){
+                            List<ApexClass> apexCls = [SELECT Id FROM ApexClass WHERE Name =: (String)c.get(NAMESPACE +'Processing_Class__c') LIMIT 1];
+                            if(apexCls.size() < 1){
+                                hasError = true;
+                                throw AIUtility.getMessageAuraHandledException('Card activation failed. The provided Processing Class could not be found.');
+                            }
+                        }
+                        if(c.get(NAMESPACE+'Temperature__c') == null || (decimal)c.get(NAMESPACE+'Temperature__c') < 0 || (decimal)c.get(NAMESPACE+'Temperature__c') > 1){
+                            throw AIUtility.getMessageAuraHandledException('Card activation failed. Temperature needs to be between 0 and 1.');
+                        }
                     }
                 }
                 
                 if(feature == CARD_TYPE_AMODL){
-                    if(String.isNotBlank((String)c.get(NAMESPACE +'Processing_Class__c'))){
-                        List<ApexClass> apexCls = [SELECT Id FROM ApexClass WHERE Name =: (String)c.get(NAMESPACE +'Processing_Class__c') LIMIT 1];
-                        if(apexCls.size() < 1){
+                    if(c.get(NAMESPACE+'Type__c') == '' || c.get(NAMESPACE+'Type__c') == null || c.get(NAMESPACE+'Type__c') == AIConstants.AI_MODEL_TYPE_CHAT){
+                        String validationCommand = 'Give me the name of account';
+                        String validationBody = '{"Account" : {"Name" : "Validation Account"}}';
+                        //System.debug('connection call validation: '+c);
+                        String msg = AIGPTfyCalloutController.validateRequest(validationCommand, validationBody, (AI_Connection__c)c);
+                        if(String.isNotBlank(msg)){
                             hasError = true;
-                            throw new AuraHandledException('Card activation failed. The provided Processing Class could not be found.');
+                            throw AIUtility.getMessageAuraHandledException('Card activation failed. Unable to perform a successfull validation with AI. Error: '+msg);
+                        }
+                    }else if(!String.isBlank((String)c.get(NAMESPACE+'Type__c')) && c.get(NAMESPACE+'Type__c') == AIConstants.AI_MODEL_TYPE_AGENTIC){//JIRA V2-7410 : Enhance Validation/Handshake process for Agentic
+                        String msg = AIGPTfyCalloutController.validateVoiceRequest((AI_Connection__c)c);
+                        if(String.isNotBlank(msg)){
+                            hasError = true;
+                            throw AIUtility.getMessageAuraHandledException('Card activation failed. Unable to perform a successfull validation with AI. Error: '+msg);
                         }
                     }
-                    if(c.get(NAMESPACE+'Temperature__c') == null || (decimal)c.get(NAMESPACE+'Temperature__c') < 0 || (decimal)c.get(NAMESPACE+'Temperature__c') > 1){
-                        throw new AuraHandledException('Card activation failed. Temperature needs to be between 0 and 1.');
-                    }
                 }
+                
+            }else if(records.size() > 1){
+                hasError = true;
+                throw AIUtility.getMessageAuraHandledException('Sorry, we\'ve detected duplicate connections. Please review your connections and remove any duplicates.');
             }
-            
-            if(feature == CARD_TYPE_AMODL){
-                if(c.get(NAMESPACE+'Type__c') == '' || c.get(NAMESPACE+'Type__c') == null || c.get(NAMESPACE+'Type__c') == AIConstants.AI_MODEL_TYPE_CHAT){
-                    String validationCommand = 'Give me the name of account';
-                    String validationBody = '{"Account" : {"Name" : "Validation Account"}}';
-                    //System.debug('connection call validation: '+c);
-                    String msg = AIGPTfyCalloutController.validateRequest(validationCommand, validationBody, (AI_Connection__c)c);
-                    if(String.isNotBlank(msg)){
-                        hasError = true;
-                        throw new AuraHandledException('Card activation failed. Unable to perform a successfull validation with AI. Error: '+msg);
-                    }
-                }else if(!String.isBlank((String)c.get(NAMESPACE+'Type__c')) && c.get(NAMESPACE+'Type__c') == AIConstants.AI_MODEL_TYPE_AGENTIC){//JIRA V2-7410 : Enhance Validation/Handshake process for Agentic
-                    String msg = AIGPTfyCalloutController.validateVoiceRequest((AI_Connection__c)c);
-                    if(String.isNotBlank(msg)){
-                        hasError = true;
-                        throw new AuraHandledException('Card activation failed. Unable to perform a successfull validation with AI. Error: '+msg);
-                    }
-                }
+            if(!hasError){
+                AI_Card_Configuration__c oCardConfiguration = mdt[0];
+                oCardConfiguration.Enabled__c = true;
+                FLSCheck.getInstance().updateDML(new List<AI_Card_Configuration__c>{oCardConfiguration});
             }
-            
-        }else if(records.size() > 1){
-            hasError = true;
-            throw new AuraHandledException('Sorry, we\'ve detected duplicate connections. Please review your connections and remove any duplicates.');
+        }catch(Exception ex){
+            // Jira v2/7832 : Improve AI Model (Connections) for Enhanced Troubleshooting
+            if(records.size() > 0){
+                supportData += '\n Record: '+JSON.serialize(records[0]);
+            }
+            String logId = GPTfyException.log(ex, 'GPTfy', '', 'AddCardController', 'handleCardActivate', supportData);
+            String logUrl = String.isNotBlank(logId) ? URL.getOrgDomainUrl().toExternalForm() + '/' + logId : '';
+            String errorMessage = ex.getMessage();
+            if(String.isNotBlank(logUrl)){
+                errorMessage += ' ' + logUrl;
+            }
+            return errorMessage;
         }
-        if(!hasError){
-            AI_Card_Configuration__c oCardConfiguration = mdt[0];
-            oCardConfiguration.Enabled__c = true;
-            FLSCheck.getInstance().updateDML(new List<AI_Card_Configuration__c>{oCardConfiguration});
-        }
-        return hasError;
+        return null;
     }
     
     @testvisible

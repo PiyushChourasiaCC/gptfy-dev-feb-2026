@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <label>GPTfy Warehouse</label>
+    <pluralLabel>GPTfy Warehouses</pluralLabel>
+    <nameField>
+        <displayFormat>GW-{0000000}</displayFormat>
+        <label>Warehouse Name</label>
+        <type>AutoNumber</type>
+    </nameField>
+    <sharingModel>ReadWrite</sharingModel>
+    <enableActivities>true</enableActivities>
+    <enableBulkApi>true</enableBulkApi>
+    <enableReports>true</enableReports>
+    <enableSearch>true</enableSearch>
+    <enableSharing>true</enableSharing>
+    <enableStreamingApi>true</enableStreamingApi>
+    <compactLayoutAssignment>AI_GPTfy_Warehouse_Compact_Layout</compactLayoutAssignment>
+</CustomObject>
