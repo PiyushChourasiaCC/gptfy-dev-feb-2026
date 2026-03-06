@@ -70,6 +70,25 @@ public with sharing class AIAgentCreationOverrideController {
     }
     
     /**
+     * Wrapper class for AI Agent Intent information
+     */
+    public class IntentWrapper {
+        @AuraEnabled public String id { get; set; }
+        @AuraEnabled public String name { get; set; }
+        @AuraEnabled public String description { get; set; }
+        @AuraEnabled public Decimal sequence { get; set; }
+        @AuraEnabled public Boolean isActive { get; set; }
+        
+        public IntentWrapper(AI_Agent_Intent__c intent) {
+            this.id = intent.Id;
+            this.name = intent.Name;
+            this.description = intent.Description__c;
+            this.sequence = intent.Sequence__c;
+            this.isActive = intent.Is_Active__c != null ? intent.Is_Active__c : false;
+        }
+    }
+    
+    /**
      * Fetches complete agent data with related information
      * @param agentId ID of the AI_Agent__c record
      * @return AgentDataWrapper containing all agent information
@@ -223,6 +242,7 @@ public with sharing class AIAgentCreationOverrideController {
                 WHERE AI_Agent__c = :agentId
                 WITH USER_MODE
                 ORDER BY AI_Prompt__r.Name
+                LIMIT 50000
             ];
             
             for (AI_Agent_Skill__c skill : agentSkills) {
@@ -449,6 +469,7 @@ public with sharing class AIAgentCreationOverrideController {
                 FROM AI_Agent_Skill__c
                 WHERE AI_Agent__c = :agentId
                 WITH USER_MODE
+                LIMIT 50000
             ];
             
             Set<String> currentPromptIds = new Set<String>();
@@ -586,6 +607,41 @@ public with sharing class AIAgentCreationOverrideController {
         } catch (Exception e) {
             // Return empty string if any error occurs
             return '';
+        }
+    }
+    
+    /**
+     * Fetches AI Agent Intents for display
+     * @param agentId ID of the AI_Agent__c record
+     * @return List of IntentWrapper containing intent information
+     */
+    @AuraEnabled
+    public static List<IntentWrapper> getAgentIntents(Id agentId) {
+        String methodName = 'getAgentIntents';
+        String supportData = 'Agent ID: ' + agentId;
+        try {
+            if (String.isBlank(agentId)) {
+                throw new AuraHandledException('Agent ID is required');
+            }
+            
+            List<AI_Agent_Intent__c> intents = [
+                SELECT Id, Name, Description__c, Sequence__c, Is_Active__c
+                FROM AI_Agent_Intent__c
+                WHERE AI_Agent__c = :agentId
+                WITH USER_MODE
+                ORDER BY Sequence__c ASC NULLS LAST, Name ASC
+            ];
+            
+            List<IntentWrapper> intentWrappers = new List<IntentWrapper>();
+            for (AI_Agent_Intent__c intent : intents) {
+                intentWrappers.add(new IntentWrapper(intent));
+            }
+            
+            return intentWrappers;
+            
+        } catch (Exception e) {
+            GPTfyException.Log(e, APPLICATION_NAME, MODULE_NAME, CLASS_NAME, methodName, supportData);
+            throw new AuraHandledException('Error fetching agent intents: ' + e.getMessage());
         }
     }
 }

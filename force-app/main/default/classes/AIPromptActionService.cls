@@ -287,6 +287,13 @@ public with sharing class AIPromptActionService {
         }else if(ftype == 'TIME'){
             return (Time) JSON.deserialize('"'+fValue+'"', Time.class);
         }
+
+        if(fType == 'STRING' || fType == 'TEXTAREA'){
+            Integer length = Integer.valueOf(globalFieldMap.get(objName).get(fName).getDescribe().getLength());
+            if(length > 0 && String.isNotBlank(String.valueOf(fValue)) && String.valueOf(fValue).length() > length){
+                return String.valueOf(fValue).substring(0, length);
+            }
+        }
         return fValue;
     }
     

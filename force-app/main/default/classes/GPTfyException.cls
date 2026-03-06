@@ -1,6 +1,6 @@
 public with sharing class GPTfyException extends Exception {
 
-    public static void Log(Exception excp , String applicationName , String moduleName , String className , String methodName,String supportData){
+    public static String Log(Exception excp , String applicationName , String moduleName , String className , String methodName,String supportData){
         
         String queryLimit = '1. SOQL Queries used / SOQL Queries allowed: ' + Limits.getQueries() + '/' + Limits.getLimitQueries();
         String dmlLimit = '2. Number of records queried so far /  Number allowed: ' + Limits.getDmlRows() + '/' + Limits.getLimitDmlRows();
@@ -30,7 +30,13 @@ public with sharing class GPTfyException extends Exception {
         exc.Exception_Running_User__c = UserInfo.getUserId();
         exc.Error_Support_Data__c = supportData;
         if(AIConstants.enableExceptionLog){
-            FLSCheck.getInstance().insertDML(new List<Exception_Log__c>{exc});
+            List<sobject> recList = FLSCheck.getInstance().insertDML(new List<Exception_Log__c>{exc});
+            System.debug('recList: '+recList);
+            System.debug('exc: '+exc);
+            if(!recList.isEmpty()){
+                return recList[0].Id;
+            }
         }
+        return null;
     }
 }

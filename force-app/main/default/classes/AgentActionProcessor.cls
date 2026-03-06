@@ -232,8 +232,7 @@ public with sharing class AgentActionProcessor {
                 WHERE AI_Agent__c = :agentId
                   AND Name IN :normalizedIntents
                   AND Is_Active__c = true
-                ORDER BY Sequence__c ASC
-            ];
+                ORDER BY Sequence__c ASC                LIMIT 50000            ];
             
             for (AI_Agent_Intent__c agentIntent : agentIntentsList) {
                 // Get additionalParameters for this specific intent
@@ -323,45 +322,75 @@ public with sharing class AgentActionProcessor {
 
     /**
      * Processes Update Field action type.
-     * Updates a field on a target record based on AI-extracted parameters.
-     * Record ID priority: relatedToId (context) → recordId (intentParams) → recordId (context)
+     * Uses the single Field_API_Name__c on the action record to identify which field to update.
+     * Record ID priority: relatedToId (context) → recordId (context) → recordId (intentParams)
      *
      * @param result ActionResult to update
      * @param detail AI_Intent_Action__c record with Object_Name__c and Field_API_Name__c
-     * @param intentParams Map of parameters extracted by AI (includes field value and possibly recordId)
+     * @param intentParams Map of parameters extracted by AI (includes field values and possibly recordId)
      * @param context RequestContext with relatedToId and recordId from original request
      * @return true if processed successfully, false otherwise
      */
     private static Boolean processUpdateField(ActionResult result, AI_Intent_Action__c detail, Map<String, Object> intentParams, RequestContext context) {
         try {
-            // Early validation
-            if (String.isBlank(detail.Object_Name__c) || String.isBlank(detail.Field_API_Name__c) || intentParams == null) {
+            String objectName = detail.Object_Name__c;
+            if (String.isBlank(objectName)) {
                 return false;
             }
-            
-            // Get target record ID (prioritize context.relatedToId, then AI-extracted recordId)
+
+            // Resolve target record ID: relatedToId → context.recordId → intentParams.recordId
             String targetRecordId = context?.relatedToId;
             if (String.isBlank(targetRecordId)) {
+                targetRecordId = context?.recordId;
+            }
+            if (String.isBlank(targetRecordId) && intentParams != null) {
                 targetRecordId = (String) intentParams.get('recordId');
             }
-            
-            // Get field value
-            Object fieldValue = intentParams.get(detail.Field_API_Name__c);
-            
-            // Validate required values
-            if (String.isBlank(targetRecordId) || fieldValue == null) {
+            if (String.isBlank(targetRecordId)) {
+                result.errorMessage = 'Update Field failed: No record ID available (relatedToId, recordId, or AI-extracted recordId).';
                 return false;
             }
-            
-            // Execute update
-            SObject record = Schema.getGlobalDescribe().get(detail.Object_Name__c).newSObject();
+
+            // Query child AI_Intent_Action_Detail__c records for field mappings
+            List<AI_Intent_Action_Detail__c> details = [
+                SELECT Id, Field_API_Name__c, Type__c, Value__c, Sequence__c
+                FROM AI_Intent_Action_Detail__c
+                WHERE AI_Intent_Action__c = :detail.Id
+                ORDER BY Sequence__c ASC NULLS LAST
+            ];
+
+            if (details.isEmpty()) {
+                result.errorMessage = 'Update Field failed: No field mappings configured for this action.';
+                return false;
+            }
+
+            Schema.SObjectType targetType = Schema.getGlobalDescribe().get(objectName);
+            if (targetType == null) {
+                result.errorMessage = 'Update Field failed: Object not found - ' + objectName;
+                return false;
+            }
+
+            SObject record = targetType.newSObject();
             record.put('Id', targetRecordId);
-            record.put(detail.Field_API_Name__c, fieldValue);
-            System.debug('Before Update: ' + record);  
-            update record;
-            System.debug('After Update: ' + record);
+            Map<String, Schema.SObjectField> fieldMap = targetType.getDescribe().fields.getMap();
+
+            // Process each detail row — resolve Hardcoded tokens and AI Extracted values
+            for (AI_Intent_Action_Detail__c det : details) {
+                if (String.isBlank(det.Field_API_Name__c) || String.isBlank(det.Type__c)) {
+                    continue;
+                }
+                if (!fieldMap.containsKey(det.Field_API_Name__c.toLowerCase())) {
+                    continue;
+                }
+                Object fieldValue = resolveDetailValue(det, objectName, intentParams, context);
+                if (fieldValue != null) {
+                    record.put(det.Field_API_Name__c, fieldValue);
+                }
+            }
+
+            FLSCheck.getInstance().updateDML(new List<SObject>{record});
             return true;
-            
+
         } catch (Exception ex) {
             result.errorMessage = 'Update Field failed: ' + ex.getMessage();
             return false;

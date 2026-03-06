@@ -61,18 +61,23 @@ public with sharing class AISyncScheduleController {
     public static void runNow(String recordId){
         try{
             // Jira v2/7550 : Issues/Feedbacks Reported in 1.13
-            List<AI_RAG_Sync__c> lst = [SELECT Id, Object__c, Where_Clause__c 
+            List<AI_RAG_Sync__c> lst = [SELECT Id, Object__c, Where_Clause__c
                                               FROM AI_RAG_Sync__c 
                                               WHERE Id =:recordId 
                                               LIMIT 1];
             if(lst != null && !lst.isEmpty()){
                 AI_RAG_Sync__c sch = lst.get(0);
-                if(AIPromptValidationController.isValidVisibilityCondition(sch.Object__c,sch.Where_Clause__c)){
-                    AISyncSchedulable job = new AISyncSchedulable(recordId);
-					job.execute(null);
+                if(sch.Object__c != NULL && String.isNotBlank(sch.object__c)){
+                    if(AIPromptValidationController.isValidVisibilityCondition(sch.Object__c,sch.Where_Clause__c)){
+                                        AISyncSchedulable job = new AISyncSchedulable(recordId);
+                                        job.execute(null);
+                    }else{
+                        String errorMsg = 'Where Clause is invalid. Please check and try again.';
+                        throw AIUtility.getMessageAuraHandledException(errorMsg);
+                    }                    
                 }else{
-                    String errorMsg = 'Where Clause is invalid. Please check and try again.';
-                    throw AIUtility.getMessageAuraHandledException(errorMsg);
+                    AISyncSchedulable job = new AISyncSchedulable(recordId);
+                    job.execute(null);
                 }
             }
            

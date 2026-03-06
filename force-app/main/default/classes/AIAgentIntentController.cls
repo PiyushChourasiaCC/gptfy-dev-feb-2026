@@ -214,8 +214,8 @@ public with sharing class AIAgentIntentController {
 
             aw.id = rec.Id;
 
-            // Sync child detail records for Create Record actions
-            if (aw.actionType == 'Create Record') {
+            // Sync child detail records for Create Record and Update Field actions
+            if (aw.actionType == 'Create Record' || aw.actionType == 'Update Field') {
                 syncActionDetails(rec.Id, aw.fieldMappings);
             }
 
@@ -257,13 +257,15 @@ public with sharing class AIAgentIntentController {
         }
 
         if (!toUpsert.isEmpty()) {
-            upsert toUpsert;
+            // Must capture return value - FLSCheck returns a new list with IDs populated
+            toUpsert = (List<AI_Intent_Action_Detail__c>) FLSCheck.getInstance().upsertDML(toUpsert);
         }
 
         // Delete orphaned details (removed by the user in the UI)
         List<AI_Intent_Action_Detail__c> existing = [
             SELECT Id FROM AI_Intent_Action_Detail__c
             WHERE AI_Intent_Action__c = :actionId
+            LIMIT 50000
         ];
         List<AI_Intent_Action_Detail__c> toDelete = new List<AI_Intent_Action_Detail__c>();
         for (AI_Intent_Action_Detail__c ex : existing) {
@@ -272,7 +274,7 @@ public with sharing class AIAgentIntentController {
             }
         }
         if (!toDelete.isEmpty()) {
-            delete toDelete;
+            FLSCheck.getInstance().deleteDML(toDelete);
         }
     }
 
@@ -299,6 +301,21 @@ public with sharing class AIAgentIntentController {
             FLSCheck.getInstance().deleteDML(new List<AI_Intent_Action__c>{ rec });
         } catch (Exception e) {
             GPTfyException.log(e, APPLICATION_NAME, '', CLASS_NAME, 'deleteAction', '');
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    /**
+     * Deletes an AI_Agent_Intent__c record (and its child actions via cascade).
+     * @param intentId The record Id to delete
+     */
+    @AuraEnabled
+    public static void deleteIntent(Id intentId) {
+        try {
+            AI_Agent_Intent__c rec = new AI_Agent_Intent__c(Id = intentId);
+            FLSCheck.getInstance().deleteDML(new List<AI_Agent_Intent__c>{ rec });
+        } catch (Exception e) {
+            GPTfyException.log(e, APPLICATION_NAME, '', CLASS_NAME, 'deleteIntent', '');
             throw new AuraHandledException(e.getMessage());
         }
     }
@@ -337,6 +354,7 @@ public with sharing class AIAgentIntentController {
                 WHERE IsActive = true
                   AND ProcessType = 'AutoLaunchedFlow'
                 ORDER BY Label ASC
+                LIMIT 50000
             ]) {
                 options.add(new PicklistOption(fdv.Label + ' (' + fdv.ApiName + ')', fdv.ApiName));
             }
@@ -349,6 +367,11 @@ public with sharing class AIAgentIntentController {
 
     // ─── Private helpers ───────────────────────────────────────────
 
+    /**
+     * @description Maps an AI_Intent_Action__c record to an ActionWrapper object.
+     * @param a The AI_Intent_Action__c record to map.
+     * @return An ActionWrapper containing data from the record.
+     */
     private static ActionWrapper mapAction(AI_Intent_Action__c a) {
         ActionWrapper aw = new ActionWrapper();
         aw.id = a.Id;
@@ -364,7 +387,7 @@ public with sharing class AIAgentIntentController {
         aw.apexReturnType = a.Apex_Return_Type__c;
         aw.flowApiName = a.Flow_API_Name__c;
 
-        // Map child detail records (field mappings for Create Record)
+        // Map child detail records (field mappings for Create Record / Update Field)
         aw.fieldMappings = new List<ActionDetailWrapper>();
         if (a.Intent_Action_Details__r != null) {
             for (AI_Intent_Action_Detail__c d : a.Intent_Action_Details__r) {
@@ -380,6 +403,12 @@ public with sharing class AIAgentIntentController {
         return aw;
     }
 
+     /**
+     * @description Retrieves picklist options for a specific object and field.
+     * @param objectName The API name of the object.
+     * @param fieldName The API name of the picklist field.
+     * @return A list of PicklistOption objects.
+     */
     private static List<PicklistOption> getPicklistOptions(String objectName, String fieldName) {
         List<PicklistOption> options = new List<PicklistOption>();
         try {

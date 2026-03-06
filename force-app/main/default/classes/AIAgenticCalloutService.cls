@@ -10,7 +10,7 @@
  * @last modified on  : 30-07-2025
  * @last modified by  : Rishabh Goel
  **/
-public class AIAgenticCalloutService {
+public with sharing class AIAgenticCalloutService {
 
     /**
      * Calls an external AI service to fetch a qualified prompt, given a request object.

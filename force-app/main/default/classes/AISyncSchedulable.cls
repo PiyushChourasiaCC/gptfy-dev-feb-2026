@@ -71,6 +71,7 @@ public class AISyncSchedulable implements Schedulable, Database.AllowsCallouts {
             List<ContentDocumentLink> lstOfDocumentLinks = [SELECT Id, ContentDocumentId
                                                             FROM ContentDocumentLink 
                                                             WHERE LinkedEntityId =:scheduler.Id];
+
             if(lstOfDocumentLinks != null && !lstOfDocumentLinks.isEmpty()){
                 Set<String> setOfContentDocumentIds = new Set<String>();
                 for(ContentDocumentLink cdl : lstOfDocumentLinks){
@@ -81,6 +82,7 @@ public class AISyncSchedulable implements Schedulable, Database.AllowsCallouts {
                               FROM ContentVersion
                               WHERE ContentDocumentId IN :setOfContentDocumentIds
                               AND IsLatest = true];
+
             }
 			List<String> fileIds = getFileIds(scheduler);
             
@@ -115,10 +117,12 @@ public class AISyncSchedulable implements Schedulable, Database.AllowsCallouts {
         
         Map<String, Object> responseMap;
         List<SObject> records = Database.query(query);
+
         if(records != null && !records.isEmpty()){
             String fileContent = AISyncSchedulable.generateFile(records, scheduler);
             return fileContent;
         }
+        
         return null;
     }
     

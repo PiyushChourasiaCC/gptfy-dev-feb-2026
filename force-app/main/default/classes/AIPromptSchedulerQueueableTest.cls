@@ -1,6 +1,6 @@
 /**
  * @description       : Test class for AIPromptSchedulerQueueable
- * @jira              : V2-7712 1.13 Release (Additional Bugs/Feedbacks)
+ * @jira              : Jira v2/7712 Issue: AI Mass Processing with more than 7 Prompts
  * @author            : Sohit Sharma
  * @group             : Plumcloud Labs
  * @last modified on  : 02-15-2026

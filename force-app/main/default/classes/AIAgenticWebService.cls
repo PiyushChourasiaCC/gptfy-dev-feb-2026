@@ -69,6 +69,7 @@ global with sharing class AIAgenticWebService {
         global String promptRequestId{get;set;}
         global String recordId{get;set;}
         global String relatedToId{get;set;}
+        global Map<String, String> processingParams{get;set;}
         global String userMessage{get;set;}
         global String userContextId{get;set;}
         global List<Object> promptFunctions{get;set;}

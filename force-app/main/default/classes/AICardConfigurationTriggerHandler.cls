@@ -16,6 +16,7 @@ public with sharing class AICardConfigurationTriggerHandler {
         List<AI_Card_Configuration__c> lstOfConfigs = new List<AI_Card_Configuration__c>();
         for(AI_Card_Configuration__c conn : newList){
             if(isNew || conn.Name != oldMap.get(conn.Id).Name){
+                System.debug(conn);
                 String connName = conn.Name.toLowerCase();
                 if(!mapOfNameToCount.containsKey(connName)){
                     mapOfNameToCount.put(connName, 1);

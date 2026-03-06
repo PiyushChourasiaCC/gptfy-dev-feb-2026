@@ -117,51 +117,70 @@ global with sharing class AIAgenticUtility {
             AI_Security_Audit_Detail__c securityAuditDetail = securityAuditDetails[securityAuditDetails.size()-1];
 
             aiResponse.AI_Callout_Start_Time__c = System.now();
-            response = AIAgenticCalloutService.fetchQualifiedPrompt(request);
-            //System.debug(response);
-            // Handle context loss on API error
-            if(response.message != null && String.isNotBlank(response.message)){
-                response.message = AI_FAILED_IN_LAST_STEP;
-                aiResponse.Status__c = AIConstants.RESP_STATUS_PROCESSED;
-                ChatGPTUtills.insertAIResponse(aiResponse, true);
-                return response;
-            }
-            response = getThreadId(response, aiResponse.Thread_Id__c);
-
-            aiResponse.Thread_Id__c = (response.userContextId != null && String.isNotBlank(response.userContextId)) ? response.userContextId : aiResponse.Thread_Id__c;
-            aiResponse.AI_Callout_End_Time__c = System.now();
-            aiResponse.AI_Processed_Data_No_PII__c = response.responseBody;
-            System.debug('Sagar1: Response.responseBody ' + response.responseBody); 
-            // Parse and handle function call details from AI output
-            ResponseDetails responseDetailsObj = getParsedResponse(response.responseBody);
-            aiResponse.AI_Processed_Data_PII_Added__c = aiResponse.AI_Processed_Data_PII_Added__c != null ? aiResponse.AI_Processed_Data_PII_Added__c : JSON.serialize(responseDetailsObj);
-            System.debug('Sagar1: ResponseDetailsObj = ' + JSON.serialize(responseDetailsObj));
-            // If we have messages, process Agent Intents
-            if(responseDetailsObj != null && responseDetailsObj.messages.size() > 0){
-                response.responseBody = String.join(responseDetailsObj.messages, ',');
-            }else{
-                for (FunctionCallDetail fncDetail : responseDetailsObj.fncDetails) {
-                    Map<String, Object> functionParams = fncDetail.arguments;
-
-                    try {
-                        AI_Prompt__c prompt = AIPromptSelector.getAIPromptByName(fncDetail.name);
-                        aiResponse = getPreparedAIResponse(aiResponse, prompt);
-                        Type impl = Type.forName('', prompt.Agentic_Function_Class__c);
-                        AIAgenticInterface obj = (AIAgenticInterface) impl.newInstance();
-                        String results = obj.executeMethod(prompt.Name, functionParams);
-                        response.responseBody = getMessageFromResult(results);
-                        fncResults.add(new FunctionResult(fncDetail.name, fncDetail.callId, results));
-                    } catch (Exception execEx) {
-                        return errorResponse(execEx);
-                    }
-                }
+            // Check if AI Model has a Processing Class — if so, bypass AI callout entirely
+            if(String.isNotBlank(request.config.AI_Model__r.Processing_Class__c)){
                 try {
-                    List<Object> messages = getAssistantCallInput(request.conversation, responseDetailsObj.fncDetails, fncResults);
-                    Map<String,String> assitantCallResponse = AIAgenticCalloutService.getAssistantReply(request, messages);
-                    response.responseBody = assitantCallResponse.get('response');
-                    aiResponse.Thread_Id__c = assitantCallResponse.get('threadId');
-                } catch (Exception calloutExp) {
-                    // Fails silently; context remains
+                    Type processingType = Type.forName('', request.config.AI_Model__r.Processing_Class__c);
+                    if(processingType == null){
+                        response.message = 'Processing class not found: ' + request.config.AI_Model__r.Processing_Class__c;
+                        return response;
+                    }
+                    AIAgenticProcessingInterface processor = (AIAgenticProcessingInterface) processingType.newInstance();
+                    response.responseBody = processor.getProcessedResponse(request);
+                    aiResponse.AI_Callout_End_Time__c = System.now();
+                    aiResponse.AI_Processed_Data_No_PII__c = response.responseBody;
+                    aiResponse.AI_Processed_Data_PII_Added__c = response.responseBody;
+                } catch (Exception procEx) {
+                    response.message = 'Error executing processing class: ' + procEx.getMessage();
+                    return response;
+                }
+            } else {
+                response = AIAgenticCalloutService.fetchQualifiedPrompt(request);
+                //System.debug(response);
+                // Handle context loss on API error
+                if(response.message != null && String.isNotBlank(response.message)){
+                    response.message = AI_FAILED_IN_LAST_STEP;
+                    aiResponse.Status__c = AIConstants.RESP_STATUS_PROCESSED;
+                    ChatGPTUtills.insertAIResponse(aiResponse, true);
+                    return response;
+                }
+                response = getThreadId(response, aiResponse.Thread_Id__c);
+
+                aiResponse.Thread_Id__c = (response.userContextId != null && String.isNotBlank(response.userContextId)) ? response.userContextId : aiResponse.Thread_Id__c;
+                aiResponse.AI_Callout_End_Time__c = System.now();
+                aiResponse.AI_Processed_Data_No_PII__c = response.responseBody;
+                System.debug('Sagar1: Response.responseBody ' + response.responseBody); 
+                // Parse and handle function call details from AI output
+                ResponseDetails responseDetailsObj = getParsedResponse(response.responseBody);
+                aiResponse.AI_Processed_Data_PII_Added__c = aiResponse.AI_Processed_Data_PII_Added__c != null ? aiResponse.AI_Processed_Data_PII_Added__c : JSON.serialize(responseDetailsObj);
+                System.debug('Sagar1: ResponseDetailsObj = ' + JSON.serialize(responseDetailsObj));
+                // If we have messages, process Agent Intents
+                if(responseDetailsObj != null && responseDetailsObj.messages.size() > 0){
+                    response.responseBody = String.join(responseDetailsObj.messages, ',');
+                }else{
+                    for (FunctionCallDetail fncDetail : responseDetailsObj.fncDetails) {
+                        Map<String, Object> functionParams = fncDetail.arguments;
+
+                        try {
+                            AI_Prompt__c prompt = AIPromptSelector.getAIPromptByName(fncDetail.name);
+                            aiResponse = getPreparedAIResponse(aiResponse, prompt);
+                            Type impl = Type.forName('', prompt.Agentic_Function_Class__c);
+                            AIAgenticInterface obj = (AIAgenticInterface) impl.newInstance();
+                            String results = obj.executeMethod(prompt.Name, functionParams);
+                            response.responseBody = getMessageFromResult(results);
+                            fncResults.add(new FunctionResult(fncDetail.name, fncDetail.callId, results));
+                        } catch (Exception execEx) {
+                            return errorResponse(execEx);
+                        }
+                    }
+                    try {
+                        List<Object> messages = getAssistantCallInput(request.conversation, responseDetailsObj.fncDetails, fncResults);
+                        Map<String,String> assitantCallResponse = AIAgenticCalloutService.getAssistantReply(request, messages);
+                        response.responseBody = assitantCallResponse.get('response');
+                        aiResponse.Thread_Id__c = assitantCallResponse.get('threadId');
+                    } catch (Exception calloutExp) {
+                        // Fails silently; context remains
+                    }
                 }
             }
 
@@ -572,25 +591,25 @@ global with sharing class AIAgenticUtility {
                 'Update Field', 'Create Record'
             };
 
-            // Pre-query AI_Intent_Action_Detail__c for Create Record actions (AI Extracted only)
-            Set<Id> createRecordActionIds = new Set<Id>();
+            // Pre-query AI_Intent_Action_Detail__c for Create Record and Update Field actions (AI Extracted only)
+            Set<Id> fieldMappingActionIds = new Set<Id>();
             for (AI_Agent_Intent__c intent : request.config.AI_Agent_Intents__r) {
                 if (intent.AI_Intent_Actions__r != null) {
                     for (AI_Intent_Action__c action : intent.AI_Intent_Actions__r) {
-                        if (action.Action_Type__c == 'Create Record') {
-                            createRecordActionIds.add(action.Id);
+                        if (action.Action_Type__c == 'Create Record' || action.Action_Type__c == 'Update Field') {
+                            fieldMappingActionIds.add(action.Id);
                         }
                     }
                 }
             }
 
-            // Query child detail records for Create Record actions — only AI Extracted rows go to the AI
+            // Query child detail records for Create Record / Update Field actions — only AI Extracted rows go to the AI
             Map<Id, List<AI_Intent_Action_Detail__c>> detailsByActionId = new Map<Id, List<AI_Intent_Action_Detail__c>>();
-            if (!createRecordActionIds.isEmpty()) {
+            if (!fieldMappingActionIds.isEmpty()) {
                 for (AI_Intent_Action_Detail__c detail : [
                     SELECT Id, Field_API_Name__c, Type__c, Value__c, AI_Intent_Action__c
                     FROM AI_Intent_Action_Detail__c
-                    WHERE AI_Intent_Action__c IN :createRecordActionIds
+                    WHERE AI_Intent_Action__c IN :fieldMappingActionIds
                       AND Type__c = :AIConstants.ACTION_DETAIL_TYPE_AI_EXTRACTED
                     ORDER BY Sequence__c ASC NULLS LAST
                 ]) {
@@ -620,7 +639,7 @@ global with sharing class AIAgenticUtility {
                             actionMap.put('object', action.Object_Name__c);
                         }
 
-                        if (action.Action_Type__c == 'Create Record') {
+                        if (action.Action_Type__c == 'Create Record' || action.Action_Type__c == 'Update Field') {
                             // Build fields array from child AI_Intent_Action_Detail__c records
                             List<AI_Intent_Action_Detail__c> actionDetails = detailsByActionId.get(action.Id);
                             if (actionDetails != null && !actionDetails.isEmpty()) {
@@ -640,7 +659,7 @@ global with sharing class AIAgenticUtility {
                                 actionMap.put('description', action.Description__c);
                             }
                         } else {
-                            // Update Field — single field per action (existing pattern)
+                            // Other action types that need extraction (future-proof)
                             if (String.isNotBlank(action.Field_API_Name__c)) {
                                 actionMap.put('field', action.Field_API_Name__c);
                             }
@@ -674,6 +693,7 @@ global with sharing class AIAgenticUtility {
         String baseQuery = 'SELECT Id,Name, AI_Model__c, TTL__c, TTL_Message__c, Use_Thread_Id__c, ' +
             'AI_Model__r.Named_Credential__c, AI_Model__r.Model__c, AI_Model__r.Type__c, ' +
             'AI_Model__r.Temperature__c, AI_Model__r.Top_p__c, AI_Model__r.Max_Tokens__c, AI_Model__r.Additional_Parameters__c, ' +
+            'AI_Model__r.Processing_Class__c, ' +
             'System_Prompt__c, RAG__c, ' +
             '(SELECT Id, AI_Prompt__c, AI_Prompt__r.Profiles__c, AI_Prompt__r.Permission_Sets__c, ' +
                 'AI_Prompt__r.Description__c, AI_Prompt__r.Prompt_Command__c, AI_Prompt__r.Name ' +

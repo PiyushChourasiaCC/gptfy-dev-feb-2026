@@ -38,17 +38,22 @@ public with sharing class AIPromptScheduler implements Schedulable {
         
         obj = (AI_Scheduled_Run__c)FLSCheck.getInstance().insertDML(new List<AI_Scheduled_Run__c>{obj}).get(0);
         
-        for(AI_Prompt_Scheduler__c sch : [SELECT Id, Prompt__c, Where_Clause__c, Record_Limit__c,
-                                          Prompt__r.Object__c, Prompt__r.AI_Connection__c, 
-                                          Prompt__r.AI_Connection__r.Name, Prompt__r.Prompt_Command__c,
-                                          AI_Scheduler__c, AI_Scheduler__r.Retry_Count__c, Object_Name__c,
-                                          Cross_Object_Filter_Condition__c
-                                          FROM AI_Prompt_Scheduler__c 
-                                          WHERE AI_Scheduler__c =:schedulerId
-                                          AND Prompt__r.Status__c =:AIConstants.PMT_STATUS_ACTIVE]){
-            DateTime start = System.Now();
-        	while(System.Now().getTime()< start.getTime()+2000){}
-            Database.executeBatch(new AIPromptCountRequestBatch(sch, obj), 2000);
+        // Jira v2/7712 Issue: AI Mass Processing with more than 7 Prompts
+        List<AI_Prompt_Scheduler__c> promptSchedulers = [
+            SELECT Id, Prompt__c, Where_Clause__c, Record_Limit__c,
+                   Prompt__r.Object__c, Prompt__r.AI_Connection__c, 
+                   Prompt__r.AI_Connection__r.Name, Prompt__r.Prompt_Command__c,
+                   AI_Scheduler__c, AI_Scheduler__r.Retry_Count__c, Object_Name__c,
+                   Cross_Object_Filter_Condition__c
+            FROM AI_Prompt_Scheduler__c 
+            WHERE AI_Scheduler__c = :schedulerId
+            AND Prompt__r.Status__c = :AIConstants.PMT_STATUS_ACTIVE
+        ];
+        
+        // Use queueable chaining to process batches sequentially
+        // This avoids the 5 concurrent batch jobs limit and CPU timeout issues
+        if (!promptSchedulers.isEmpty()) {
+            System.enqueueJob(new AIPromptSchedulerQueueable(promptSchedulers, obj));
         }
     }
 

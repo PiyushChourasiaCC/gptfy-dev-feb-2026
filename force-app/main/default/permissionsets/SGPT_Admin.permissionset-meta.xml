@@ -3175,6 +3175,10 @@
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
+        <tab>AI_Workspace_Sync</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
         <tab>AI_Workspace_Sync_Log__c</tab>
         <visibility>Visible</visibility>
     </tabSettings>

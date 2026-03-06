@@ -3,7 +3,7 @@
  *                      This avoids the Salesforce limit of 5 concurrent batch jobs and
  *                      eliminates CPU timeout issues from busy-wait loops.
  * @author            : Sohit Sharma
- * @jira              : V2-7712 1.13 Release (Additional Bugs/Feedbacks)
+ * @jira              : Jira v2/7712 Issue: AI Mass Processing with more than 7 Prompts
  * @group             : Plumcloud Labs
  * @last modified on  : 02-15-2026
  * @last modified by  : Sohit Sharma
