@@ -34,6 +34,13 @@
                 <div class="header-actions">
                     <template if:false={isEditMode}>
                         <lightning-button
+                            label="Delete"
+                            onclick={handleDeleteIntent}
+                            variant="destructive"
+                            icon-name="utility:delete"
+                            disabled={isSaving}>
+                        </lightning-button>
+                        <lightning-button
                             label="Edit"
                             onclick={handleEdit}
                             icon-name="utility:edit">

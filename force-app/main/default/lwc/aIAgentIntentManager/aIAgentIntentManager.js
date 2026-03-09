@@ -7,10 +7,12 @@
 import { LightningElement, api, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
+import LightningConfirm from 'lightning/confirm';
 
 import getIntentWithActions from '@salesforce/apex/AIAgentIntentController.getIntentWithActions';
 import upsertIntent from '@salesforce/apex/AIAgentIntentController.upsertIntent';
 import deleteAction from '@salesforce/apex/AIAgentIntentController.deleteAction';
+import deleteIntent from '@salesforce/apex/AIAgentIntentController.deleteIntent';
 
 const ACTION_COLUMNS = [
     {
@@ -195,6 +197,38 @@ export default class AIAgentIntentManager extends NavigationMixin(LightningEleme
         }
     }
 
+    // ─── Delete intent ─────────────────────────────────────────
+
+    async handleDeleteIntent() {
+        const confirmed = await LightningConfirm.open({
+            message: 'Are you sure you want to delete this intent? All associated actions will also be deleted. This action cannot be undone.',
+            variant: 'headerless',
+            label: 'Delete Confirmation'
+        });
+        if (!confirmed) return;
+
+        this.isSaving = true;
+        try {
+            const agentId = this.intent?.agentId;
+            await deleteIntent({ intentId: this.recordId });
+            this.showToast('Success', 'Intent deleted successfully', 'success');
+            if (agentId) {
+                this[NavigationMixin.Navigate]({
+                    type: 'standard__recordPage',
+                    attributes: {
+                        recordId: agentId,
+                        objectApiName: 'AI_Agent__c',
+                        actionName: 'view'
+                    }
+                });
+            }
+        } catch (error) {
+            this.showToast('Error', this.getErrorMessage(error), 'error');
+        } finally {
+            this.isSaving = false;
+        }
+    }
+
     // ─── Actions datatable handlers ────────────────────────────
 
     handleAddAction() {
@@ -208,7 +242,12 @@ export default class AIAgentIntentManager extends NavigationMixin(LightningEleme
 
         switch (actionName) {
             case 'edit':
-                this.currentAction = { ...row };
+                // Use the full action object from this.actions (not the datatable row)
+                // because lightning-datatable strips nested arrays like fieldMappings
+                const fullAction = this.actions.find(a => a.id === row.id);
+                this.currentAction = fullAction
+                    ? JSON.parse(JSON.stringify(fullAction))
+                    : { ...row };
                 this.showActionModal = true;
                 break;
             case 'delete':

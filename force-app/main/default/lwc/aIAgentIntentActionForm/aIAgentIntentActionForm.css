@@ -5,6 +5,17 @@
     padding-bottom: 0.25rem;
 }
 
+/* ── Active toggle: label above ───────────────────── */
+.active-toggle-stacked .slds-form-element__label {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.active-toggle-stacked .slds-checkbox_toggle {
+    display: flex;
+    flex-direction: column;
+}
+
 /* ── Type-specific section ────────────────────────── */
 .type-section {
     margin-top: 1rem;

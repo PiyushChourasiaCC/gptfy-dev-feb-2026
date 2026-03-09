@@ -58,12 +58,19 @@
                 </div>
             </div>
             
+            <!-- Provider Selection Instruction -->
+            <template if:true={showProviderSelection}>
+                <div class="provider-selection-instruction">
+                    <p>Select your preferred workspace provider for Email, Tasks, and Calendar sync:</p>
+                </div>
+            </template>
+            
             <!-- Provider Cards -->
             <div class="provider-cards-container">
                 
                 <!-- Outlook Card (only show if enabled) -->
                 <template if:true={showOutlookCard}>
-                <div class="provider-card outlook-card">
+                <div class={outlookCardClass} onclick={handleSelectOutlookProvider}>
                     <!-- Card Header with Logo -->
                     <div class="card-header">
                         <div class="provider-logo-container outlook-logo">
@@ -177,7 +184,7 @@
             
             <!-- Gmail Card (only show if enabled) -->
             <template if:true={showGmailCard}>
-            <div class="provider-card gmail-card">
+            <div class={gmailCardClass} onclick={handleSelectGoogleProvider}>
                     <!-- Card Header with Logo -->
                     <div class="card-header">
                         <div class="provider-logo-container gmail-logo">
@@ -293,11 +300,6 @@
             
             </div>
             
-            <!-- Footer Info -->
-            <div class="footer-info">
-                <lightning-icon icon-name="utility:info" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
-                <span>These connections enable secure access to your emails and calendar. Your credentials are encrypted and stored securely.</span>
-            </div>
             </template>
         </template>
         

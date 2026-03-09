@@ -2,19 +2,22 @@
 
 .task-container {
     background: white;
-    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     position: relative;
-    min-height: 500px;
+    height: calc(100vh - 190px);
     font-family: 'Salesforce Sans', Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Header - Matching Email/Calendar purple theme */
 .header-section {
     background: linear-gradient(135deg, #7B68EE 0%, #6A5ACD 100%);
     color: white;
-    padding: 0.75rem 2rem;
+    padding: 0 2rem;
+    min-height: 76px;
+    display: flex;
+    align-items: center;
 }
 
 .header-content {
@@ -39,9 +42,7 @@
 }
 
 .gptfy-logo {
-    height: 28px;
-    width: 28px;
-    margin-right: 0.4rem;
+    display: none;
     vertical-align: middle;
 }
 
@@ -61,8 +62,7 @@
 
 /* Stats */
 .stats-area {
-    display: flex;
-    gap: 1.5rem;
+    display: none;
 }
 
 .stat-card {
@@ -89,6 +89,10 @@
 .main-content {
     background: white;
     padding: 0;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Toolbar */
@@ -263,7 +267,7 @@
 /* Task List */
 .task-list-container {
     position: relative;
-    min-height: 400px;
+    flex: 1;
     overflow-y: auto;
 }
 
@@ -872,6 +876,8 @@ a.badge:hover {
     align-items: center;
     padding: 1rem 2rem;
     border-top: 1px solid #f3f2f2;
+    background: white;
+    flex-shrink: 0;
     background: #fafaf9;
 }
 

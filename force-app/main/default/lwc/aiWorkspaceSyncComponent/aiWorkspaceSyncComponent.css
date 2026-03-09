@@ -1,0 +1,252 @@
+.workspace-container {
+    display: flex;
+    width: 100%;
+    background-color: #ffffff;
+}
+
+/* Left Navigation Panel */
+.left-nav-panel {
+    width: 72px;
+    min-width: 72px;
+    background: linear-gradient(180deg, #7B68EE 0%, #6A5ACD 100%);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 8px rgba(123, 104, 238, 0.2);
+    z-index: 10;
+}
+
+.nav-logo {
+    padding: 20px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gptfy-logo-nav {
+    height: 36px;
+    width: 36px;
+    border-radius: 8px;
+}
+
+.nav-items {
+    display: flex;
+    flex-direction: column;
+    padding-top: 16px;
+    flex: 1;
+}
+
+.nav-settings {
+    padding-bottom: 16px;
+}
+
+/* Navigation Buttons */
+.nav-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+    margin: 4px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.nav-button lightning-icon {
+    --slds-c-icon-color-foreground-default: rgba(255, 255, 255, 0.7);
+}
+
+.nav-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.nav-button:hover lightning-icon {
+    --slds-c-icon-color-foreground-default: #ffffff;
+}
+
+.nav-button.active {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.nav-button.active lightning-icon {
+    --slds-c-icon-color-foreground-default: #ffffff;
+}
+
+.nav-label {
+    font-size: 11px;
+    margin-top: 4px;
+    font-weight: 500;
+    text-align: center;
+    color: inherit;
+}
+
+.settings-button {
+    opacity: 0.8;
+}
+
+.settings-button lightning-icon {
+    --slds-c-icon-color-foreground-default: rgba(255, 255, 255, 0.7);
+}
+
+.settings-button:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.settings-button:hover lightning-icon {
+    --slds-c-icon-color-foreground-default: #ffffff;
+}
+
+/* Main Content Area */
+.main-content-area {
+    flex: 1;
+    background-color: #ffffff;
+    display: flex;
+}
+
+/* Settings Modal */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.settings-modal {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 1200px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333333;
+    margin: 0;
+}
+
+.close-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.close-button:hover {
+    background-color: #f3f3f3;
+}
+
+.modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .left-nav-panel {
+        width: 60px;
+        min-width: 60px;
+    }
+
+    .nav-button {
+        padding: 10px 6px;
+        margin: 4px 6px;
+    }
+
+    .nav-label {
+        font-size: 10px;
+    }
+
+    .settings-modal {
+        width: 95%;
+        max-height: 95vh;
+    }
+
+    .modal-header {
+        padding: 16px 20px;
+    }
+
+    .modal-title {
+        font-size: 18px;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+}
+
+/* Smooth transitions for view switching */
+c-ai-exchange-email-selector,
+c-ai-task-selector,
+c-ai-calendar-event-selector {
+    display: block;
+    width: 100%;
+    flex: 1;
+    animation: fadeInContent 0.3s ease;
+}
+
+@keyframes fadeInContent {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

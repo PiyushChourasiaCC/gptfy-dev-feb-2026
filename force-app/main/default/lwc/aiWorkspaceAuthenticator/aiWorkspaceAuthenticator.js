@@ -1,4 +1,4 @@
-import { LightningElement, track } from 'lwc';
+import { LightningElement, track, api } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import checkConnectionStatus from '@salesforce/apex/AIWorkspaceAuthController.checkConnectionStatus';
 import getAuthorizationUrl from '@salesforce/apex/AIWorkspaceAuthController.getAuthorizationUrl';
@@ -12,6 +12,11 @@ import setAutoSyncStatus from '@salesforce/apex/AIWorkspaceAuthController.setAut
 import getProviderSettings from '@salesforce/apex/AISyncSettingsService.getProviderSettings';
 
 export default class AiWorkspaceAuthenticator extends LightningElement {
+    @api emailProvider = 'MICROSOFT_GRAPH';
+    @api taskProvider = 'MICROSOFT_GRAPH';
+    @api calendarProvider = 'MICROSOFT_CALENDAR';
+    
+    @track selectedWorkspaceProvider = 'microsoft'; // 'microsoft' or 'google'
     selectedProvider = 'Outlook';
     
     // Outlook state
@@ -52,6 +57,27 @@ export default class AiWorkspaceAuthenticator extends LightningElement {
      */
     connectedCallback() {
         this.loadProviderSettings();
+        // Initialize selectedWorkspaceProvider based on current providers
+        this.initializeSelectedProvider();
+    }
+    
+    /**
+     * Initialize selected workspace provider based on current provider values
+     */
+    initializeSelectedProvider() {
+        // Determine workspace provider based on email provider
+        if (this.emailProvider === 'GMAIL' || this.emailProvider === 'GOOGLE_TASKS' || this.emailProvider === 'GOOGLE_CALENDAR') {
+            this.selectedWorkspaceProvider = 'google';
+        } else {
+            this.selectedWorkspaceProvider = 'microsoft';
+        }
+    }
+    
+    /**
+     * Watch for changes to provider properties from parent
+     */
+    renderedCallback() {
+        this.initializeSelectedProvider();
     }
     
     /**
@@ -678,5 +704,59 @@ export default class AiWorkspaceAuthenticator extends LightningElement {
             variant: variant
         });
         this.dispatchEvent(event);
+    }
+    
+    get showProviderSelection() {
+        return this.outlookConnected && this.gmailConnected;
+    }
+    
+    get outlookCardClass() {
+        let baseClass = 'provider-card outlook-card';
+        if (this.showProviderSelection) {
+            baseClass += this.selectedWorkspaceProvider === 'microsoft' ? ' selected' : ' selectable';
+        }
+        return baseClass;
+    }
+    
+    get gmailCardClass() {
+        let baseClass = 'provider-card gmail-card';
+        if (this.showProviderSelection) {
+            baseClass += this.selectedWorkspaceProvider === 'google' ? ' selected' : ' selectable';
+        }
+        return baseClass;
+    }
+    
+    handleSelectOutlookProvider(event) {
+        if (!this.showProviderSelection) return;
+        
+        event.stopPropagation();
+        this.selectedWorkspaceProvider = 'microsoft';
+        
+        this.dispatchEvent(new CustomEvent('providerchange', {
+            detail: { provider: 'MICROSOFT_GRAPH', type: 'email' }
+        }));
+        this.dispatchEvent(new CustomEvent('providerchange', {
+            detail: { provider: 'MICROSOFT_GRAPH', type: 'task' }
+        }));
+        this.dispatchEvent(new CustomEvent('providerchange', {
+            detail: { provider: 'MICROSOFT_CALENDAR', type: 'calendar' }
+        }));
+    }
+    
+    handleSelectGoogleProvider(event) {
+        if (!this.showProviderSelection) return;
+        
+        event.stopPropagation();
+        this.selectedWorkspaceProvider = 'google';
+        
+        this.dispatchEvent(new CustomEvent('providerchange', {
+            detail: { provider: 'GMAIL', type: 'email' }
+        }));
+        this.dispatchEvent(new CustomEvent('providerchange', {
+            detail: { provider: 'GOOGLE_TASKS', type: 'task' }
+        }));
+        this.dispatchEvent(new CustomEvent('providerchange', {
+            detail: { provider: 'GOOGLE_CALENDAR', type: 'calendar' }
+        }));
     }
 }

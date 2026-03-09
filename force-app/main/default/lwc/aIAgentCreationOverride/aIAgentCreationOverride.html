@@ -376,7 +376,61 @@
                     </div>
                 </div>
                 
-                <!-- Advanced Settings Section (Collapsible) -->
+                <!-- Intent Section -->
+                <div class="section">
+                    <div class="section-header">
+                        <lightning-icon icon-name="standard:strategy" size="small" class="section-icon"></lightning-icon>
+                        <h2 class="slds-text-heading_medium">Intents</h2>
+                        <span class="skill-count">{totalIntentCount}</span>
+                        <template if:true={isEditMode}>
+                            <lightning-button-icon 
+                                icon-name="utility:add"
+                                alternative-text="New Intent"
+                                title="New Intent"
+                                onclick={handleNewIntent}
+                                variant="border"
+                                size="small"
+                                class="slds-m-left_auto">
+                            </lightning-button-icon>
+                        </template>
+                    </div>
+                    <div class="section-content">
+                        <template if:true={hasIntents}>
+                            <div class="intent-list">
+                                <template for:each={intentsToShow} for:item="intent">
+                                    <div key={intent.id} class="intent-row" data-intent-id={intent.id} onclick={handleIntentClick}>
+                                        <div class="intent-row-left">
+                                            <template if:true={intent.isActive}>
+                                                <lightning-icon icon-name="utility:check" size="xx-small" variant="success" class="intent-active-icon"></lightning-icon>
+                                            </template>
+                                            <template if:false={intent.isActive}>
+                                                <div class="intent-inactive-placeholder"></div>
+                                            </template>
+                                            <a href="javascript:void(0);" class="intent-name">{intent.name}</a>
+                                            <template if:true={intent.sequence}>
+                                                <span class="intent-sequence">#{intent.sequence}</span>
+                                            </template>
+                                        </div>
+                                        <template if:true={intent.description}>
+                                            <div class="intent-description slds-truncate" title={intent.description}>{intent.description}</div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                            <template if:true={showViewAllLink}>
+                                <div class="intent-view-all">
+                                    <a href="javascript:void(0);" onclick={handleViewAllIntents} class="view-all-link">
+                                        View All ({totalIntentCount})
+                                    </a>
+                                </div>
+                            </template>
+                        </template>
+                        <template if:false={hasIntents}>
+                            <div class="slds-text-color_weak">No intents configured</div>
+                        </template>
+                    </div>
+                </div>
+                                <!-- Advanced Settings Section (Collapsible) -->
                 <div class="section">
                     <div class="section-header collapsible-header" onclick={handleAdvancedSettingsToggle}>
                         <lightning-icon icon-name="standard:settings" size="small" class="section-icon"></lightning-icon>

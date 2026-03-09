@@ -1,18 +1,21 @@
 .exchange-container {
     background: white;
-    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     position: relative;
-    min-height: 500px;
+    height: calc(100vh - 190px);
     font-family: 'Salesforce Sans', Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Header */
 .header-section {
     background: linear-gradient(135deg, #7B68EE 0%, #6A5ACD 100%);
     color: white;
-    padding: 0.75rem 2rem;
+    padding: 0 2rem;
+    min-height: 76px;
+    display: flex;
+    align-items: center;
 }
 
 .title-area h1 {
@@ -25,9 +28,7 @@
 }
 
 .gptfy-logo {
-    height: 28px;
-    width: 28px;
-    vertical-align: middle;
+    display: none;
 }
 
 @keyframes wiggle {
@@ -73,8 +74,7 @@
 }
 
 .stats-area {
-    display: flex;
-    gap: 1.5rem;
+    display: none;
 }
 
 .stat-card {
@@ -517,6 +517,8 @@
     align-items: center;
     padding: 1rem 2rem;
     border-top: 1px solid #f3f2f2;
+    background: white;
+    flex-shrink: 0;
     background: #fafaf9;
 }
 
@@ -553,8 +555,7 @@
 /* Full Width Layout */
 .main-content {
     display: flex;
-    height: 600px;
-    /* Fixed height for scrolling */
+    flex: 1;
     position: relative;
     overflow: hidden;
 }
@@ -578,13 +579,10 @@
 @media (max-width: 1200px) {
     .main-content {
         flex-direction: column;
-        height: auto;
-        min-height: 600px;
     }
 
     .email-panel {
-        flex: none;
-        height: 600px;
+        flex: 1;
     }
 }
 

@@ -2,6 +2,7 @@ import { LightningElement, track } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { encodeDefaultFieldValues } from 'lightning/pageReferenceUtils';
+import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 
 import AI_CONN_OBJ from '@salesforce/schema/AI_Connection__c';
 import CONN_TECH_FIELD from '@salesforce/schema/AI_Connection__c.AI_Technology__c';
@@ -176,6 +177,11 @@ export default class AICatalogComponent extends NavigationMixin(LightningElement
     }
 
     handleSuccess() {
+        if (this.sobj && this.sobj.Id) {
+            notifyRecordUpdateAvailable([{ recordId: this.sobj.Id }]);
+        }
+        this.metadata = undefined;
+        this.sobj = undefined;
         this.showCCComponent = false;
         const cmp = this.template.querySelector('c-gptfy-card-detail-component');
         cmp.doInit();

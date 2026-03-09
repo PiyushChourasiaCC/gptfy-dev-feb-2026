@@ -41,28 +41,16 @@
                     </div>
                     <div class="filters-container">
                         <button class={pendingFilterClass} onclick={handleFilterChange} data-filter="pending">
-                            📋 Pending
+                            📋 Pending <template if:true={isPendingFilter}>({totalTasksDisplay})</template>
                         </button>
                         <button class={allFilterClass} onclick={handleFilterChange} data-filter="all">
-                            📑 All Tasks
+                            📑 All Tasks <template if:true={isAllFilter}>({totalTasksDisplay})</template>
                         </button>
                         <button class={completedFilterClass} onclick={handleFilterChange} data-filter="completed">
-                            ✅ Completed
+                            ✅ Completed <template if:true={isCompletedFilter}>({totalTasksDisplay})</template>
                         </button>
                     </div>
                     <div class="toolbar-right">
-                        <template if:true={showProviderSwitch}>
-                            <div class="provider-switch" title="Switch task provider">
-                                <button class={outlookSwitchClass} onclick={handleProviderSwitch} data-provider="MICROSOFT_GRAPH">
-                                    <span class="provider-icon outlook-icon">O</span>
-                                    Outlook
-                                </button>
-                                <button class={googleSwitchClass} onclick={handleProviderSwitch} data-provider="GOOGLE_TASKS">
-                                    <span class="provider-icon google-icon">G</span>
-                                    Google
-                                </button>
-                            </div>
-                        </template>
                         <button class="refresh-btn" onclick={handleRefresh} title="Refresh Tasks" disabled={isLoading}>
                             🔄
                         </button>
@@ -142,15 +130,6 @@
                                     </div>
                                 </template>
                             </div>
-
-                            <!-- Pagination - only show when there are tasks -->
-                            <div class="pagination">
-                                <div class="page-info">Showing {pageStart}-{pageEnd} of {totalTasksDisplay} tasks</div>
-                                <div class="page-controls">
-                                    <button disabled={isPreviousDisabled} onclick={handlePreviousPage}>← Previous</button>
-                                    <button disabled={isNextDisabled} onclick={handleNextPage}>Next →</button>
-                                </div>
-                            </div>
                         </template>
 
                         <template if:false={hasTasks}>
@@ -162,6 +141,19 @@
                         </template>
                     </template>
                 </div>
+
+                <!-- Pagination - fixed at bottom -->
+                <template if:true={hasTasks}>
+                    <template if:false={isLoading}>
+                        <div class="pagination">
+                            <div class="page-info">Showing {pageStart}-{pageEnd} of {totalTasksDisplay} tasks</div>
+                            <div class="page-controls">
+                                <button disabled={isPreviousDisabled} onclick={handlePreviousPage}>← Previous</button>
+                                <button disabled={isNextDisabled} onclick={handleNextPage}>Next →</button>
+                            </div>
+                        </div>
+                    </template>
+                </template>
             </div>
 
             <!-- Floating Selection Bar -->
@@ -173,7 +165,7 @@
                     </div>
                     <div class="selection-actions">
                         <button class="import-btn" onclick={handleImportSelected} disabled={isImporting}>
-                            🚀 Import Selected
+                            Import Selected
                         </button>
                         <button class="clear-btn" onclick={handleClearSelection}>Clear</button>
                     </div>
@@ -192,19 +184,6 @@
             </template>
             <template if:false={isLoading}>
                 <div class="not-accessible-state">
-                    <!-- Provider Switch in not-accessible state -->
-                    <template if:true={showProviderSwitch}>
-                        <div class="provider-switch-large" title="Switch task provider">
-                            <button class={outlookSwitchClass} onclick={handleProviderSwitch} data-provider="MICROSOFT_GRAPH">
-                                <span class="provider-icon outlook-icon">O</span>
-                                Outlook
-                            </button>
-                            <button class={googleSwitchClass} onclick={handleProviderSwitch} data-provider="GOOGLE_TASKS">
-                                <span class="provider-icon google-icon">G</span>
-                                Google
-                            </button>
-                        </div>
-                    </template>
                     <div class="lock-icon">🔒</div>
                     <h2>Task Access Required</h2>
                     <p>{notAccessibleMessage}</p>

@@ -20,6 +20,7 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
     @api recordId; // Parent record context
     @api objectApiName; // Parent object type
     @api flexipageRegionWidth; // Detect if in narrow region for compact mode
+    @api selectedProvider = 'MICROSOFT_GRAPH'; // Provider passed from parent
 
     // Tracked properties
     @track emails = [];
@@ -27,7 +28,6 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
     @track isLoading = true;
     @track error;
     @track isAuthenticated = false;
-    @track selectedProvider = 'MICROSOFT_GRAPH'; // Default to Outlook
     @track userEmailAddress = ''; // Authenticated user's email
     @track namespace = ''; // Package namespace for navigation URLs
     
@@ -1076,6 +1076,11 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
     get todayFilterClass() { return this.activeFilter === 'today' ? 'active' : ''; }
     get allEmailsFilterClass() { return this.activeFilter === 'all' ? 'active' : ''; }
     get filesFilterClass() { return this.activeFilter === 'files' ? 'active' : ''; }
+    
+    // Filter active state for showing counts
+    get isTodayFilter() { return this.activeFilter === 'today'; }
+    get isAllEmailsFilter() { return this.activeFilter === 'all'; }
+    get isFilesFilter() { return this.activeFilter === 'files'; }
 
     // Provider switch classes
     get gmailSwitchClass() { return 'provider-btn' + (this.selectedProvider === 'GMAIL' ? ' active' : ''); }

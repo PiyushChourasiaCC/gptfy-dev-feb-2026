@@ -41,34 +41,22 @@
                     </div>
                     <div class="filters-container">
                         <button class={past7DaysFilterClass} onclick={handleRangeChange} data-range="past7Days">
-                            📅 Past 7 Days
+                            📅 Past 7 Days <template if:true={isPast7DaysFilter}>({totalEventsDisplay})</template>
                         </button>
                         <button class={thisWeekFilterClass} onclick={handleRangeChange} data-range="thisWeek">
-                            📆 This Week
+                            📆 This Week <template if:true={isThisWeekFilter}>({totalEventsDisplay})</template>
                         </button>
                         <button class={nextWeekFilterClass} onclick={handleRangeChange} data-range="nextWeek">
-                            🗓️ Next Week
+                            🗓️ Next Week <template if:true={isNextWeekFilter}>({totalEventsDisplay})</template>
                         </button>
                         <button class={thisMonthFilterClass} onclick={handleRangeChange} data-range="thisMonth">
-                            📋 This Month
+                            📋 This Month <template if:true={isThisMonthFilter}>({totalEventsDisplay})</template>
                         </button>
                         <button class={allEventsFilterClass} onclick={handleRangeChange} data-range="allEvents">
-                            📊 All Events
+                            📊 All Events <template if:true={isAllEventsFilter}>({totalEventsDisplay})</template>
                         </button>
                     </div>
                     <div class="toolbar-right">
-                        <template if:true={showProviderSwitch}>
-                            <div class="provider-switch" title="Switch calendar provider">
-                                <button class={outlookSwitchClass} onclick={handleProviderSwitch} data-provider="MICROSOFT_CALENDAR">
-                                    <span class="provider-icon outlook-icon">O</span>
-                                    Outlook
-                                </button>
-                                <button class={gmailSwitchClass} onclick={handleProviderSwitch} data-provider="GOOGLE_CALENDAR">
-                                    <span class="provider-icon gmail-icon">G</span>
-                                    Google
-                                </button>
-                            </div>
-                        </template>
                         <button class="refresh-btn" onclick={handleRefresh} title="Refresh Calendar" disabled={isLoading}>
                             <span class="refresh-icon">🔄</span>
                         </button>
@@ -156,15 +144,6 @@
                                     </div>
                                 </template>
                             </div>
-
-                            <!-- Pagination - only show when there are events -->
-                            <div class="pagination">
-                                <div class="page-info">Showing {pageStart}-{pageEnd} of {totalEventsDisplay} events</div>
-                                <div class="page-controls">
-                                    <button disabled={isPreviousDisabled} onclick={handlePreviousPage}>← Previous</button>
-                                    <button disabled={isNextDisabled} onclick={handleNextPage}>Next →</button>
-                                </div>
-                            </div>
                         </template>
 
                         <template if:false={hasEvents}>
@@ -176,6 +155,19 @@
                         </template>
                     </template>
                 </div>
+
+                <!-- Pagination - fixed at bottom -->
+                <template if:true={hasEvents}>
+                    <template if:false={isLoading}>
+                        <div class="pagination">
+                            <div class="page-info">Showing {pageStart}-{pageEnd} of {totalEventsDisplay} events</div>
+                            <div class="page-controls">
+                                <button disabled={isPreviousDisabled} onclick={handlePreviousPage}>← Previous</button>
+                                <button disabled={isNextDisabled} onclick={handleNextPage}>Next →</button>
+                            </div>
+                        </div>
+                    </template>
+                </template>
             </div>
 
             <!-- Floating Selection Bar -->
@@ -187,7 +179,7 @@
                     </div>
                     <div class="selection-actions">
                         <button class="import-btn" onclick={handleImportSelected} disabled={isImporting}>
-                            🚀 Import Selected
+                            Import Selected
                         </button>
                         <button class="clear-btn" onclick={handleClearSelection}>Clear</button>
                     </div>
@@ -206,19 +198,6 @@
             </template>
             <template if:false={isLoading}>
                 <div class="not-accessible-state">
-                    <!-- Provider Switch in not-accessible state -->
-                    <template if:true={showProviderSwitch}>
-                        <div class="provider-switch-large" title="Switch calendar provider">
-                            <button class={outlookSwitchClass} onclick={handleProviderSwitch} data-provider="MICROSOFT_CALENDAR">
-                                <span class="provider-icon outlook-icon">O</span>
-                                Outlook
-                            </button>
-                            <button class={gmailSwitchClass} onclick={handleProviderSwitch} data-provider="GOOGLE_CALENDAR">
-                                <span class="provider-icon gmail-icon">G</span>
-                                Google
-                            </button>
-                        </div>
-                    </template>
                     <div class="lock-icon">🔒</div>
                     <h2>Calendar Access Required</h2>
                     <p>{notAccessibleMessage}</p>

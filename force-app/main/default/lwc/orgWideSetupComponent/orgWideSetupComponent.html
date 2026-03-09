@@ -86,120 +86,7 @@
 
                 <lightning-tabset active-tab-value={activeTab}>
                     
-                    <lightning-tab label="Data Retention" value="1" onactive={handleActiveTab}>
-                        <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
-                            <tbody>
-                                <tr class="slds-hint-parent">
-                                    <td data-label="Status">
-                                        <div class="slds-truncate" title="Status" style="width:400px; font-weight: bold; color:dimgray">Status</div>
-                                    </td>
-                                    <td data-label="Status">
-                                        <div class="slds-truncate" title="Status" style="width:250px;">
-                                            <lightning-input 
-                                                type="toggle" 
-                                                label="Status" 
-                                                name="status" 
-                                                message-toggle-active="Active" 
-                                                message-toggle-inactive="Inactive" 
-                                                variant="label-hidden"
-                                                checked={setupInfo.status}
-                                                onchange={handleStatusChange}
-                                            ></lightning-input>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr class="slds-hint-parent">
-                                    <td data-label="Delete Security Records After (Days)">
-                                        <div class="slds-truncate" title="Delete Security Records After (Days)" style="width:400px; font-weight: bold; color:dimgray">Delete Security Records After (Days)</div>
-                                    </td>
-                                    <td data-label="Delete Security Records After (Days)">
-                                        <div class="slds-truncate" title="Delete Security Records After (Days)" style="width:250px;">
-                                            <lightning-input 
-                                                type="number" 
-                                                name="noOfDays" 
-                                                label="Delete Security Records After (Days)"
-                                                value={setupInfo.noOfDays}
-                                                onblur={handleDaysUpdate}
-                                                variant="label-hidden"
-                                            ></lightning-input>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr class="slds-hint-parent">
-                                    <td data-label="Where Clause">
-                                        <div class="slds-truncate" title="Where Clause" style="width:400px; font-weight: bold; color:dimgray">Where Clause</div>
-                                    </td>
-                                    <td data-label="Where Clause" style="display:flex;">
-                                        
-                                        <div class="slds-truncate" title="Where Clause" style="width:250px;">
-                                            <lightning-input 
-                                                name="whereClause" 
-                                                label="Where Clause"
-                                                value={setupInfo.whereClause}
-                                                onblur={handleWhereClauseChange}
-                                                variant="label-hidden"
-                                            ></lightning-input>
-                                                        
-                                        </div>
-
-                                        <lightning-button-icon style="padding-left:5px"
-                                                            icon-name="utility:edit"  
-                                                            alternative-text="Edit" 
-                                                            title="Edit" 
-                                                            onclick={handleOpenVisibilityCondition}
-                                                        ></lightning-button-icon>
-                                    </td>
-                                        
-                                </tr>
-                                <tr class="slds-hint-parent">
-                                    <td data-label="Total Records Purged">
-                                        <div class="slds-truncate" title="Total Records Purged" style="width:400px; font-weight: bold; color:dimgray">Total Records Purged</div>
-                                    </td>
-                                    <td data-label="Total Records Purged">
-                                        <div class="slds-truncate" title="Total Records Purged" style="width:250px;">{setupInfo.recordsPurged} Records</div>
-                                    </td>
-                                </tr>
-                                <tr class="slds-hint-parent">
-                                    <td data-label="Last Ran (Date/Time)">
-                                        <div class="slds-truncate" title="Last Ran (Date/Time)" style="width:400px; font-weight: bold; color:dimgray">Last Ran (Date/Time)</div>
-                                    </td>
-                                    <td data-label="Last Ran (Date/Time)">
-                                        <div class="slds-truncate" title="Last Ran (Date/Time)" style="width:250px;">
-                                            <lightning-formatted-date-time 
-                                                value={setupInfo.lastRunDateTime} 
-                                                year="numeric" 
-                                                month="numeric" 
-                                                day="numeric" 
-                                                hour="2-digit"
-                                                minute="2-digit" 
-                                                time-zone-name="short"
-                                            ></lightning-formatted-date-time>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr class="slds-hint-parent">
-                                    <td data-label="Next Run (Date/Time)">
-                                        <div class="slds-truncate" title="Next Run (Date/Time)" style="width:400px; font-weight: bold; color:dimgray">Next Run (Date/Time)</div>
-                                    </td>
-                                    <td data-label="Next Run (Date/Time)">
-                                        <div class="slds-truncate" title="Next Run (Date/Time)" style="width:250px;">
-                                            <lightning-formatted-date-time 
-                                                value={setupInfo.nextFireTime} 
-                                                year="numeric" 
-                                                month="numeric" 
-                                                day="numeric" 
-                                                hour="2-digit"
-                                                minute="2-digit" 
-                                                time-zone-name="short"
-                                            ></lightning-formatted-date-time>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </lightning-tab>
-
-                    <lightning-tab label="Preferences" value="2" onactive={handleActiveTab}>
+                    <lightning-tab label="Preferences" value="1" onactive={handleActiveTab}>
                         <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
                             <tbody>
                                 
@@ -446,6 +333,20 @@
                                         </div>
                                     </td>
                                 </tr>
+                                
+                                
+                            </tbody>
+                        </table>
+                    </lightning-tab>
+
+                    <lightning-tab label="Voice" value="2" onactive={handleActiveTab}>
+                        <c-a-i-voice-configuration-component></c-a-i-voice-configuration-component>
+                    </lightning-tab>
+
+                    <lightning-tab label="Data Cloud" value="3" onactive={handleActiveTab}>
+                        <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                            <tbody>
+
                                 <tr class="slds-hint-parent">
                                     <td data-label="Enable for Data Cloud">
                                         <div class="slds-truncate" title="Enable for Data Cloud" style="width:400px; font-weight: bold; color:dimgray">
@@ -455,7 +356,7 @@
                                             </template>
                                         </div>
                                     </td>
-                                    <td data-label="Enable for Data Cloud">
+                                     <td data-label="Enable for Data Cloud">
                                         <div class="slds-truncate" title="Enable for Data Cloud" style="width:250px;">
                                             <lightning-input 
                                                 type="toggle" 
@@ -469,152 +370,261 @@
                                     </td>
                                 </tr>
                                 <template if:true={setupInfo.enableForDataCloud}>
-                                    <tr class="slds-hint-parent">
-                                        <td data-label="Salesforce Domain URL">
-                                            <div class="slds-truncate" title="Salesforce Domain URL" style="width:400px; font-weight: bold; color:dimgray">
-                                                Salesforce Domain URL
-                                                <template if:true={helpText_SalesforceDomainUrl}>
-                                                    &nbsp;<lightning-helptext content={helpText_SalesforceDomainUrl}></lightning-helptext>
-                                                </template>
-                                            </div>
-                                        </td>
-                                        <td data-label="Salesforce Domain URL">
-                                            <div class="slds-truncate" title="Salesforce Domain URL" style="width:250px;">
-                                                <lightning-input 
-                                                    type="text" 
-                                                    label="Salesforce Domain URL" 
-                                                    name="salesforceDomainUrl"
-                                                    variant="label-hidden"
-                                                    value={setupInfo.salesforceDomainUrl}
-                                                    onblur={handleSalesforceDomainUrlChange}
-                                                ></lightning-input>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="slds-hint-parent">
-                                        <td data-label="Salesforce Client Id">
-                                            <div class="slds-truncate" title="Salesforce Client Id" style="width:400px; font-weight: bold; color:dimgray">
-                                                Salesforce Client Id
-                                                <template if:true={helpText_SalesforceClientId}>
-                                                    &nbsp;<lightning-helptext content={helpText_SalesforceClientId}></lightning-helptext>
-                                                </template>
-                                            </div>
-                                        </td>
-                                        <td data-label="Salesforce Client Id">
-                                            <div class="slds-truncate" title="Salesforce Client Id" style="width:250px;">
-                                                <lightning-input 
-                                                    type="text" 
-                                                    label="Salesforce Client Id" 
-                                                    name="salesforceClientId"
-                                                    variant="label-hidden"
-                                                    value={setupInfo.salesforceClientId}
-                                                    onblur={handleSalesforceClientIdChange}
-                                                ></lightning-input>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="slds-hint-parent">
-                                        <td data-label="Salesforce Admin User Name">
-                                            <div class="slds-truncate" title="Salesforce Admin User Name" style="width:400px; font-weight: bold; color:dimgray">
-                                                Salesforce Admin User Name
-                                                <template if:true={helpText_SalesforceAdminEmail}>
-                                                    &nbsp;<lightning-helptext content={helpText_SalesforceAdminEmail}></lightning-helptext>
-                                                </template>
-                                            </div>
-                                        </td>
-                                        <td data-label="Salesforce Admin User Name">
-                                            <div class="slds-truncate" title="Salesforce Admin User Name" style="width:250px;">
-                                                <lightning-input 
-                                                    type="text" 
-                                                    label="Salesforce Admin User Name" 
-                                                    name="salesforceAdminEmail"
-                                                    variant="label-hidden"
-                                                    value={setupInfo.salesforceAdminEmail}
-                                                    onblur={handleSalesforceAdminEmailChange}
-                                                ></lightning-input>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="slds-hint-parent">
-                                        <td data-label="Salesforce Private Key File Id">
-                                            <div class="slds-truncate" title="Salesforce Private Key File Id" style="width:400px; font-weight: bold; color:dimgray">
-                                                Salesforce Private Key File Id
-                                                <template if:true={helpText_SalesforcePrivateKeyFileId}>
-                                                    &nbsp;<lightning-helptext content={helpText_SalesforcePrivateKeyFileId}></lightning-helptext>
-                                                </template>
-                                            </div>
-                                        </td>
-                                        <td data-label="Salesforce Private Key File Id">
-                                            <div class="slds-truncate" title="Salesforce Private Key File Id" style="width:250px;">
-                                                <lightning-input 
-                                                    type="text" 
-                                                    label="Salesforce Private Key File Id" 
-                                                    name="salesforcePrivateKeyFileId"
-                                                    variant="label-hidden"
-                                                    value={setupInfo.salesforcePrivateKeyFileId}
-                                                    onblur={handleSalesforcePrivatekeyFileIdChange}
-                                                ></lightning-input>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="slds-hint-parent">
-                                        <td data-label="Salesforce Auth Named Credential">
-                                            <div class="slds-truncate" title="Salesforce Auth Named Credential" style="width:400px; font-weight: bold; color:dimgray">
-                                                Salesforce Auth Named Credential
-                                                <template if:true={helpText_SalesforceAuthNamedCredential}>
-                                                    &nbsp;<lightning-helptext content={helpText_SalesforceAuthNamedCredential}></lightning-helptext>
-                                                </template>
-                                            </div>
-                                        </td>
-                                        <td data-label="Salesforce Auth Named Credential">
-                                            <div class="slds-truncate" title="Salesforce Auth Named Credential" style="width:250px;">
-                                                <lightning-input 
-                                                    type="text" 
-                                                    label="Salesforce Auth Named Credential" 
-                                                    name="salesforceAuthNamedCredential"
-                                                    variant="label-hidden"
-                                                    value={setupInfo.salesforceAuthNamedCredential}
-                                                    onblur={handleSalesforceAuthNamedCredentialChange}
-                                                ></lightning-input>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr class="slds-hint-parent">
-                                        <td data-label="Data Cloud Named Credential">
-                                            <div class="slds-truncate" title="Data Cloud Named Credential" style="width:400px; font-weight: bold; color:dimgray">
-                                                Data Cloud Named Credential
-                                                <template if:true={helpText_DataCloudNamedCredential}>
-                                                    &nbsp;<lightning-helptext content={helpText_DataCloudNamedCredential}></lightning-helptext>
-                                                </template>
-                                            </div>
-                                        </td>
-                                        <td data-label="Data Cloud Named Credential">
-                                            <div class="slds-truncate" title="Data Cloud Named Credential" style="width:250px;">
-                                                <lightning-input 
-                                                    type="text" 
-                                                    label="Data Cloud Named Credential" 
-                                                    name="dataCloudNamedCredential"
-                                                    variant="label-hidden"
-                                                    value={setupInfo.dataCloudNamedCredential}
-                                                    onblur={handleDataCloudNamedCredentialChange}
-                                                ></lightning-input>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </template>
-                            </tbody>
+                                            <tr class="slds-hint-parent">
+                                                <td data-label="Salesforce Domain URL">
+                                                    <div class="slds-truncate" title="Salesforce Domain URL" style="width:400px; font-weight: bold; color:dimgray">
+                                                        Salesforce Domain URL
+                                                        <template if:true={helpText_SalesforceDomainUrl}>
+                                                            &nbsp;<lightning-helptext content={helpText_SalesforceDomainUrl}></lightning-helptext>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Salesforce Domain URL">
+                                                    <div class="slds-truncate" title="Salesforce Domain URL" style="width:250px;">
+                                                        <lightning-input 
+                                                            type="text" 
+                                                            label="Salesforce Domain URL" 
+                                                            name="salesforceDomainUrl"
+                                                            variant="label-hidden"
+                                                            value={setupInfo.salesforceDomainUrl}
+                                                            onblur={handleSalesforceDomainUrlChange}
+                                                        ></lightning-input>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr class="slds-hint-parent">
+                                                <td data-label="Salesforce Client Id">
+                                                    <div class="slds-truncate" title="Salesforce Client Id" style="width:400px; font-weight: bold; color:dimgray">
+                                                        Salesforce Client Id
+                                                        <template if:true={helpText_SalesforceClientId}>
+                                                            &nbsp;<lightning-helptext content={helpText_SalesforceClientId}></lightning-helptext>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Salesforce Client Id">
+                                                    <div class="slds-truncate" title="Salesforce Client Id" style="width:250px;">
+                                                        <lightning-input 
+                                                            type="text" 
+                                                            label="Salesforce Client Id" 
+                                                            name="salesforceClientId"
+                                                            variant="label-hidden"
+                                                            value={setupInfo.salesforceClientId}
+                                                            onblur={handleSalesforceClientIdChange}
+                                                        ></lightning-input>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr class="slds-hint-parent">
+                                                <td data-label="Salesforce Admin User Name">
+                                                    <div class="slds-truncate" title="Salesforce Admin User Name" style="width:400px; font-weight: bold; color:dimgray">
+                                                        Salesforce Admin User Name
+                                                        <template if:true={helpText_SalesforceAdminEmail}>
+                                                            &nbsp;<lightning-helptext content={helpText_SalesforceAdminEmail}></lightning-helptext>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Salesforce Admin User Name">
+                                                    <div class="slds-truncate" title="Salesforce Admin User Name" style="width:250px;">
+                                                        <lightning-input 
+                                                            type="text" 
+                                                            label="Salesforce Admin User Name" 
+                                                            name="salesforceAdminEmail"
+                                                            variant="label-hidden"
+                                                            value={setupInfo.salesforceAdminEmail}
+                                                            onblur={handleSalesforceAdminEmailChange}
+                                                        ></lightning-input>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr class="slds-hint-parent">
+                                                <td data-label="Salesforce Private Key File Id">
+                                                    <div class="slds-truncate" title="Salesforce Private Key File Id" style="width:400px; font-weight: bold; color:dimgray">
+                                                        Salesforce Private Key File Id
+                                                        <template if:true={helpText_SalesforcePrivateKeyFileId}>
+                                                            &nbsp;<lightning-helptext content={helpText_SalesforcePrivateKeyFileId}></lightning-helptext>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Salesforce Private Key File Id">
+                                                    <div class="slds-truncate" title="Salesforce Private Key File Id" style="width:250px;">
+                                                        <lightning-input 
+                                                            type="text" 
+                                                            label="Salesforce Private Key File Id" 
+                                                            name="salesforcePrivateKeyFileId"
+                                                            variant="label-hidden"
+                                                            value={setupInfo.salesforcePrivateKeyFileId}
+                                                            onblur={handleSalesforcePrivatekeyFileIdChange}
+                                                        ></lightning-input>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr class="slds-hint-parent">
+                                                <td data-label="Salesforce Auth Named Credential">
+                                                    <div class="slds-truncate" title="Salesforce Auth Named Credential" style="width:400px; font-weight: bold; color:dimgray">
+                                                        Salesforce Auth Named Credential
+                                                        <template if:true={helpText_SalesforceAuthNamedCredential}>
+                                                            &nbsp;<lightning-helptext content={helpText_SalesforceAuthNamedCredential}></lightning-helptext>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Salesforce Auth Named Credential">
+                                                    <div class="slds-truncate" title="Salesforce Auth Named Credential" style="width:250px;">
+                                                        <lightning-input 
+                                                            type="text" 
+                                                            label="Salesforce Auth Named Credential" 
+                                                            name="salesforceAuthNamedCredential"
+                                                            variant="label-hidden"
+                                                            value={setupInfo.salesforceAuthNamedCredential}
+                                                            onblur={handleSalesforceAuthNamedCredentialChange}
+                                                        ></lightning-input>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr class="slds-hint-parent">
+                                                <td data-label="Data Cloud Named Credential">
+                                                    <div class="slds-truncate" title="Data Cloud Named Credential" style="width:400px; font-weight: bold; color:dimgray">
+                                                        Data Cloud Named Credential
+                                                        <template if:true={helpText_DataCloudNamedCredential}>
+                                                            &nbsp;<lightning-helptext content={helpText_DataCloudNamedCredential}></lightning-helptext>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                                <td data-label="Data Cloud Named Credential">
+                                                    <div class="slds-truncate" title="Data Cloud Named Credential" style="width:250px;">
+                                                        <lightning-input 
+                                                            type="text" 
+                                                            label="Data Cloud Named Credential" 
+                                                            name="dataCloudNamedCredential"
+                                                            variant="label-hidden"
+                                                            value={setupInfo.dataCloudNamedCredential}
+                                                            onblur={handleDataCloudNamedCredentialChange}
+                                                        ></lightning-input>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </template>
+                        </tbody>
                         </table>
-                    </lightning-tab>
-
-                    <lightning-tab label="Voice Configuration" value="3" onactive={handleActiveTab}>
-                        <c-a-i-voice-configuration-component></c-a-i-voice-configuration-component>
                     </lightning-tab>
 
                     <lightning-tab label="Workspace Sync" value="4" onactive={handleActiveTab}>
                         <c-ai-workspace-sync-settings></c-ai-workspace-sync-settings>
                     </lightning-tab>
 
-                    <lightning-tab label="Licenses" value="5" onactive={handleActiveTab}>
+                    <lightning-tab label="Data Retention" value="5" onactive={handleActiveTab}>
+                        <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
+                            <tbody>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Status">
+                                        <div class="slds-truncate" title="Status" style="width:400px; font-weight: bold; color:dimgray">Status</div>
+                                    </td>
+                                    <td data-label="Status">
+                                        <div class="slds-truncate" title="Status" style="width:250px;">
+                                            <lightning-input 
+                                                type="toggle" 
+                                                label="Status" 
+                                                name="status" 
+                                                message-toggle-active="Active" 
+                                                message-toggle-inactive="Inactive" 
+                                                variant="label-hidden"
+                                                checked={setupInfo.status}
+                                                onchange={handleStatusChange}
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Delete Security Records After (Days)">
+                                        <div class="slds-truncate" title="Delete Security Records After (Days)" style="width:400px; font-weight: bold; color:dimgray">Delete Security Records After (Days)</div>
+                                    </td>
+                                    <td data-label="Delete Security Records After (Days)">
+                                        <div class="slds-truncate" title="Delete Security Records After (Days)" style="width:250px;">
+                                            <lightning-input 
+                                                type="number" 
+                                                name="noOfDays" 
+                                                label="Delete Security Records After (Days)"
+                                                value={setupInfo.noOfDays}
+                                                onblur={handleDaysUpdate}
+                                                variant="label-hidden"
+                                            ></lightning-input>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Where Clause">
+                                        <div class="slds-truncate" title="Where Clause" style="width:400px; font-weight: bold; color:dimgray">Where Clause</div>
+                                    </td>
+                                    <td data-label="Where Clause" style="display:flex;">
+                                        
+                                        <div class="slds-truncate" title="Where Clause" style="width:250px;">
+                                            <lightning-input 
+                                                name="whereClause" 
+                                                label="Where Clause"
+                                                value={setupInfo.whereClause}
+                                                onblur={handleWhereClauseChange}
+                                                variant="label-hidden"
+                                            ></lightning-input>
+                                                        
+                                        </div>
+
+                                        <lightning-button-icon style="padding-left:5px"
+                                                            icon-name="utility:edit"  
+                                                            alternative-text="Edit" 
+                                                            title="Edit" 
+                                                            onclick={handleOpenVisibilityCondition}
+                                                        ></lightning-button-icon>
+                                    </td>
+                                        
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Total Records Purged">
+                                        <div class="slds-truncate" title="Total Records Purged" style="width:400px; font-weight: bold; color:dimgray">Total Records Purged</div>
+                                    </td>
+                                    <td data-label="Total Records Purged">
+                                        <div class="slds-truncate" title="Total Records Purged" style="width:250px;">{setupInfo.recordsPurged} Records</div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Last Ran (Date/Time)">
+                                        <div class="slds-truncate" title="Last Ran (Date/Time)" style="width:400px; font-weight: bold; color:dimgray">Last Ran (Date/Time)</div>
+                                    </td>
+                                    <td data-label="Last Ran (Date/Time)">
+                                        <div class="slds-truncate" title="Last Ran (Date/Time)" style="width:250px;">
+                                            <lightning-formatted-date-time 
+                                                value={setupInfo.lastRunDateTime} 
+                                                year="numeric" 
+                                                month="numeric" 
+                                                day="numeric" 
+                                                hour="2-digit"
+                                                minute="2-digit" 
+                                                time-zone-name="short"
+                                            ></lightning-formatted-date-time>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="slds-hint-parent">
+                                    <td data-label="Next Run (Date/Time)">
+                                        <div class="slds-truncate" title="Next Run (Date/Time)" style="width:400px; font-weight: bold; color:dimgray">Next Run (Date/Time)</div>
+                                    </td>
+                                    <td data-label="Next Run (Date/Time)">
+                                        <div class="slds-truncate" title="Next Run (Date/Time)" style="width:250px;">
+                                            <lightning-formatted-date-time 
+                                                value={setupInfo.nextFireTime} 
+                                                year="numeric" 
+                                                month="numeric" 
+                                                day="numeric" 
+                                                hour="2-digit"
+                                                minute="2-digit" 
+                                                time-zone-name="short"
+                                            ></lightning-formatted-date-time>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </lightning-tab>
+
+                    <lightning-tab label="Licenses" value="6" onactive={handleActiveTab}>
                         <c-a-i-license-manager-component></c-a-i-license-manager-component>
                     </lightning-tab>
 

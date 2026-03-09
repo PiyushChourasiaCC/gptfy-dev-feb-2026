@@ -15,6 +15,7 @@ import gptfyLogo from '@salesforce/resourceUrl/gptfylogo';
 
 export default class aiTaskSelector extends NavigationMixin(LightningElement) {
     @api recordId;
+    @api selectedProvider = 'MICROSOFT_GRAPH'; // Provider passed from parent
 
     @track tasks = [];
     @track taskLists = [];
@@ -25,7 +26,6 @@ export default class aiTaskSelector extends NavigationMixin(LightningElement) {
     @track selectedList = 'all';
     @track selectedFilter = 'pending'; // pending, all, completed
     @track searchKey = '';
-    @track selectedProvider = 'MICROSOFT_GRAPH'; // 'GOOGLE_TASKS' or 'MICROSOFT_GRAPH'
     @track namespace = ''; // Package namespace for navigation URLs
     
     // Provider settings from org configuration
@@ -714,6 +714,11 @@ export default class aiTaskSelector extends NavigationMixin(LightningElement) {
     get completedFilterClass() {
         return this.selectedFilter === 'completed' ? 'active' : '';
     }
+    
+    // Filter active state for showing counts
+    get isPendingFilter() { return this.selectedFilter === 'pending'; }
+    get isAllFilter() { return this.selectedFilter === 'all'; }
+    get isCompletedFilter() { return this.selectedFilter === 'completed'; }
 
     get listOptions() {
         const options = [{ label: 'All Lists', value: 'all' }];

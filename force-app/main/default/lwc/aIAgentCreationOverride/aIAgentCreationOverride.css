@@ -229,6 +229,92 @@
     min-width: 0;
 }
 
+/* Intent Section */
+.intent-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.intent-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.5rem 0.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+}
+
+.intent-row:last-child {
+    border-bottom: none;
+}
+
+.intent-row:hover {
+    background-color: #f3f3f3;
+    border-radius: 0.25rem;
+}
+
+.intent-row-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.intent-active-icon {
+    flex-shrink: 0;
+}
+
+.intent-inactive-placeholder {
+    width: 1rem;
+    flex-shrink: 0;
+}
+
+.intent-name {
+    color: #0176d3;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.intent-name:hover {
+    text-decoration: underline;
+    color: #014486;
+}
+
+.intent-sequence {
+    color: #706e6b;
+    font-size: 0.75rem;
+    background-color: #f0f0f0;
+    padding: 0.0625rem 0.375rem;
+    border-radius: 0.25rem;
+    flex-shrink: 0;
+}
+
+.intent-description {
+    color: #706e6b;
+    font-size: 0.8125rem;
+    padding-left: 1.5rem;
+    max-width: 100%;
+}
+
+.intent-view-all {
+    text-align: center;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f0f0f0;
+    margin-top: 0.25rem;
+}
+
+.view-all-link {
+    color: #0176d3;
+    text-decoration: none;
+    font-size: 0.8125rem;
+}
+
+.view-all-link:hover {
+    text-decoration: underline;
+    color: #014486;
+}
+
 /* Dual Listbox Customization */
 lightning-dual-listbox {
     display: block;

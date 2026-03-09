@@ -11,6 +11,7 @@ import gptfyLogo from '@salesforce/resourceUrl/gptfylogo';
 
 export default class aiCalendarEventSelector extends NavigationMixin(LightningElement) {
     @api recordId;
+    @api selectedProvider = 'MICROSOFT_CALENDAR'; // Provider passed from parent
 
     @track events = [];
     @track isLoading = true;
@@ -18,7 +19,6 @@ export default class aiCalendarEventSelector extends NavigationMixin(LightningEl
     @track isCalendarAccessible = false;
     @track calendarEmail = '';
     @track selectedRange = 'thisWeek';
-    @track selectedProvider = 'MICROSOFT_CALENDAR'; // Default to Outlook
     @track namespace = ''; // Package namespace for navigation URLs
     
     // Provider settings from org configuration
@@ -792,6 +792,13 @@ export default class aiCalendarEventSelector extends NavigationMixin(LightningEl
     get allEventsFilterClass() {
         return this.selectedRange === 'allEvents' ? 'active' : '';
     }
+    
+    // Filter active state for showing counts
+    get isPast7DaysFilter() { return this.selectedRange === 'past7Days'; }
+    get isThisWeekFilter() { return this.selectedRange === 'thisWeek'; }
+    get isNextWeekFilter() { return this.selectedRange === 'nextWeek'; }
+    get isThisMonthFilter() { return this.selectedRange === 'thisMonth'; }
+    get isAllEventsFilter() { return this.selectedRange === 'allEvents'; }
 
     // Keep old getters for backwards compatibility
     get past7DaysVariant() {

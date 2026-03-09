@@ -21,6 +21,7 @@ import saveAgent from '@salesforce/apex/AIAgentCreationOverrideController.saveAg
 import updateAgentName from '@salesforce/apex/AIAgentCreationOverrideController.updateAgentName';
 import deleteAgent from '@salesforce/apex/AIAgentCreationOverrideController.deleteAgent';
 import getNamespace from '@salesforce/apex/AIAgentCreationOverrideController.getNamespace';
+import getAgentIntents from '@salesforce/apex/AIAgentCreationOverrideController.getAgentIntents';
 
 // Import Schema for AI_Agent__c object
 import AI_AGENT_OBJECT from '@salesforce/schema/AI_Agent__c';
@@ -65,6 +66,7 @@ export default class AIAgentCreationOverride extends NavigationMixin(LightningEl
         @track selectedPermissionSets = [];
         @track selectedChannels = [];
         @track currentSkills = []; // Store skill details for display
+        @track agentIntents = []; // Store intent list for display
         
         // Original selections for cancel
         originalSelectedSkills = [];
@@ -227,6 +229,23 @@ export default class AIAgentCreationOverride extends NavigationMixin(LightningEl
             return this.agentData.ttl && this.agentData.ttl > 0;
         }
         
+        // Intent computed properties
+        get intentsToShow() {
+            return this.agentIntents ? this.agentIntents.slice(0, 6) : [];
+        }
+        
+        get totalIntentCount() {
+            return this.agentIntents ? this.agentIntents.length : 0;
+        }
+        
+        get showViewAllLink() {
+            return this.totalIntentCount > 6;
+        }
+        
+        get hasIntents() {
+            return this.totalIntentCount > 0;
+        }
+        
         
         async loadAllData() {
             this.isLoading = true;
@@ -241,8 +260,11 @@ export default class AIAgentCreationOverride extends NavigationMixin(LightningEl
                     this.loadPermissionSetOptions()
                 ]);
                 
-                // Load agent data
-                await this.loadAgentData();
+                // Load agent data and intents
+                await Promise.all([
+                    this.loadAgentData(),
+                    this.loadAgentIntents()
+                ]);
                 
             } catch (error) {
                 this.showToast('Error', 'Failed to load data: ' + this.getErrorMessage(error), 'error');
@@ -324,6 +346,15 @@ export default class AIAgentCreationOverride extends NavigationMixin(LightningEl
                 this.permissionSetOptions = await getPermissionSetOptions();
             } catch (error) {
                 throw error;
+            }
+        }
+        
+        async loadAgentIntents() {
+            try {
+                this.agentIntents = await getAgentIntents({ agentId: this.recordId });
+            } catch (error) {
+                // Silent fail - intents are optional
+                this.agentIntents = [];
             }
         }
         
@@ -620,6 +651,46 @@ export default class AIAgentCreationOverride extends NavigationMixin(LightningEl
         // Advanced settings toggle handler
         handleAdvancedSettingsToggle() {
             this.isAdvancedSettingsExpanded = !this.isAdvancedSettingsExpanded;
+        }
+        
+        // Intent navigation handlers
+        handleNewIntent() {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__objectPage',
+                attributes: {
+                    objectApiName: 'AI_Agent_Intent__c',
+                    actionName: 'new'
+                },
+                state: {
+                    defaultFieldValues: `Agent__c=${this.recordId}`
+                }
+            });
+        }
+        
+        handleIntentClick(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const intentId = event.currentTarget.dataset.intentId;
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: intentId,
+                    objectApiName: 'AI_Agent_Intent__c',
+                    actionName: 'view'
+                }
+            });
+        }
+        
+        handleViewAllIntents() {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordRelationshipPage',
+                attributes: {
+                    recordId: this.recordId,
+                    objectApiName: 'AI_Agent__c',
+                    relationshipApiName: 'AI_Agent_Intents__r',
+                    actionName: 'view'
+                }
+            });
         }
         
         // Agent name inline editing handlers

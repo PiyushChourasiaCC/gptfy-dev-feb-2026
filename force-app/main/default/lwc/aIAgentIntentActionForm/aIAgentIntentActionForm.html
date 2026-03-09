@@ -50,21 +50,23 @@
                         </lightning-textarea>
                     </div>
 
-                    <div class="slds-grid slds-gutters slds-m-top_small">
-                        <div class="slds-col slds-size_1-of-2">
-                            <lightning-input
-                                type="number"
-                                label="Sequence"
-                                value={action.sequence}
-                                onchange={handleSequenceChange}
-                                min="0"
-                                max="999">
-                            </lightning-input>
-                        </div>
-                        <div class="slds-col slds-size_1-of-2 toggle-cell">
+                    <div class="slds-m-top_small">
+                        <lightning-input
+                            type="number"
+                            label="Sequence"
+                            value={action.sequence}
+                            onchange={handleSequenceChange}
+                            min="0"
+                            max="999">
+                        </lightning-input>
+                    </div>
+                    <div class="slds-m-top_small">
+                        <label class="slds-form-element__label">Active</label>
+                        <div class="slds-m-top_xx-small">
                             <lightning-input
                                 type="toggle"
-                                label="Active"
+                                label=""
+                                variant="label-hidden"
                                 checked={action.isActive}
                                 onchange={handleActiveChange}
                                 message-toggle-active="Active"
@@ -119,17 +121,95 @@
                                 onchange={handleObjectNameChange}
                                 required>
                             </lightning-combobox>
-                            <template if:true={fieldOptions.length}>
+
+                            <!-- Field Mappings Table -->
+                            <template if:true={action.objectName}>
                                 <div class="slds-m-top_small">
-                                    <lightning-combobox
-                                        name="fieldApiName"
-                                        label="Field"
-                                        value={action.fieldApiName}
-                                        placeholder="Select Field"
-                                        options={fieldOptions}
-                                        onchange={handleFieldApiNameChange}
-                                        required>
-                                    </lightning-combobox>
+                                    <div class="slds-grid slds-grid_align-spread slds-m-bottom_x-small">
+                                        <h3 class="slds-text-heading_x-small">Field Mappings</h3>
+                                        <lightning-button-icon
+                                            icon-name="utility:add"
+                                            alternative-text="Add Field Mapping"
+                                            title="Add Field Mapping"
+                                            onclick={handleAddFieldMapping}
+                                            size="small">
+                                        </lightning-button-icon>
+                                    </div>
+
+                                    <template if:true={hasFieldMappings}>
+                                        <template for:each={fieldMappingsWithIndex} for:item="mapping">
+                                            <div key={mapping._key} class="slds-box slds-box_x-small slds-m-bottom_x-small mapping-row">
+                                                <div class="slds-grid slds-gutters slds-grid_vertical-align-end">
+                                                    <!-- Field Picker -->
+                                                    <div class="slds-col slds-size_3-of-12">
+                                                        <lightning-combobox
+                                                            name="fieldApiName"
+                                                            label="Field"
+                                                            value={mapping.fieldApiName}
+                                                            placeholder="Select Field"
+                                                            options={fieldOptions}
+                                                            onchange={handleMappingFieldChange}
+                                                            data-index={mapping._index}
+                                                            required>
+                                                        </lightning-combobox>
+                                                    </div>
+                                                    <!-- Type Picker -->
+                                                    <div class="slds-col slds-size_3-of-12">
+                                                        <lightning-combobox
+                                                            name="type"
+                                                            label="Type"
+                                                            value={mapping.type}
+                                                            placeholder="Select Type"
+                                                            options={mappingTypeOptions}
+                                                            onchange={handleMappingTypeChange}
+                                                            data-index={mapping._index}
+                                                            required>
+                                                        </lightning-combobox>
+                                                    </div>
+                                                    <!-- Value / Description -->
+                                                    <div class="slds-col slds-size_5-of-12">
+                                                        <template if:true={mapping._isHardcoded}>
+                                                            <lightning-input
+                                                                type="text"
+                                                                label="Value"
+                                                                value={mapping.value}
+                                                                placeholder="e.g. Chat, {UserId}, {TODAY}"
+                                                                onchange={handleMappingValueChange}
+                                                                data-index={mapping._index}>
+                                                            </lightning-input>
+                                                        </template>
+                                                        <template if:false={mapping._isHardcoded}>
+                                                            <lightning-textarea
+                                                                label="AI Description"
+                                                                value={mapping.value}
+                                                                placeholder="Tell the AI what to extract for this field"
+                                                                onchange={handleMappingValueChange}
+                                                                data-index={mapping._index}
+                                                                rows="1">
+                                                            </lightning-textarea>
+                                                        </template>
+                                                    </div>
+                                                    <!-- Delete -->
+                                                    <div class="slds-col slds-size_1-of-12 slds-text-align_center">
+                                                        <lightning-button-icon
+                                                            icon-name="utility:delete"
+                                                            alternative-text="Remove"
+                                                            variant="bare"
+                                                            onclick={handleRemoveFieldMapping}
+                                                            data-index={mapping._index}
+                                                            class="slds-m-top_medium">
+                                                        </lightning-button-icon>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </template>
+
+                                    <template if:false={hasFieldMappings}>
+                                        <div class="slds-text-align_center slds-p-around_small slds-text-color_weak">
+                                            <p>No field mappings yet. Click <strong>+</strong> to add one.</p>
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
                         </div>

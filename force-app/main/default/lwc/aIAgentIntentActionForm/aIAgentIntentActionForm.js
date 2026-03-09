@@ -193,8 +193,8 @@ export default class AIAgentIntentActionForm extends LightningElement {
         if (objName) {
             this.loadFieldOptions(objName);
         }
-        // Reset field mappings when object changes for Create Record
-        if (this.isCreateRecordAction) {
+        // Reset field mappings when object changes for Create Record / Update Field
+        if (this.isCreateRecordAction || this.isUpdateFieldAction) {
             this.action = { ...this.action, fieldMappings: [] };
         }
     }
@@ -203,7 +203,7 @@ export default class AIAgentIntentActionForm extends LightningElement {
         this.action = { ...this.action, fieldApiName: event.detail.value };
     }
 
-    // ─── Field Mapping handlers (Create Record) ───────────────
+    // ─── Field Mapping handlers (Create Record / Update Field) ─
 
     get mappingTypeOptions() {
         return [
@@ -423,9 +423,24 @@ export default class AIAgentIntentActionForm extends LightningElement {
                     this.setError('Object Name is required for Update Field.');
                     return false;
                 }
-                if (!this.action.fieldApiName) {
-                    this.setError('Field API Name is required for Update Field.');
+                if (!this.action.fieldMappings || this.action.fieldMappings.length === 0) {
+                    this.setError('At least one field mapping is required for Update Field.');
                     return false;
+                }
+                // Validate each mapping row
+                for (const mapping of this.action.fieldMappings) {
+                    if (!mapping.fieldApiName) {
+                        this.setError('Each field mapping must have a Field selected.');
+                        return false;
+                    }
+                    if (!mapping.type) {
+                        this.setError('Each field mapping must have a Type selected.');
+                        return false;
+                    }
+                    if (mapping.type === 'Hardcoded' && (!mapping.value || mapping.value.trim() === '')) {
+                        this.setError('Hardcoded mappings require a Value (field: ' + mapping.fieldApiName + ').');
+                        return false;
+                    }
                 }
                 break;
             case 'Create Record':

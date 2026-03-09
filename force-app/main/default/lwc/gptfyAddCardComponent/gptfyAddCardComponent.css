@@ -1,0 +1,43 @@
+.slds-notify_container {
+    position: fixed;
+    top: 12%;
+    justify-items: center;
+}
+
+.slds-notify_toast {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.5rem 1rem;
+    min-width: 30rem;
+    max-width: 40rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slds-notify__content {
+    flex: 1;
+    padding-right: 1rem;
+}
+
+.slds-notify__content h2 {
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.slds-notify__content p {
+    margin: 0;
+}
+
+.slds-notify__close {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.toast-link {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+.toast-link:hover {
+    color: #ffffff;
+    text-decoration: none;
+}

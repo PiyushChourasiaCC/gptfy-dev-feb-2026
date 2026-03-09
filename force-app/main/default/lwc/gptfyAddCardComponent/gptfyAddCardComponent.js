@@ -4,6 +4,8 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import createCardConfiguration from '@salesforce/apex/AddCardController.createCardConfiguration';
 import updateCardConfiguration from '@salesforce/apex/AddCardController.updateCardConfiguration';
 import deleteCardConfiguration from '@salesforce/apex/AddCardController.deleteCardConfiguration';
+import getCardConfiguration from '@salesforce/apex/AddCardController.getCardConfiguration';
+
 
 import createConnection from '@salesforce/apex/AddCardController.createConnection';
 import createDataSource from '@salesforce/apex/AddCardController.createDataSource';
@@ -20,6 +22,7 @@ export default class GptfyAddCardComponent extends LightningElement {
     @api objectApiName;
     @api fields;
     @api sobj;
+    @track cardAlreadyExists = false;
 
     @api showEditBtn = false;
 
@@ -43,8 +46,23 @@ export default class GptfyAddCardComponent extends LightningElement {
     @track responseMappingId = '';
     @track responseMappingMetadataName = '';
 
+    showCustomToast = false;
+
 
     @track showIconOption = false;
+    @track activeSections = ['information', 'connectionDetails'];
+
+    get aiModelUI(){
+        return this.cardType == 'AMODL';
+    }
+
+    get collapseSectionsConditions(){
+        return this.activeSections;
+    }
+
+    get showEditBtnUI(){
+        return this.showEditBtn;
+    }
 
     get sourceOptions() {
         return [
@@ -70,6 +88,14 @@ export default class GptfyAddCardComponent extends LightningElement {
             this.recId = '';
             this.fetchResponseMapping(this.recId);
             this.fetchRequestMapping(this.recId);
+        }
+
+        if(this.cardType == 'AMODL'){
+            if(this.showEditBtn){
+                this.activeSections = ['connectionDetails'];
+            }else{
+                this.activeSections = ['information'];
+            }
         }
 
         if (this.cardType == 'CTLOG') {
@@ -197,7 +223,27 @@ export default class GptfyAddCardComponent extends LightningElement {
         return true;
     }
 
-    updateRecord = async()=> {
+    updateAndActivateRecord = async()=> {
+        this.showSpinner = true;
+        this.checkValidation()
+             .then((valid)=>{
+                if(valid){
+                    if(this.showEditBtn){
+                        this.updateRecord(true);
+                    }else{
+                        this.createRecord(true);
+                    }
+                }else{
+                    this.showToast('error', 'Error', 'Required fields are missing.');
+                    this.showSpinner = false;
+                }
+            }).catch(error => {
+                this.handleError(error);
+                this.showSpinner = false;
+            });
+    }
+
+    updateRecord = async(isUpdateAndActivate = false)=> {
         this.showSpinner = true;
 
         this.checkValidation()
@@ -224,18 +270,24 @@ export default class GptfyAddCardComponent extends LightningElement {
                                     'Feature__c': this.cardType,
                                     'Id': this.record.Id
                                 };
+                                if(this.cardType == 'AMODL' && this.isUpdateAndActivate === false){
+                                    params['Enabled__c'] = false;
+                                }
                                 updateCardConfiguration({ 'params': params }).then(result => {
                                     setTimeout(() => {
                                         if (result) {
                                             if (this.cardType == 'AMODL') {
-                                                this.handleConnectionCreate();
+                                                this.handleConnectionCreate(isUpdateAndActivate,'updated');
                                             } else if (this.cardType == 'APIDS') {
-                                                this.handleDataSourceCreate();
+                                                this.handleDataSourceCreate('updated');
                                             }
-                                            this.showToast('success', 'Success', 'Card updated successfully.');
-                                            this.handleSuccess();
+                                            // this.showToast('success', 'Success', 'Card updated successfully.');
+                                            
+                                            // if(isUpdateAndActivate === true){
+                                            //     this.handleActivate();
+                                            // }
                                         }
-                                        this.showSpinner = false;
+                                        // this.showSpinner = false;
                                     }, "5000");
                                 }).catch(error => {
                                     this.handleError(error);
@@ -256,7 +308,7 @@ export default class GptfyAddCardComponent extends LightningElement {
 
    
 
-    createRecord = async() => {
+    createRecord = async(isCreateAndActivate = false) => {
 
         this.checkValidation()
              .then((valid)=>{
@@ -287,22 +339,36 @@ export default class GptfyAddCardComponent extends LightningElement {
                                         'Enabled__c': true,
                                         'CardName': this.cardType + '_' + this.name
                                     };
-                                    createCardConfiguration({ 'params': params }).then(result => {
-                                        if (result) {
-                                            if (this.cardType == 'AMODL') {
-                                                this.handleConnectionCreate();
-                                            } else if (this.cardType == 'APIDS') {
-                                                this.handleDataSourceCreate();
+                                    if(this.cardType == 'AMODL' && this.isCreateAndActivate === false){
+                                        params['Enabled__c'] = false;
+                                    }
+
+                                    if(this.cardType == 'AMODL' && this.cardAlreadyExists && this.cardAlreadyExists === true){
+                                         this.handleConnectionCreate(isCreateAndActivate,'updated');
+                                    }else{
+                                        createCardConfiguration({ 'params': params }).then(result => {
+                                            if (result) {
+                                                if (this.cardType == 'AMODL') {
+                                                    this.handleConnectionCreate(isCreateAndActivate,'created');
+                                                } else if (this.cardType == 'APIDS') {
+                                                    this.handleDataSourceCreate('created');
+                                                }
+                                                // if(isCreateAndActivate === true){
+                                                //     this.handleActivate();
+                                                // }
+                                                //this.showToast('success', 'Success', 'Card created successfully.');
+                                                //this.handleSuccess();
                                             }
-                
-                                            this.showToast('success', 'Success', 'Card created successfully.');
-                                            this.handleSuccess();
-                                        }
-                                        this.showSpinner = false;
-                                    }).catch(error => {
-                                        this.handleError(error);
-                                        this.showSpinner = false;
-                                    });
+                                            //this.showSpinner = false;
+                                        }).catch(error => {
+                                            this.handleError(error);
+                                            this.showSpinner = false;
+                                        }); 
+                                    }
+
+
+
+                                    
                                 } else {
                                     this.showToast('error', 'Error', 'Required fields are missing.');
                                     this.showSpinner = false;
@@ -332,7 +398,7 @@ export default class GptfyAddCardComponent extends LightningElement {
             msg = error.body.message;
         }
         console.log('msg: ' + msg);
-        this.showToast('error', 'Error', msg);
+        this.showToastWithLink('error', 'Error', msg);
     }
 
     showToast(variant, title, message) {
@@ -344,12 +410,55 @@ export default class GptfyAddCardComponent extends LightningElement {
         this.dispatchEvent(event);
     }
 
+    openUrl(url){
+        window.open(url, '_blank');
+    }
+
+    showToastWithLink(variant, title, message) {
+        const urlPattern = /(https?:\/\/[^\s]+)/g;
+        const urlMatch = message ? message.match(urlPattern) : null;
+        
+        if (urlMatch && urlMatch.length > 0) {
+            const url = urlMatch[0];
+            const errorMsg = message.replace(url, '').trim();
+            
+            // const event = new ShowToastEvent({
+            //     title: title,
+            //     variant: variant,
+            //     message: errorMsg + ' {0}',
+            //     messageData: [
+            //         {
+            //             url: url,
+            //             label: 'View Details'
+            //         }
+            //     ],
+            //     mode: 'sticky'
+            // });
+            //  this.dispatchEvent(event);
+            this.showCustomButtonToast(url, errorMsg, title);
+        } else {
+            this.showToast(variant, title, message);
+        }
+    }
+
+
+    showCustomButtonToast(url, message, title = 'Error') {
+        this.toastUrl = url;
+        this.toastMessage = message;
+        this.toastTitle = title;
+        this.showCustomToast = true;
+    }
+
+    closeToast() {
+        this.showCustomToast = false;
+    }
+
     handleSuccess() {
         const selectedEvent = new CustomEvent("success");
         this.dispatchEvent(selectedEvent);
     }
 
-    handleConnectionCreate() {
+    handleConnectionCreate(isCreateAndActivate = false,actionMessage = 'created') {
         let params = {};
         params['Name'] = this.name;
         params['Response_Mapping__c'] = this.responseMappingId;
@@ -360,11 +469,18 @@ export default class GptfyAddCardComponent extends LightningElement {
         });
         console.log('params: ' + JSON.stringify(params));
         createConnection({ 'params': params }).then(result => {
+            
             setTimeout(() => {
                 if (result) {
                     console.log('============================== result : ' + JSON.stringify(result));
                 }
-                this.showSpinner = false;
+                if(isCreateAndActivate === true){
+                      this.handleActivate();
+                }else{
+                    this.showToast('success', 'Success', 'Card '+actionMessage+' successfully.');
+                    this.handleSuccess();
+                    this.showSpinner = false;
+                }
             }, "5000");
         }).catch(error => {
             this.handleError(error);
@@ -372,7 +488,12 @@ export default class GptfyAddCardComponent extends LightningElement {
         });
     }
 
-    handleDataSourceCreate() {
+    handleSectionToggle(event) {
+        let openSections = event.detail.openSections;
+        this.activeSections = openSections;
+    }
+
+    handleDataSourceCreate(actionMessage = 'created') {
         let params = {};
         params['Name'] = this.name;
         const inputFields = this.template.querySelectorAll('lightning-input-field');
@@ -383,6 +504,8 @@ export default class GptfyAddCardComponent extends LightningElement {
             setTimeout(() => {
                 if (result) {
                 }
+                this.showToast('success', 'Success', 'Data Source '+actionMessage+' successfully.');
+                this.handleSuccess();
                 this.showSpinner = false;
             }, "5000");
         }).catch(error => {
@@ -413,10 +536,18 @@ export default class GptfyAddCardComponent extends LightningElement {
             params['Name'] = this.name;
             params['Feature'] = this.cardType;
             validateAction({ 'params': params }).then(result => {
-                if (!result) {
+
+
+                if(result && result !== ''){
+                    this.handleError(result);
+                    this.showSpinner = false;
+                    this.cardAlreadyExists = true;
+                }else{
                     this.showToast('success', 'Success', 'Card activated successfully.');
                     this.handleSuccess();
+                    this.showSpinner = false;
                 }
+
             }).catch(error => {
                 this.handleError(error);
                 this.showSpinner = false;
@@ -425,6 +556,8 @@ export default class GptfyAddCardComponent extends LightningElement {
             this.showToast('error', 'Error', 'Required fields are missing.');
         }
     }
+
+    
 
     handleSelectResponseMapping(event) {
         if (event.detail) {

@@ -3,6 +3,11 @@
         class="slds-modal slds-fade-in-open slds-modal_medium">
         <div class="slds-modal__container">
             <div class="slds-modal__header">
+                <button class="slds-button slds-button_icon slds-modal__close" title="Close" onclick={handleCancel}>
+                    <!-- The lightning-icon component is the standard way to display the 'X' icon in LWC -->
+                    <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                    <span class="slds-assistive-text">Close</span>
+                </button>
                 <h1 id="modal-heading-01" class="slds-modal__title slds-hyphenate">{header}</h1>
             </div>
             <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
@@ -18,79 +23,158 @@
                     </div>
                 </template>
                 <template if:false={catalog}>
-                    <lightning-tabset>
-                        <lightning-tab label="Info">
-                            <lightning-layout multiple-rows>
-                                <lightning-layout-item size="6" padding="around-small">
-                                    <lightning-input read-only={showEditBtn} type="text" label={nameFieldLabel} value={name} max-length="30"
-                                        onchange={handleNameChange} required></lightning-input>
-                                </lightning-layout-item>
-                                <lightning-layout-item size="6" padding="around-small">
-                                    <lightning-combobox name="source" label="Icon Source" value={source}
-                                        placeholder="Icon Source" options={sourceOptions} onchange={handleSourceChange}
-                                        required></lightning-combobox>
-                                </lightning-layout-item>
-                                <lightning-layout-item size="6" padding="around-small">
-                                    <template if:true={showIconOption}>
-                                        <lightning-combobox name="icons" label="Icon Details" value={icondetail}
-                                            placeholder="Select Icon" options={iconOption}
-                                            onchange={handleIconDetailChange} required></lightning-combobox>
-                                    </template>
-                                    <template if:false={showIconOption}>
-                                        <lightning-input type="text" label="Icon Details"
-                                            onchange={handleIconDetailChange} value={icondetail}
-                                            required></lightning-input>
-                                    </template>
-                                </lightning-layout-item>
-                                <lightning-layout-item size="6" padding="around-small">
-                                    <lightning-input type="number" name="sequence" label="Sequence"
-                                        onchange={handleSequenceChange} value={sequence} max-length="3"
-                                        required></lightning-input>
-                                </lightning-layout-item>
-                                <lightning-layout-item size="12" padding="around-small">
-                                    <lightning-textarea name="description" label="Description"
-                                        onchange={handleDescriptionChange} value={description} max-length="120"
-                                        required></lightning-textarea>
-                                </lightning-layout-item>
-                            </lightning-layout>
-                        </lightning-tab>
-                        <lightning-tab label={tabName}>
-                            <lightning-record-edit-form object-api-name={objectApiName} record-id={recId}>
+                    <template if:true={aiModelUI}>
+                        <lightning-accordion onsectiontoggle={handleSectionToggle} active-section-name={collapseSectionsConditions}>
+                            <lightning-accordion-section name="information" label="Information">
                                 <lightning-layout multiple-rows>
-                                    <lightning-layout-item size="6">
-                                        <lightning-input-field field-name="Name" value={name} disabled></lightning-input-field>
+                                    <lightning-layout-item size="6" padding="around-small">
+                                        <lightning-input read-only={showEditBtn} type="text" label={nameFieldLabel} value={name} max-length="30"
+                                            onchange={handleNameChange} required></lightning-input>
                                     </lightning-layout-item>
-                                    <template for:each={fields} for:item="item" for:index="i">
-                                        <template if:false={item.hideField}>
-                                            <lightning-layout-item key={item.fieldPath} size="6">
-                                                <lightning-input-field field-name={item.fieldPath} required={item.Required}></lightning-input-field>
-                                            </lightning-layout-item>
+                                    <lightning-layout-item size="6" padding="around-small">
+                                        <lightning-combobox name="source" label="Icon Source" value={source}
+                                            placeholder="Icon Source" options={sourceOptions} onchange={handleSourceChange}
+                                            required></lightning-combobox>
+                                    </lightning-layout-item>
+                                    <lightning-layout-item size="6" padding="around-small">
+                                        <template if:true={showIconOption}>
+                                            <lightning-combobox name="icons" label="Icon Details" value={icondetail}
+                                                placeholder="Select Icon" options={iconOption}
+                                                onchange={handleIconDetailChange} required></lightning-combobox>
                                         </template>
-                                    </template>
-                                    <!--lightning-layout-item size="6" if:true={isConnection} class="slds-p-right_x-small">
-                                        <c-req-mapping-comp 
-                                            name="Request Mapping" 
-                                            lookup-label="Request Mapping" 
-                                            selected-value={requestMapping}
-                                            selected-record-id={requestMappingId}
-                                            onselect={handleSelectRequestMapping}>
-                                            </c-req-mapping-comp>
-                                    </lightning-layout-item-->
-                                    <lightning-layout-item size="6" if:true={isConnection}>
-                                        <c-a-i-custom-lookup-component 
-                                            name="Response Mapping" 
-                                            lookup-label="Response Mapping" 
-                                            object-api-name={responseMappingMetadataName}
-                                            icon-name="standard:bill_of_materials"
-                                            field="Name"
-                                            selected-value={responseMapping}
-                                            selected-record-id={responseMappingId}
-                                            onselect={handleSelectResponseMapping}></c-a-i-custom-lookup-component>
+                                        <template if:false={showIconOption}>
+                                            <lightning-input type="text" label="Icon Details"
+                                                onchange={handleIconDetailChange} value={icondetail}
+                                                required></lightning-input>
+                                        </template>
                                     </lightning-layout-item>
-                                </lightning-layout> 
-                            </lightning-record-edit-form>
-                        </lightning-tab>
-                    </lightning-tabset>
+                                    <lightning-layout-item size="6" padding="around-small">
+                                        <lightning-input type="number" name="sequence" label="Sequence"
+                                            onchange={handleSequenceChange} value={sequence} max-length="3"
+                                            required></lightning-input>
+                                    </lightning-layout-item>
+                                    <lightning-layout-item size="12" padding="around-small">
+                                        <lightning-textarea name="description" label="Description"
+                                            onchange={handleDescriptionChange} value={description} max-length="120"
+                                            required></lightning-textarea>
+                                    </lightning-layout-item>
+                                </lightning-layout>
+                            </lightning-accordion-section>
+                            <lightning-accordion-section name="connectionDetails" label={tabName}>
+                                <lightning-record-edit-form object-api-name={objectApiName} record-id={recId}>
+                                    <lightning-layout multiple-rows>
+                                        <lightning-layout-item size="6">
+                                            <lightning-input-field field-name="Name" value={name} disabled></lightning-input-field>
+                                        </lightning-layout-item>
+                                        <template for:each={fields} for:item="item" for:index="i">
+                                            <template if:false={item.hideField}>
+                                                <lightning-layout-item key={item.fieldPath} size="6">
+                                                    <lightning-input-field field-name={item.fieldPath} required={item.Required}></lightning-input-field>
+                                                </lightning-layout-item>
+                                            </template>
+                                        </template>
+                                        <!--lightning-layout-item size="6" if:true={isConnection} class="slds-p-right_x-small">
+                                            <c-req-mapping-comp 
+                                                name="Request Mapping" 
+                                                lookup-label="Request Mapping" 
+                                                selected-value={requestMapping}
+                                                selected-record-id={requestMappingId}
+                                                onselect={handleSelectRequestMapping}>
+                                                </c-req-mapping-comp>
+                                        </lightning-layout-item-->
+                                        <lightning-layout-item size="6" if:true={isConnection}>
+                                            <c-a-i-custom-lookup-component 
+                                                name="Response Mapping" 
+                                                lookup-label="Response Mapping" 
+                                                object-api-name={responseMappingMetadataName}
+                                                icon-name="standard:bill_of_materials"
+                                                field="Name"
+                                                selected-value={responseMapping}
+                                                selected-record-id={responseMappingId}
+                                                onselect={handleSelectResponseMapping}></c-a-i-custom-lookup-component>
+                                        </lightning-layout-item>
+                                    </lightning-layout> 
+                                </lightning-record-edit-form>
+                            </lightning-accordion-section>
+                        </lightning-accordion>
+                    </template>
+
+                    <template if:false={aiModelUI}>
+                        <lightning-tabset>
+                            <lightning-tab label="Info">
+                                <lightning-layout multiple-rows>
+                                    <lightning-layout-item size="6" padding="around-small">
+                                        <lightning-input read-only={showEditBtn} type="text" label={nameFieldLabel} value={name} max-length="30"
+                                            onchange={handleNameChange} required></lightning-input>
+                                    </lightning-layout-item>
+                                    <lightning-layout-item size="6" padding="around-small">
+                                        <lightning-combobox name="source" label="Icon Source" value={source}
+                                            placeholder="Icon Source" options={sourceOptions} onchange={handleSourceChange}
+                                            required></lightning-combobox>
+                                    </lightning-layout-item>
+                                    <lightning-layout-item size="6" padding="around-small">
+                                        <template if:true={showIconOption}>
+                                            <lightning-combobox name="icons" label="Icon Details" value={icondetail}
+                                                placeholder="Select Icon" options={iconOption}
+                                                onchange={handleIconDetailChange} required></lightning-combobox>
+                                        </template>
+                                        <template if:false={showIconOption}>
+                                            <lightning-input type="text" label="Icon Details"
+                                                onchange={handleIconDetailChange} value={icondetail}
+                                                required></lightning-input>
+                                        </template>
+                                    </lightning-layout-item>
+                                    <lightning-layout-item size="6" padding="around-small">
+                                        <lightning-input type="number" name="sequence" label="Sequence"
+                                            onchange={handleSequenceChange} value={sequence} max-length="3"
+                                            required></lightning-input>
+                                    </lightning-layout-item>
+                                    <lightning-layout-item size="12" padding="around-small">
+                                        <lightning-textarea name="description" label="Description"
+                                            onchange={handleDescriptionChange} value={description} max-length="120"
+                                            required></lightning-textarea>
+                                    </lightning-layout-item>
+                                </lightning-layout>
+                            </lightning-tab>
+                            <lightning-tab label={tabName}>
+                                <lightning-record-edit-form object-api-name={objectApiName} record-id={recId}>
+                                    <lightning-layout multiple-rows>
+                                        <lightning-layout-item size="6">
+                                            <lightning-input-field field-name="Name" value={name} disabled></lightning-input-field>
+                                        </lightning-layout-item>
+                                        <template for:each={fields} for:item="item" for:index="i">
+                                            <template if:false={item.hideField}>
+                                                <lightning-layout-item key={item.fieldPath} size="6">
+                                                    <lightning-input-field field-name={item.fieldPath} required={item.Required}></lightning-input-field>
+                                                </lightning-layout-item>
+                                            </template>
+                                        </template>
+                                        <!--lightning-layout-item size="6" if:true={isConnection} class="slds-p-right_x-small">
+                                            <c-req-mapping-comp 
+                                                name="Request Mapping" 
+                                                lookup-label="Request Mapping" 
+                                                selected-value={requestMapping}
+                                                selected-record-id={requestMappingId}
+                                                onselect={handleSelectRequestMapping}>
+                                                </c-req-mapping-comp>
+                                        </lightning-layout-item-->
+                                        <lightning-layout-item size="6" if:true={isConnection}>
+                                            <c-a-i-custom-lookup-component 
+                                                name="Response Mapping" 
+                                                lookup-label="Response Mapping" 
+                                                object-api-name={responseMappingMetadataName}
+                                                icon-name="standard:bill_of_materials"
+                                                field="Name"
+                                                selected-value={responseMapping}
+                                                selected-record-id={responseMappingId}
+                                                onselect={handleSelectResponseMapping}></c-a-i-custom-lookup-component>
+                                        </lightning-layout-item>
+                                    </lightning-layout> 
+                                </lightning-record-edit-form>
+                            </lightning-tab>
+                        </lightning-tabset>
+                    </template>
+                    
                 </template>
                 <template if:true={catalog}>
                     <lightning-layout multiple-rows>
@@ -128,20 +212,66 @@
                 </template>
             </div>
             <div class="slds-modal__footer slds-text-align_center">
-                <button class="slds-button slds-button_neutral" aria-label="Cancel and close"
-                    onclick={handleCancel}>Cancel</button>
-                <template if:true={showEditBtn}>
-                    <button class="slds-button slds-button_brand" name="update" onclick={updateRecord}>Save</button>
-                    <!--<template if:true={catalog}>-->
+                <template if:true={aiModelUI}>
+                    <template if:true={showEditBtnUI}>
                         <button class="slds-button slds-button_brand" onclick={deleteMetadataRecord}>Delete</button>
-                    <!--</template>-->
+                        <button class="slds-button slds-button_neutral" aria-label="Cancel and close"
+                         onclick={handleCancel}>Cancel</button>
+                        <button class="slds-button slds-button_brand" name="update" onclick={updateRecord}>Save &amp; Close</button>
+                    
+                        <!--<template if:true={catalog}>-->
+                        <!--</template>-->
+                    </template>
+                    <template if:false={showEditBtnUI}>
+                        <button class="slds-button slds-button_neutral" aria-label="Cancel and close"
+                                 onclick={handleCancel}>Cancel</button>
+                        <button class="slds-button slds-button_brand" name="save" onclick={createRecord}>Save &amp; Close</button>
+                    
+                    </template>
+                    <button class="slds-button slds-button_brand" name="update" onclick={updateAndActivateRecord}>Save &amp; Activate</button>
+                    <!-- <template if:false={catalog}>
+                        <button class="slds-button slds-button_brand" onclick={handleActivate}>Activate</button>
+                    </template> -->
                 </template>
-                <template if:false={showEditBtn}>
-                    <button class="slds-button slds-button_brand" name="save" onclick={createRecord}>Save</button>
+
+                <template if:false={aiModelUI}>
+                    <button class="slds-button slds-button_neutral" aria-label="Cancel and close"
+                        onclick={handleCancel}>Cancel</button>
+                    <template if:true={showEditBtn}>
+                        <button class="slds-button slds-button_brand" name="update" onclick={updateRecord}>Save</button>
+                        <!--<template if:true={catalog}>-->
+                            <button class="slds-button slds-button_brand" onclick={deleteMetadataRecord}>Delete</button>
+                        <!--</template>-->
+                    </template>
+                    <template if:false={showEditBtn}>
+                        <button class="slds-button slds-button_brand" name="save" onclick={createRecord}>Save</button>
+                    </template>
+                    <template if:false={catalog}>
+                        <button class="slds-button slds-button_brand" onclick={handleActivate}>Activate</button>
+                    </template>
                 </template>
-                <template if:false={catalog}>
-                    <button class="slds-button slds-button_brand" onclick={handleActivate}>Activate</button>
+
+                <template if:true={showCustomToast}>
+                    <div class="slds-notify_container slds-is-fixed">
+                        <div class="slds-notify slds-notify_toast slds-theme_error" role="status">
+                            <span class="slds-assistive-text">error</span>
+                            <span class="slds-icon_container slds-icon-utility-error slds-m-right_small slds-no-flex slds-align-top">
+                                <lightning-icon icon-name="utility:error" alternative-text="error" variant="inverse" size="small"></lightning-icon>
+                            </span>
+                            <div class="slds-notify__content">
+                                <h2 class="slds-text-heading_small">{toastTitle}</h2>
+                                <p>{toastMessage} <a href={toastUrl} target="_blank" rel="noopener noreferrer" class="toast-link">View Details</a></p>
+                            </div>
+                            <div class="slds-notify__close">
+                                <button class="slds-button slds-button_icon slds-button_icon-inverse" title="Close" onclick={closeToast}>
+                                    <lightning-icon icon-name="utility:close" alternative-text="Close" variant="inverse" size="small"></lightning-icon>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </template>
+
+               
             </div>
         </div>
     </section>

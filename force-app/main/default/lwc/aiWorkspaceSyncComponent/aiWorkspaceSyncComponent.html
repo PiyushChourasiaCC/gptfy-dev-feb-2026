@@ -1,0 +1,79 @@
+<template>
+    <div class="workspace-container">
+        <!-- Left Navigation Panel -->
+        <div class="left-nav-panel">
+            <!-- Logo at Top -->
+            <div class="nav-logo">
+                <img src={logoUrl} alt="GPTfy" class="gptfy-logo-nav" />
+            </div>
+
+            <div class="nav-items">
+                <!-- Email Button -->
+                <button class={emailButtonClass} onclick={handleEmailClick} title="Email Sync">
+                    <lightning-icon icon-name="utility:email" size="medium" alternative-text="Email"></lightning-icon>
+                    <span class="nav-label">Email</span>
+                </button>
+
+                <!-- Task Button -->
+                <button class={taskButtonClass} onclick={handleTaskClick} title="Task Sync">
+                    <lightning-icon icon-name="utility:task" size="small" alternative-text="Tasks"></lightning-icon>
+                    <span class="nav-label">Tasks</span>
+                </button>
+
+                <!-- Calendar Button -->
+                <button class={calendarButtonClass} onclick={handleCalendarClick} title="Calendar Sync">
+                    <lightning-icon icon-name="utility:event" size="small" alternative-text="Calendar"></lightning-icon>
+                    <span class="nav-label">Calendar</span>
+                </button>
+            </div>
+
+            <!-- Settings Button at Bottom -->
+            <div class="nav-settings">
+                <button class="nav-button settings-button" onclick={handleSettingsClick} title="Settings">
+                    <lightning-icon icon-name="utility:settings" size="small" alternative-text="Settings"></lightning-icon>
+                    <span class="nav-label">Settings</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content-area">
+            <!-- Email Component -->
+            <template if:true={isEmailView}>
+                <c-ai-exchange-email-selector selected-provider={emailProvider}></c-ai-exchange-email-selector>
+            </template>
+
+            <!-- Task Component -->
+            <template if:true={isTaskView}>
+                <c-ai-task-selector selected-provider={taskProvider}></c-ai-task-selector>
+            </template>
+
+            <!-- Calendar Component -->
+            <template if:true={isCalendarView}>
+                <c-ai-calendar-event-selector selected-provider={calendarProvider}></c-ai-calendar-event-selector>
+            </template>
+        </div>
+
+        <!-- Settings Modal -->
+        <template if:true={showSettingsModal}>
+            <div class="modal-backdrop" onclick={handleModalBackdropClick}>
+                <div class={modalClass}>
+                    <div class="modal-header">
+                        <h2 class="modal-title">Workspace Authentication</h2>
+                        <button class="close-button" onclick={handleCloseModal} title="Close">
+                            <lightning-icon icon-name="utility:close" size="small" alternative-text="Close"></lightning-icon>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <c-ai-workspace-authenticator
+                            email-provider={emailProvider}
+                            task-provider={taskProvider}
+                            calendar-provider={calendarProvider}
+                            onproviderchange={handleProviderChange}>
+                        </c-ai-workspace-authenticator>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>
