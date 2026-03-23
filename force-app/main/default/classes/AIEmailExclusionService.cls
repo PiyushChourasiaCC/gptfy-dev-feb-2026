@@ -86,7 +86,7 @@ public with sharing class AIEmailExclusionService {
         String userEmail
     ) {
         loadSettings();
-        loadInternalDomains(userEmail);
+        //loadInternalDomains(userEmail);
 
         BatchExclusionResult result = new BatchExclusionResult();
 
@@ -112,39 +112,39 @@ public with sharing class AIEmailExclusionService {
      * @return ExclusionResult with details
      */
     public static ExclusionResult checkExclusion(Map<String, Object> emailData, String providerType) {
-        loadSettings();
+        // loadSettings();
 
-        // Check Marketing exclusion
-        if (settings.Exclude_Marketing__c) {
-            ExclusionResult marketingCheck = checkMarketingExclusion(emailData, providerType);
-            if (marketingCheck.excluded) {
-                return marketingCheck;
-            }
-        }
+        // // Check Marketing exclusion
+        // if (settings.Exclude_Marketing__c) {
+        //     ExclusionResult marketingCheck = checkMarketingExclusion(emailData, providerType);
+        //     if (marketingCheck.excluded) {
+        //         return marketingCheck;
+        //     }
+        // }
 
-        // Check Confidential exclusion
-        if (settings.Exclude_Confidential__c) {
-            ExclusionResult confidentialCheck = checkConfidentialExclusion(emailData, providerType);
-            if (confidentialCheck.excluded) {
-                return confidentialCheck;
-            }
-        }
+        // // Check Confidential exclusion
+        // if (settings.Exclude_Confidential__c) {
+        //     ExclusionResult confidentialCheck = checkConfidentialExclusion(emailData, providerType);
+        //     if (confidentialCheck.excluded) {
+        //         return confidentialCheck;
+        //     }
+        // }
 
-        // Check Internal exclusion
-        if (settings.Exclude_Internal__c) {
-            ExclusionResult internalCheck = checkInternalExclusion(emailData);
-            if (internalCheck.excluded) {
-                return internalCheck;
-            }
-        }
+        // // Check Internal exclusion
+        // if (settings.Exclude_Internal__c) {
+        //     ExclusionResult internalCheck = checkInternalExclusion(emailData);
+        //     if (internalCheck.excluded) {
+        //         return internalCheck;
+        //     }
+        // }
 
-        // Check Public Domain exclusion
-        if (settings.Exclude_Public_Domains__c) {
-            ExclusionResult publicDomainCheck = checkPublicDomainExclusion(emailData);
-            if (publicDomainCheck.excluded) {
-                return publicDomainCheck;
-            }
-        }
+        // // Check Public Domain exclusion
+        // if (settings.Exclude_Public_Domains__c) {
+        //     ExclusionResult publicDomainCheck = checkPublicDomainExclusion(emailData);
+        //     if (publicDomainCheck.excluded) {
+        //         return publicDomainCheck;
+        //     }
+        // }
 
         return new ExclusionResult();
     }
@@ -155,7 +155,7 @@ public with sharing class AIEmailExclusionService {
      * Gmail: labelIds contains 'CATEGORY_PROMOTIONS' or 'CATEGORY_SOCIAL'
      */
     private static ExclusionResult checkMarketingExclusion(Map<String, Object> emailData, String providerType) {
-        if (providerType == 'MICROSOFT_GRAPH') {
+        if (providerType == 'MICROSOFT_EMAIL') {
             // Check Exchange categories (user-assigned categories like "Promotions", "Marketing")
             Object categoriesObj = emailData.get('categories');
             List<Object> categories = (List<Object>) categoriesObj;
@@ -216,7 +216,7 @@ public with sharing class AIEmailExclusionService {
      * Gmail: Check subject/headers for confidentiality markers
      */
     private static ExclusionResult checkConfidentialExclusion(Map<String, Object> emailData, String providerType) {
-        if (providerType == 'MICROSOFT_GRAPH') {
+        if (providerType == 'MICROSOFT_EMAIL') {
             // Check sensitivity field
             String sensitivity = (String) emailData.get('sensitivity');
             if (sensitivity != null) {
@@ -308,14 +308,15 @@ public with sharing class AIEmailExclusionService {
      * Only checks the FROM address - TO/CC are NOT considered for public domain exclusion.
      */
     private static ExclusionResult checkPublicDomainExclusion(Map<String, Object> emailData) {
+        // V2-7889: Public domain check disabled - method not available in AISyncSettingsService
         // Check sender domain only - TO/CC are not considered
-        String fromAddress = getFromAddress(emailData);
-        String senderDomain = String.isNotBlank(fromAddress) ? extractDomain(fromAddress) : null;
-        
-        // If sender domain is a public domain, exclude this email
-        if (String.isNotBlank(senderDomain) && AISyncSettingsService.isPublicDomain(senderDomain)) {
-            return new ExclusionResult(true, 'Public domain email (FROM: ' + fromAddress + ')', 'Public Domains');
-        }
+        // String fromAddress = getFromAddress(emailData);
+        // String senderDomain = String.isNotBlank(fromAddress) ? extractDomain(fromAddress) : null;
+        // 
+        // // If sender domain is a public domain, exclude this email
+        // if (String.isNotBlank(senderDomain) && AISyncSettingsService.isPublicDomain(senderDomain)) {
+        //     return new ExclusionResult(true, 'Public domain email (FROM: ' + fromAddress + ')', 'Public Domains');
+        // }
 
         // Sender is not from a public domain - don't exclude
         return new ExclusionResult();
@@ -372,19 +373,19 @@ public with sharing class AIEmailExclusionService {
      * Load settings from Custom Metadata
      */
     private static void loadSettings() {
-        if (settings == null) {
-            // Use getOrgDefaults() for org-level settings only
-            settings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
+        // if (settings == null) {
+        //     // Use getOrgDefaults() for org-level settings only
+        //     settings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
             
-            if (settings == null || settings.Id == null) {
-                // Create default settings if not configured
-                settings = new AI_Workspace_Sync_Settings__c();
-                settings.Exclude_Marketing__c = true;
-                settings.Exclude_Confidential__c = true;
-                settings.Exclude_Internal__c = true;
-                settings.Exclude_Public_Domains__c = true;
-            }
-        }
+        //     if (settings == null || settings.Id == null) {
+        //         // Create default settings if not configured
+        //         settings = new AI_Workspace_Sync_Settings__c();
+        //         settings.Exclude_Marketing__c = true;
+        //         settings.Exclude_Confidential__c = true;
+        //         settings.Exclude_Internal__c = true;
+        //         settings.Exclude_Public_Domains__c = true;
+        //     }
+        // }
     }
 
     /**
@@ -405,14 +406,14 @@ public with sharing class AIEmailExclusionService {
 
             // Add configured internal domains (admins can add variations if needed)
             // NO REGEX - use simple split by comma
-            if (settings != null && String.isNotBlank(settings.Internal_Domains__c)) {
-                List<String> configuredDomains = splitByComma(settings.Internal_Domains__c);
-                for (String domain : configuredDomains) {
-                    if (String.isNotBlank(domain)) {
-                        internalDomains.add(domain.trim().toLowerCase());
-                    }
-                }
-            }
+            // if (settings != null && String.isNotBlank(settings.Internal_Domains__c)) {
+            //     List<String> configuredDomains = splitByComma(settings.Internal_Domains__c);
+            //     for (String domain : configuredDomains) {
+            //         if (String.isNotBlank(domain)) {
+            //             internalDomains.add(domain.trim().toLowerCase());
+            //         }
+            //     }
+            // }
         }
     }
 

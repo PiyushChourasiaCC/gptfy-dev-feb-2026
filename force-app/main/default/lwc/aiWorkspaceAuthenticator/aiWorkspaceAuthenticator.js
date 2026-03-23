@@ -12,8 +12,8 @@ import setAutoSyncStatus from '@salesforce/apex/AIWorkspaceAuthController.setAut
 import getProviderSettings from '@salesforce/apex/AISyncSettingsService.getProviderSettings';
 
 export default class AiWorkspaceAuthenticator extends LightningElement {
-    @api emailProvider = 'MICROSOFT_GRAPH';
-    @api taskProvider = 'MICROSOFT_GRAPH';
+    @api emailProvider = 'MICROSOFT_EMAIL';
+    @api taskProvider = 'MICROSOFT_TASKS';
     @api calendarProvider = 'MICROSOFT_CALENDAR';
     
     @track selectedWorkspaceProvider = 'microsoft'; // 'microsoft' or 'google'
@@ -66,7 +66,7 @@ export default class AiWorkspaceAuthenticator extends LightningElement {
      */
     initializeSelectedProvider() {
         // Determine workspace provider based on email provider
-        if (this.emailProvider === 'GMAIL' || this.emailProvider === 'GOOGLE_TASKS' || this.emailProvider === 'GOOGLE_CALENDAR') {
+        if (this.emailProvider === 'GMAIL_EMAIL' || this.emailProvider === 'GOOGLE_TASKS' || this.emailProvider === 'GOOGLE_CALENDAR') {
             this.selectedWorkspaceProvider = 'google';
         } else {
             this.selectedWorkspaceProvider = 'microsoft';
@@ -733,10 +733,10 @@ export default class AiWorkspaceAuthenticator extends LightningElement {
         this.selectedWorkspaceProvider = 'microsoft';
         
         this.dispatchEvent(new CustomEvent('providerchange', {
-            detail: { provider: 'MICROSOFT_GRAPH', type: 'email' }
+            detail: { provider: 'MICROSOFT_EMAIL', type: 'email' }
         }));
         this.dispatchEvent(new CustomEvent('providerchange', {
-            detail: { provider: 'MICROSOFT_GRAPH', type: 'task' }
+            detail: { provider: 'MICROSOFT_TASKS', type: 'task' }
         }));
         this.dispatchEvent(new CustomEvent('providerchange', {
             detail: { provider: 'MICROSOFT_CALENDAR', type: 'calendar' }
@@ -750,7 +750,7 @@ export default class AiWorkspaceAuthenticator extends LightningElement {
         this.selectedWorkspaceProvider = 'google';
         
         this.dispatchEvent(new CustomEvent('providerchange', {
-            detail: { provider: 'GMAIL', type: 'email' }
+            detail: { provider: 'GMAIL_EMAIL', type: 'email' }
         }));
         this.dispatchEvent(new CustomEvent('providerchange', {
             detail: { provider: 'GOOGLE_TASKS', type: 'task' }

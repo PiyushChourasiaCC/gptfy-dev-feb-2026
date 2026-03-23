@@ -227,6 +227,7 @@ public with sharing class AIStagingMatcherService {
      * NOTE: User matching is not supported
      * @param emails Set of email addresses to match
      * @return EmailMatchCache with mappings
+     * V2-7889: Added debug logging for troubleshooting
      */
     public static EmailMatchCache buildEmailMatchCache(Set<String> emails) {
         EmailMatchCache cache = new EmailMatchCache();
@@ -246,9 +247,7 @@ public with sharing class AIStagingMatcherService {
                 
                 // Extract domain for Account matching
                 String domain = extractDomain(normalized);
-                if (String.isNotBlank(domain) && !isPublicEmailDomain(domain)) {
-                    domains.add(domain);
-                }
+                domains.add(domain);
             }
         }
         
@@ -258,19 +257,19 @@ public with sharing class AIStagingMatcherService {
         
         // Query Leads
         try {
-            for (Lead l : [
+            List<Lead> leads = [
                 SELECT Id, Email 
                 FROM Lead 
                 WHERE Email IN :normalizedEmails 
                 AND IsConverted = false
-                WITH USER_MODE
-            ]) {
+            ];
+            for (Lead l : leads) {
                 if (String.isNotBlank(l.Email)) {
                     cache.emailToLeadId.put(l.Email.toLowerCase(), l.Id);
                 }
             }
         } catch (Exception e) {
-            //ignore
+            
         }
         
         // Query Contacts (with AccountId to check if Contact has an Account)
@@ -280,9 +279,7 @@ public with sharing class AIStagingMatcherService {
                 SELECT Id, Email, AccountId
                 FROM Contact 
                 WHERE Email IN :normalizedEmails
-                WITH USER_MODE
             ];
-            
             
             for (Contact c : contacts) {
                 if (String.isNotBlank(c.Email)) {
@@ -293,7 +290,7 @@ public with sharing class AIStagingMatcherService {
                 }
             }
         } catch (Exception e) {
-            //ignore
+            
         }
         
         // Store Contact->Account mapping in cache for precedence logic
@@ -523,7 +520,7 @@ public with sharing class AIStagingMatcherService {
     /**
      * Match email staging records with FULL matching (From, To, CC)
      * Returns multiple matches per staging record for creating multiple EmailMessageRelations
-     * Excludes the connected account email from matching (V2-8XXX)
+     * Excludes the connected account email from matching (V2-7889)
      * @param stagingRecords List of email staging records to match
      * @param connectedAccountEmail The connected account email to exclude from matching (e.g., piyush2@gptfy.dev)
      * @return Map of staging record ID to MultiMatchResult
@@ -595,6 +592,106 @@ public with sharing class AIStagingMatcherService {
             stagingToAllEmails.put(staging.Id, emailsForThisRecord);
         }
         
+        return matchEmailStagingRecordsMultiInternal(stagingRecords, stagingToFromEmail, stagingToAllEmails, allEmails);
+    }
+    
+    /**
+     * Match email staging records with FULL matching (From, To, CC) - Map overload
+     * Returns multiple matches per staging record for creating multiple EmailMessageRelations
+     * Excludes the connected account email from matching per staging record (V2-7889)
+     * @param stagingRecords List of email staging records to match
+     * @param connectedAccountEmailMap Map of staging ID to connected account email to exclude
+     * @return Map of staging record ID to MultiMatchResult
+     */
+    public static Map<Id, MultiMatchResult> matchEmailStagingRecordsMultiWithMap(List<AI_Workspace_Staging__c> stagingRecords, Map<Id, String> connectedAccountEmailMap) {
+        Map<Id, MultiMatchResult> results = new Map<Id, MultiMatchResult>();
+        
+        if (stagingRecords == null || stagingRecords.isEmpty()) {
+            return results;
+        }
+        
+        // Check if matching is enabled
+        if (!isMatchingEnabled()) {
+            // Return empty results for all records
+            for (AI_Workspace_Staging__c staging : stagingRecords) {
+                results.put(staging.Id, new MultiMatchResult());
+            }
+            return results;
+        }
+        
+        // Collect ALL emails from From, To, CC (excluding connected account email per staging record)
+        Set<String> allEmails = new Set<String>();
+        Map<Id, String> stagingToFromEmail = new Map<Id, String>();
+        Map<Id, Set<String>> stagingToAllEmails = new Map<Id, Set<String>>();
+        
+        for (AI_Workspace_Staging__c staging : stagingRecords) {
+            Set<String> emailsForThisRecord = new Set<String>();
+            
+            // Get the connected account email for THIS specific staging record
+            String excludeEmail = null;
+            if (connectedAccountEmailMap != null && connectedAccountEmailMap.containsKey(staging.Id)) {
+                String email = connectedAccountEmailMap.get(staging.Id);
+                if (String.isNotBlank(email)) {
+                    excludeEmail = email.toLowerCase().trim();
+                }
+            }
+            
+            // From address (primary)
+            if (String.isNotBlank(staging.From_Address__c)) {
+                String fromEmail = staging.From_Address__c.toLowerCase().trim();
+                stagingToFromEmail.put(staging.Id, fromEmail);
+                // Only add to matching if not the connected account email for THIS staging record
+                if (excludeEmail == null || !fromEmail.equals(excludeEmail)) {
+                    emailsForThisRecord.add(fromEmail);
+                    allEmails.add(fromEmail);
+                }
+            }
+            
+            // To addresses
+            if (String.isNotBlank(staging.To_Address__c)) {
+                for (String toEmail : parseEmailList(staging.To_Address__c)) {
+                    String normalizedToEmail = toEmail.toLowerCase().trim();
+                    // Only add to matching if not the connected account email for THIS staging record
+                    if (excludeEmail == null || !normalizedToEmail.equals(excludeEmail)) {
+                        emailsForThisRecord.add(normalizedToEmail);
+                        allEmails.add(normalizedToEmail);
+                    }
+                }
+            }
+            
+            // CC addresses
+            if (String.isNotBlank(staging.Cc_Address__c)) {
+                for (String ccEmail : parseEmailList(staging.Cc_Address__c)) {
+                    String normalizedCcEmail = ccEmail.toLowerCase().trim();
+                    // Only add to matching if not the connected account email for THIS staging record
+                    if (excludeEmail == null || !normalizedCcEmail.equals(excludeEmail)) {
+                        emailsForThisRecord.add(normalizedCcEmail);
+                        allEmails.add(normalizedCcEmail);
+                    }
+                }
+            }
+            stagingToAllEmails.put(staging.Id, emailsForThisRecord);
+        }
+        
+        return matchEmailStagingRecordsMultiInternal(stagingRecords, stagingToFromEmail, stagingToAllEmails, allEmails);
+    }
+    
+    /**
+     * Internal method to perform the actual matching logic (shared by both overloads)
+     * V2-7889: Extracted to avoid code duplication
+     * @param stagingRecords List of email staging records to match
+     * @param stagingToFromEmail Map of staging ID to From email
+     * @param stagingToAllEmails Map of staging ID to all emails (From, To, CC)
+     * @param allEmails Set of all emails to build cache for
+     * @return Map of staging record ID to MultiMatchResult
+     */
+    private static Map<Id, MultiMatchResult> matchEmailStagingRecordsMultiInternal(
+        List<AI_Workspace_Staging__c> stagingRecords,
+        Map<Id, String> stagingToFromEmail,
+        Map<Id, Set<String>> stagingToAllEmails,
+        Set<String> allEmails
+    ) {
+        Map<Id, MultiMatchResult> results = new Map<Id, MultiMatchResult>();
         
         // Build cache for all emails
         EmailMatchCache cache = buildEmailMatchCache(allEmails);
@@ -803,7 +900,7 @@ public with sharing class AIStagingMatcherService {
     /**
      * Match calendar staging records with FULL matching for ALL attendees
      * Returns multiple matches per staging record for creating EventRelations
-     * Excludes the connected account email from matching (V2-8XXX)
+     * Excludes the connected account email from matching (V2-7889)
      * @param stagingRecords List of calendar staging records to match
      * @param connectedAccountEmail The connected account email to exclude from matching (e.g., piyush2@gptfy.dev)
      * @return Map of staging record ID to MultiMatchResult
@@ -866,6 +963,97 @@ public with sharing class AIStagingMatcherService {
             
             stagingToEmails.put(staging.Id, eventEmails);
         }
+        
+        return matchCalendarStagingRecordsMultiInternal(stagingRecords, stagingToEmails, allEmails);
+    }
+    
+    /**
+     * Match calendar staging records with FULL matching for ALL attendees - Map overload
+     * Returns multiple matches per staging record for creating EventRelations
+     * Excludes the connected account email from matching per staging record (V2-7889)
+     * @param stagingRecords List of calendar staging records to match
+     * @param connectedAccountEmailMap Map of staging ID to connected account email to exclude
+     * @return Map of staging record ID to MultiMatchResult
+     */
+    public static Map<Id, MultiMatchResult> matchCalendarStagingRecordsMultiWithMap(List<AI_Workspace_Staging__c> stagingRecords, Map<Id, String> connectedAccountEmailMap) {
+        Map<Id, MultiMatchResult> results = new Map<Id, MultiMatchResult>();
+        
+        if (stagingRecords == null || stagingRecords.isEmpty()) {
+            return results;
+        }
+        
+        // Check if matching is enabled
+        if (!isMatchingEnabled()) {
+            for (AI_Workspace_Staging__c staging : stagingRecords) {
+                results.put(staging.Id, new MultiMatchResult());
+            }
+            return results;
+        }
+        
+        // Collect all emails from attendees (excluding connected account email per staging record)
+        Set<String> allEmails = new Set<String>();
+        Map<Id, Set<String>> stagingToEmails = new Map<Id, Set<String>>();
+        Map<Id, String> stagingToOrganizerEmail = new Map<Id, String>();
+        
+        for (AI_Workspace_Staging__c staging : stagingRecords) {
+            Set<String> eventEmails = new Set<String>();
+            
+            // Get the connected account email for THIS specific staging record
+            String excludeEmail = null;
+            if (connectedAccountEmailMap != null && connectedAccountEmailMap.containsKey(staging.Id)) {
+                String email = connectedAccountEmailMap.get(staging.Id);
+                if (String.isNotBlank(email)) {
+                    excludeEmail = email.toLowerCase().trim();
+                }
+            }
+            
+            // Extract organizer email - INCLUDE in matching only if not the connected account for THIS staging record
+            String organizerEmail = extractEmailFromField(staging.Organizer__c);
+            if (String.isNotBlank(organizerEmail)) {
+                String normalizedOrgEmail = organizerEmail.toLowerCase().trim();
+                stagingToOrganizerEmail.put(staging.Id, normalizedOrgEmail);
+                // Only add to matching if not the connected account email for THIS staging record
+                if (excludeEmail == null || !normalizedOrgEmail.equals(excludeEmail)) {
+                    eventEmails.add(normalizedOrgEmail);
+                    allEmails.add(normalizedOrgEmail);
+                }
+            }
+            
+            // Extract attendee emails
+            if (String.isNotBlank(staging.Attendees__c)) {
+                for (String attendee : staging.Attendees__c.split('\n')) {
+                    String email = extractEmailFromField(attendee);
+                    if (String.isNotBlank(email)) {
+                        String normalizedEmail = email.toLowerCase().trim();
+                        // Only add to matching if not the connected account email for THIS staging record
+                        if (excludeEmail == null || !normalizedEmail.equals(excludeEmail)) {
+                            eventEmails.add(normalizedEmail);
+                            allEmails.add(normalizedEmail);
+                        }
+                    }
+                }
+            }
+            
+            stagingToEmails.put(staging.Id, eventEmails);
+        }
+        
+        return matchCalendarStagingRecordsMultiInternal(stagingRecords, stagingToEmails, allEmails);
+    }
+    
+    /**
+     * Internal method to perform the actual calendar matching logic (shared by both overloads)
+     * V2-7889: Extracted to avoid code duplication
+     * @param stagingRecords List of calendar staging records to match
+     * @param stagingToEmails Map of staging ID to all attendee emails
+     * @param allEmails Set of all emails to build cache for
+     * @return Map of staging record ID to MultiMatchResult
+     */
+    private static Map<Id, MultiMatchResult> matchCalendarStagingRecordsMultiInternal(
+        List<AI_Workspace_Staging__c> stagingRecords,
+        Map<Id, Set<String>> stagingToEmails,
+        Set<String> allEmails
+    ) {
+        Map<Id, MultiMatchResult> results = new Map<Id, MultiMatchResult>();
         
         // Build cache for all emails
         EmailMatchCache cache = buildEmailMatchCache(allEmails);
@@ -964,15 +1152,15 @@ public with sharing class AIStagingMatcherService {
      * @param domain Domain to check
      * @return true if domain is a public email provider
      */
-    private static Boolean isPublicEmailDomain(String domain) {
-        if (String.isBlank(domain)) return false;
+    // private static Boolean isPublicEmailDomain(String domain) {
+    //     if (String.isBlank(domain)) return false;
         
-        Set<String> publicDomains = new Set<String>{
-            'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 
-            'live.com', 'msn.com', 'aol.com', 'icloud.com',
-            'mail.com', 'protonmail.com', 'yandex.com', 'zoho.com'
-        };
+    //     Set<String> publicDomains = new Set<String>{
+    //         'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 
+    //         'live.com', 'msn.com', 'aol.com', 'icloud.com',
+    //         'mail.com', 'protonmail.com', 'yandex.com', 'zoho.com'
+    //     };
         
-        return publicDomains.contains(domain.toLowerCase());
-    }
+    //     return publicDomains.contains(domain.toLowerCase());
+    // }
 }

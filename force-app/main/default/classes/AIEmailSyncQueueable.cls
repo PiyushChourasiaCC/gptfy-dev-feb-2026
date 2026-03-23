@@ -33,20 +33,15 @@ public without sharing class AIEmailSyncQueueable implements Queueable, Database
      */
     public void execute(QueueableContext context) {
         if (userIds == null || userIds.isEmpty() || currentIndex >= userIds.size()) {
-            System.debug('Email sync chain complete. Processed ' + currentIndex + ' users.');
             return;
         }
 
         Id currentUserId = userIds[currentIndex];
-        System.debug('Processing email sync for user index ' + currentIndex + ': ' + currentUserId);
 
         try {
             // Process sync for current user
             AIEmailSyncService.syncUserEmails(currentUserId);
         } catch (Exception e) {
-            // Log error but don't stop the chain
-            System.debug(LoggingLevel.ERROR, 'Error syncing user ' + currentUserId + ': ' + e.getMessage());
-
             // Create a failed sync log entry
             try {
                 AI_Workspace_Sync_Log__c errorLog = new AI_Workspace_Sync_Log__c(
@@ -62,7 +57,7 @@ public without sharing class AIEmailSyncQueueable implements Queueable, Database
                 List<AI_Workspace_Sync_Log__c> logsToInsert = new List<AI_Workspace_Sync_Log__c>{ errorLog };
                 FLSCheck.getInstance().insertDML(logsToInsert);
             } catch (Exception logError) {
-                System.debug(LoggingLevel.ERROR, 'Failed to create error log: ' + logError.getMessage());
+                // Ignore
             }
         }
 
@@ -80,7 +75,6 @@ public without sharing class AIEmailSyncQueueable implements Queueable, Database
             // Check if sync is still enabled
             AI_Workspace_Sync_Settings__c settings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
             if (settings == null || !settings.Sync_Enabled__c) {
-                System.debug('Email sync disabled. Stopping chain at index ' + nextIndex);
                 return;
             }
 
@@ -94,10 +88,6 @@ public without sharing class AIEmailSyncQueueable implements Queueable, Database
             } else {
                 System.enqueueJob(nextJob);
             }
-
-            System.debug('Chained to next user. Index: ' + nextIndex + ' of ' + userIds.size());
-        } else {
-            System.debug('Email sync chain complete. Processed all ' + userIds.size() + ' users.');
         }
     }
 

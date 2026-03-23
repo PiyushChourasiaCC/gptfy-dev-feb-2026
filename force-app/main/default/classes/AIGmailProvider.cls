@@ -160,7 +160,7 @@ public with sharing class AIGmailProvider extends AIEmailProviderService {
     }
 
     public override ProviderType getProviderType() {
-        return ProviderType.GMAIL;
+        return ProviderType.GMAIL_EMAIL;
     }
 
     public override Boolean isAuthenticated() {

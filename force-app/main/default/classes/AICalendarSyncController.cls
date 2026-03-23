@@ -339,6 +339,10 @@ public with sharing class AICalendarSyncController {
                 response.nextPageToken = null;
             }
 
+            // V2-7889: Note - Domain exclusion filtering is applied during IMPORT, not during display
+            // This ensures pagination works correctly and users can see all events
+            // Excluded events will be filtered out when user clicks "Import"
+
             response.events = events;
             // Don't set totalCount here - calendar APIs don't provide accurate totals
             // The LWC will calculate display based on pagination state
@@ -415,6 +419,7 @@ public with sharing class AICalendarSyncController {
     @AuraEnabled
     public static AICalendarEventCreator.ImportResult importCalendarEvents(List<String> eventIds, String provider) {
         AICalendarEventCreator.ImportResult result = new AICalendarEventCreator.ImportResult();
+        Integer excludedCount = 0; // V2-7889: Track excluded events during import
 
         if (eventIds == null || eventIds.isEmpty()) {
             result.errors.add('No events selected for import');
@@ -425,7 +430,7 @@ public with sharing class AICalendarSyncController {
         if (String.isBlank(provider)) {
             provider = 'MICROSOFT_CALENDAR';
         }
-
+        
         try {
             // Fetch full event details for each ID based on provider
             List<AIMicrosoftCalendarService.CalendarEvent> events = new List<AIMicrosoftCalendarService.CalendarEvent>();
@@ -446,10 +451,67 @@ public with sharing class AICalendarSyncController {
                 }
             }
 
+            // V2-7889: Apply exclusion filtering during import (not during display)
+            if (!events.isEmpty()) {
+                String excludedDomains = AISyncSettingsService.getExcludedDomains();
+                String excludedLabels = AISyncSettingsService.getExcludedLabelsCategories();
+                
+                // Convert calendar events to Map format for filtering
+                // Must match the structure expected by AIWorkspaceFilterService
+                List<Map<String, Object>> eventMaps = new List<Map<String, Object>>();
+                for (AIMicrosoftCalendarService.CalendarEvent evt : events) {
+                    Map<String, Object> eventMap = new Map<String, Object>();
+                    // Create nested structure: organizer -> emailAddress -> address
+                    eventMap.put('organizer', new Map<String, Object>{ 
+                        'emailAddress' => new Map<String, Object>{ 
+                            'address' => evt.organizerEmail 
+                        }
+                    });
+                    eventMaps.add(eventMap);
+                }
+                
+                AIWorkspaceFilterService.FilterResult filterResult = 
+                    AIWorkspaceFilterService.applyAllFilters(
+                        eventMaps,
+                        excludedDomains,
+                        excludedLabels,
+                        'Calendar',
+                        provider
+                    );
+                
+                excludedCount = filterResult.excludedCount;
+                
+                // Filter the original events list based on filter results
+                List<AIMicrosoftCalendarService.CalendarEvent> filteredEvents = new List<AIMicrosoftCalendarService.CalendarEvent>();
+                for (Integer i = 0; i < eventMaps.size(); i++) {
+                    if (filterResult.includedRecords.contains(eventMaps[i])) {
+                        filteredEvents.add(events[i]);
+                    }
+                }
+                events = filteredEvents;
+                
+                // If all events were excluded, return early with exclusion info
+                if (events.isEmpty() && excludedCount > 0) {
+                    result.excludedCount = excludedCount;
+                    result.errors.add(excludedCount + ' event(s) excluded by domain filter settings');
+                    return result;
+                }
+            }
+
             // Create Event records without automatic matching
             // User will manually select which records to link via the modal
+            // Note: For manual imports, we create Events directly (not staging records)
+            // because the user needs to manually link them to specific records
             if (!events.isEmpty()) {
-                result = createEventsWithoutMatching(events, provider);
+                AICalendarEventCreator.ImportResult createResult = createEventsWithoutMatching(events, provider);
+                result.successCount = createResult.successCount;
+                result.failedCount = createResult.failedCount;
+                result.duplicateCount = createResult.duplicateCount;
+                result.excludedCount = excludedCount;
+                result.errors.addAll(createResult.errors);
+            } else if (excludedCount > 0) {
+                // All events were excluded
+                result.excludedCount = excludedCount;
             }
 
         } catch (Exception e) {
@@ -717,7 +779,7 @@ public with sharing class AICalendarSyncController {
                     FROM AI_Workspace_Staging__c
                     WHERE ICalUID__c IN :remainingIds
                     AND RecordType.DeveloperName = 'Calendar'
-                    AND Status__c = 'Matched'
+                    AND Status__c = 'Imported'
                     AND Email_Message__c != null
                 ]) {
                     if (String.isNotBlank(staging.ICalUID__c) && String.isNotBlank(staging.Email_Message__c)) {
@@ -870,130 +932,401 @@ public with sharing class AICalendarSyncController {
             'excludedCount' => 0,
             'errors' => new List<String>()
         };
-        
+
         try {
             if (selections == null || selections.isEmpty()) {
                 throw new IllegalArgumentException('No selections provided');
             }
-            
-            // Extract provider event IDs (these are Microsoft Graph IDs or Google Calendar IDs, NOT iCalUIDs)
-            List<String> providerEventIds = new List<String>();
-            Map<String, Map<String, Object>> providerIdToSelection = new Map<String, Map<String, Object>>();
-            for (Map<String, Object> selection : selections) {
-                String providerId = (String) selection.get('messageId'); // Using messageId for consistency with email modal
-                providerEventIds.add(providerId);
-                providerIdToSelection.put(providerId, selection);
+
+            // Check CRUD permissions for Event
+            if (!Schema.sObjectType.Event.isCreateable()) {
+                result.put('success', false);
+                result.put('failedCount', selections.size());
+                ((List<String>) result.get('errors')).add('Insufficient permissions to create Event records');
+                return result;
             }
-            
-            // First, fetch calendar events from provider to get their iCalUID/deduplication IDs
-            // This is needed to look up existing events by Workspace_Sync_Id__c
-            Map<String, String> providerIdToDeduplicationId = new Map<String, String>();
-            Map<String, AIMicrosoftCalendarService.CalendarEvent> providerIdToEvent = new Map<String, AIMicrosoftCalendarService.CalendarEvent>();
-            
-            for (String providerId : providerEventIds) {
+
+            // Get Calendar record type ID
+            Id calendarRecordTypeId = Schema.SObjectType.AI_Workspace_Staging__c
+                .getRecordTypeInfosByDeveloperName()
+                .get('Calendar')
+                .getRecordTypeId();
+
+            // Extract event IDs
+            List<String> eventIds = new List<String>();
+            for (Map<String, Object> selection : selections) {
+                eventIds.add((String) selection.get('messageId'));
+            }
+
+            // Fetch calendar events from provider
+            List<AIMicrosoftCalendarService.CalendarEvent> calendarEvents = new List<AIMicrosoftCalendarService.CalendarEvent>();
+            for (String eventId : eventIds) {
                 try {
                     AIMicrosoftCalendarService.CalendarEvent evt;
                     if (providerType == 'GOOGLE_CALENDAR') {
-                        evt = AIGoogleCalendarService.getEvent(providerId);
+                        evt = AIGoogleCalendarService.getEvent(eventId);
                     } else {
-                        evt = AIMicrosoftCalendarService.getEvent(providerId);
+                        evt = AIMicrosoftCalendarService.getEvent(eventId);
                     }
                     if (evt != null) {
-                        String dedupId = AICalendarEventCreator.getDeduplicationId(evt);
-                        if (String.isNotBlank(dedupId)) {
-                            providerIdToDeduplicationId.put(providerId, dedupId);
-                            providerIdToEvent.put(providerId, evt);
-                        }
+                        calendarEvents.add(evt);
                     }
                 } catch (Exception e) {
-                    // Event fetch failed, will be handled by importCalendarEvents
+                    result.put('failedCount', (Integer) result.get('failedCount') + 1);
+                    ((List<String>) result.get('errors')).add('Failed to fetch event: ' + e.getMessage());
                 }
             }
-            
-            // Import the events first
-            AICalendarEventCreator.ImportResult importResult = importCalendarEvents(providerEventIds, providerType);
-            
-            // Check if there were any errors (non-duplicate errors)
-            if (importResult.errors != null && !importResult.errors.isEmpty()) {
-                // Don't return immediately - we may still be able to link to existing duplicates
-                result.put('failedCount', importResult.failedCount);
+
+            if (calendarEvents.isEmpty()) {
+                throw new IllegalArgumentException('Could not fetch calendar events from provider');
             }
+
+            // V2-7889: Apply exclusion filtering during import (not during display)
+            String excludedDomains = AISyncSettingsService.getExcludedDomains();
+            String excludedLabels = AISyncSettingsService.getExcludedLabelsCategories();
             
-            result.put('successCount', importResult.successCount);
-            result.put('failedCount', importResult.failedCount);
-            result.put('duplicateCount', importResult.duplicateCount);
-            
-            // Collect all Event IDs to link - both newly created AND existing duplicates
-            List<Id> allEventIdsToLink = new List<Id>();
-            List<Map<String, Object>> allSelectionsToLink = new List<Map<String, Object>>();
-            
-            // Add newly created events
-            if (!importResult.eventIds.isEmpty()) {
-                allEventIdsToLink.addAll(importResult.eventIds);
-                // For new events, use selections in order (assumption: events created in order)
-                for (Integer i = 0; i < importResult.eventIds.size() && i < selections.size(); i++) {
-                    allSelectionsToLink.add(selections[i]);
-                }
-            }
-            
-            // For duplicates, find existing Event IDs using deduplication IDs (iCalUID) and link user's selections
-            if (importResult.duplicateCount > 0) {
-                // Collect deduplication IDs for lookup
-                Set<String> deduplicationIds = new Set<String>();
-                Map<String, String> dedupIdToProviderId = new Map<String, String>();
-                for (String providerId : providerIdToDeduplicationId.keySet()) {
-                    String dedupId = providerIdToDeduplicationId.get(providerId);
-                    deduplicationIds.add(dedupId);
-                    dedupIdToProviderId.put(dedupId, providerId);
+            if (!calendarEvents.isEmpty() && (String.isNotBlank(excludedDomains) || String.isNotBlank(excludedLabels))) {
+                // Convert calendar events to Map format for filtering
+                List<Map<String, Object>> eventMaps = new List<Map<String, Object>>();
+                for (AIMicrosoftCalendarService.CalendarEvent evt : calendarEvents) {
+                    Map<String, Object> eventMap = new Map<String, Object>();
+                    eventMap.put('organizer', new Map<String, Object>{ 
+                        'emailAddress' => new Map<String, Object>{ 
+                            'address' => evt.organizerEmail 
+                        }
+                    });
+                    eventMaps.add(eventMap);
                 }
                 
-                // Look up existing events by their Workspace_Sync_Id__c (deduplication ID)
-                Map<String, Id> existingEventsMap = AICalendarEventCreator.getImportedEventsMap(deduplicationIds);
+                AIWorkspaceFilterService.FilterResult filterResult = 
+                    AIWorkspaceFilterService.applyAllFilters(
+                        eventMaps,
+                        excludedDomains,
+                        excludedLabels,
+                        'Calendar',
+                        providerType
+                    );
                 
-                // Add existing events for linking
-                for (String dedupId : existingEventsMap.keySet()) {
-                    Id existingEventId = existingEventsMap.get(dedupId);
-                    String providerId = dedupIdToProviderId.get(dedupId);
-                    
-                    // Only add if not already in the list (from new imports)
-                    if (!allEventIdsToLink.contains(existingEventId) && providerIdToSelection.containsKey(providerId)) {
-                        allEventIdsToLink.add(existingEventId);
-                        allSelectionsToLink.add(providerIdToSelection.get(providerId));
+                Integer excludedCount = filterResult.excludedCount;
+                
+                // Filter the original events list based on filter results
+                List<AIMicrosoftCalendarService.CalendarEvent> filteredEvents = new List<AIMicrosoftCalendarService.CalendarEvent>();
+                for (Integer i = 0; i < eventMaps.size(); i++) {
+                    if (filterResult.includedRecords.contains(eventMaps[i])) {
+                        filteredEvents.add(calendarEvents[i]);
                     }
                 }
+                calendarEvents = filteredEvents;
                 
-                // If we found existing events for duplicates, treat as success (user can link their records)
-                if (!existingEventsMap.isEmpty()) {
-                    result.put('success', true);
-                    // Update success count to include duplicates that were linked
-                    Integer linkedDuplicates = existingEventsMap.size();
-                    result.put('successCount', importResult.successCount + linkedDuplicates);
-                    result.put('duplicateCount', 0); // No longer treating as duplicates since we're linking
-                    // Remove the error message about duplicates
-                    ((List<String>) result.get('errors')).clear();
+                // Update excluded count in result
+                result.put('excludedCount', excludedCount);
+                
+                // If all events were excluded, return early with exclusion info
+                if (calendarEvents.isEmpty() && excludedCount > 0) {
+                    ((List<String>) result.get('errors')).add(excludedCount + ' event(s) excluded by domain filter settings');
+                    return result;
                 }
             }
-            
-            // Link events to Contacts/Leads/Accounts/Opportunities
-            if (!allEventIdsToLink.isEmpty()) {
-                linkEventsToRecords(allEventIdsToLink, allSelectionsToLink);
-                
-                // Send notifications for imported events
-                sendEventImportNotifications(allEventIdsToLink);
+
+            // Map event data by event ID for lookup
+            Map<String, AIMicrosoftCalendarService.CalendarEvent> eventIdToEventData = new Map<String, AIMicrosoftCalendarService.CalendarEvent>();
+            Map<String, Map<String, Object>> eventIdToSelection = new Map<String, Map<String, Object>>();
+            for (AIMicrosoftCalendarService.CalendarEvent evt : calendarEvents) {
+                if (String.isNotBlank(evt.eventId)) {
+                    eventIdToEventData.put(evt.eventId, evt);
+                }
             }
-            
-            // Set success if we linked any events
-            if (!allEventIdsToLink.isEmpty()) {
-                result.put('success', true);
+            for (Map<String, Object> selection : selections) {
+                eventIdToSelection.put((String) selection.get('messageId'), selection);
             }
-            
+
+            // STEP 1: Create staging records for audit trail (V2-7889)
+            List<AI_Workspace_Staging__c> stagingRecords = new List<AI_Workspace_Staging__c>();
+            Map<Integer, AIMicrosoftCalendarService.CalendarEvent> indexToEventData = new Map<Integer, AIMicrosoftCalendarService.CalendarEvent>();
+            Map<Integer, Map<String, Object>> indexToSelection = new Map<Integer, Map<String, Object>>();
+
+            for (AIMicrosoftCalendarService.CalendarEvent evt : calendarEvents) {
+                String eventId = evt.eventId;
+                Map<String, Object> selection = eventIdToSelection.get(eventId);
+
+                if (selection == null) {
+                    continue;
+                }
+
+                AI_Workspace_Staging__c staging = createStagingRecordFromCalendarEvent(
+                    evt,
+                    calendarRecordTypeId,
+                    providerType
+                );
+
+                Integer idx = stagingRecords.size();
+                stagingRecords.add(staging);
+                indexToEventData.put(idx, evt);
+                indexToSelection.put(idx, selection);
+            }
+
+            // Insert staging records with FLS enforcement
+            Map<Integer, Id> indexToStagingId = new Map<Integer, Id>();
+            if (!stagingRecords.isEmpty()) {
+                // Check object-level create permission
+                if (!Schema.sObjectType.AI_Workspace_Staging__c.isCreateable()) {
+                    result.put('success', false);
+                    ((List<String>) result.get('errors')).add('Insufficient permissions to create AI Workspace Staging records');
+                    result.put('failedCount', stagingRecords.size());
+                    return result;
+                }
+
+                stagingRecords = (List<AI_Workspace_Staging__c>)FLSCheck.getInstance().insertCheck(stagingRecords);
+
+                if(stagingRecords != null && !stagingRecords.isEmpty()){
+
+                    Database.SaveResult[] stagingResults = Database.insert(stagingRecords, false);
+                    for (Integer i = 0; i < stagingResults.size(); i++) {
+                        if (stagingResults[i].isSuccess()) {
+                            indexToStagingId.put(i, stagingResults[i].getId());
+                        } else {
+                            // Capture staging insert errors
+                            result.put('failedCount', (Integer) result.get('failedCount') + 1);
+                            for (Database.Error err : stagingResults[i].getErrors()) {
+                                ((List<String>) result.get('errors')).add('Staging record creation failed: ' + err.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
+
+            // STEP 2: Create Event records with user selections
+            List<Event> eventsToInsert = new List<Event>();
+            Map<Integer, Integer> eventIndexToStagingIndex = new Map<Integer, Integer>();
+
+            for (Integer stagingIdx : indexToStagingId.keySet()) {
+                AIMicrosoftCalendarService.CalendarEvent calEvt = indexToEventData.get(stagingIdx);
+                Map<String, Object> selection = indexToSelection.get(stagingIdx);
+
+                try {
+                    Event sfEvent = new Event();
+
+                    // Required fields
+                    sfEvent.Subject = String.isNotBlank(calEvt.subject) ? calEvt.subject : 'Calendar Event';
+                    sfEvent.OwnerId = UserInfo.getUserId();
+
+                    // Handle all-day events
+                    if (calEvt.isAllDay == true) {
+                        sfEvent.IsAllDayEvent = true;
+                        if (calEvt.startDateTime != null) {
+                            sfEvent.ActivityDate = calEvt.startDateTime.date();
+                            sfEvent.StartDateTime = calEvt.startDateTime;
+                        }
+                        if (calEvt.endDateTime != null) {
+                            sfEvent.EndDateTime = calEvt.endDateTime;
+                        }
+                    } else {
+                        sfEvent.IsAllDayEvent = false;
+                        if (calEvt.startDateTime != null) {
+                            sfEvent.StartDateTime = calEvt.startDateTime;
+                        }
+                        if (calEvt.endDateTime != null) {
+                            sfEvent.EndDateTime = calEvt.endDateTime;
+                        }
+                    }
+
+                    // Optional fields
+                    if (String.isNotBlank(calEvt.location)) {
+                        sfEvent.Location = calEvt.location.left(255);
+                    }
+
+                    // Build description
+                    List<String> descParts = new List<String>();
+                    if (String.isNotBlank(calEvt.description)) {
+                        descParts.add(calEvt.description);
+                    }
+                    if (String.isNotBlank(calEvt.organizerName) || String.isNotBlank(calEvt.organizerEmail)) {
+                        String organizer = 'Organizer: ';
+                        if (String.isNotBlank(calEvt.organizerName)) {
+                            organizer += calEvt.organizerName;
+                        }
+                        if (String.isNotBlank(calEvt.organizerEmail)) {
+                            organizer += ' <' + calEvt.organizerEmail + '>';
+                        }
+                        descParts.add(organizer);
+                    }
+                    if (calEvt.attendees != null && !calEvt.attendees.isEmpty()) {
+                        List<String> attendeeNames = new List<String>();
+                        for (AIMicrosoftCalendarService.Attendee att : calEvt.attendees) {
+                            if (String.isNotBlank(att.name)) {
+                                attendeeNames.add(att.name);
+                            } else if (String.isNotBlank(att.email)) {
+                                attendeeNames.add(att.email);
+                            }
+                        }
+                        if (!attendeeNames.isEmpty()) {
+                            descParts.add('Attendees: ' + String.join(attendeeNames, ', '));
+                        }
+                    }
+                    if (!descParts.isEmpty()) {
+                        sfEvent.Description = String.join(descParts, '\n\n').left(32000);
+                    }
+
+                    // Deduplication ID
+                    String syncId = AICalendarEventCreator.getDeduplicationId(calEvt);
+                    if (String.isNotBlank(syncId)) {
+                        sfEvent.Workspace_Sync_Id__c = syncId;
+                    }
+
+                    Integer eventIdx = eventsToInsert.size();
+                    eventsToInsert.add(sfEvent);
+                    eventIndexToStagingIndex.put(eventIdx, stagingIdx);
+                } catch (Exception e) {
+                    result.put('failedCount', (Integer) result.get('failedCount') + 1);
+                    ((List<String>) result.get('errors')).add('Error processing event: ' + e.getMessage());
+                }
+            }
+
+            // Insert Event records with FLS enforcement
+            Map<Integer, Id> eventIndexToEventId = new Map<Integer, Id>();
+            if (!eventsToInsert.isEmpty()) {
+                eventsToInsert = (List<Event>)FLSCheck.getInstance().insertCheck(eventsToInsert);
+                if(eventsToInsert != null && !eventsToInsert.isEmpty()){
+
+                    Database.SaveResult[] insertResults = Database.insert(eventsToInsert, false);
+
+                    for (Integer i = 0; i < insertResults.size(); i++) {
+                        if (insertResults[i].isSuccess()) {
+                            eventIndexToEventId.put(i, insertResults[i].getId());
+                            result.put('successCount', (Integer) result.get('successCount') + 1);
+                        } else {
+                            result.put('failedCount', (Integer) result.get('failedCount') + 1);
+                            for (Database.Error err : insertResults[i].getErrors()) {
+                                String errorMsg = 'Event insert failed: ' + err.getMessage();
+                                ((List<String>) result.get('errors')).add(errorMsg);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // STEP 3: Link Events to Contacts/Leads/Accounts/Opportunities
+            List<Id> eventIdsToLink = new List<Id>();
+            List<Map<String, Object>> selectionsToLink = new List<Map<String, Object>>();
+
+            for (Integer eventIdx : eventIndexToEventId.keySet()) {
+                Id eventId = eventIndexToEventId.get(eventIdx);
+                Integer stagingIdx = eventIndexToStagingIndex.get(eventIdx);
+                Map<String, Object> selection = indexToSelection.get(stagingIdx);
+
+                if (eventId != null && selection != null) {
+                    eventIdsToLink.add(eventId);
+                    selectionsToLink.add(selection);
+                }
+            }
+
+            if (!eventIdsToLink.isEmpty()) {
+                linkEventsToRecords(eventIdsToLink, selectionsToLink);
+                sendEventImportNotifications(eventIdsToLink);
+            }
+
+            // STEP 4: Update staging records to mark as Imported (V2-7889)
+            List<AI_Workspace_Staging__c> stagingToUpdate = new List<AI_Workspace_Staging__c>();
+            for (Integer eventIdx : eventIndexToEventId.keySet()) {
+                Integer stagingIdx = eventIndexToStagingIndex.get(eventIdx);
+                Id stagingId = indexToStagingId.get(stagingIdx);
+                Id eventId = eventIndexToEventId.get(eventIdx);
+
+                if (stagingId != null && eventId != null) {
+                    AI_Workspace_Staging__c updateRecord = new AI_Workspace_Staging__c(Id = stagingId);
+                    updateRecord.Status__c = 'Imported';
+                    stagingToUpdate.add(updateRecord);
+                }
+            }
+
+            if (!stagingToUpdate.isEmpty() && Schema.sObjectType.AI_Workspace_Staging__c.isUpdateable()) {
+                FLSCheck.getInstance().updateDML(stagingToUpdate, false);
+            }
+
         } catch (Exception e) {
             result.put('success', false);
             result.put('failedCount', selections != null ? selections.size() : 0);
             ((List<String>) result.get('errors')).add(e.getMessage());
         }
-        
+
         return result;
+    }
+    
+    /**
+     * Create staging record from calendar event data (V2-7889)
+     * Used for manual imports to create audit trail
+     */
+    private static AI_Workspace_Staging__c createStagingRecordFromCalendarEvent(
+        AIMicrosoftCalendarService.CalendarEvent calEvent,
+        Id recordTypeId,
+        String providerType
+    ) {
+        AI_Workspace_Staging__c staging = new AI_Workspace_Staging__c();
+        staging.RecordTypeId = recordTypeId;
+        staging.Provider__c = providerType;
+        staging.Provider_Id__c = calEvent.eventId;
+        staging.ICalUID__c = calEvent.iCalUID;
+        staging.User__c = UserInfo.getUserId();
+        staging.Import_Date__c = DateTime.now();
+        staging.Status__c = 'Staged';
+        // V2-7889: Link to workspace user for matching
+        staging.AI_Workspace_User__c = AIWorkspaceStagingCreator.getWorkspaceUserIdPublic(staging.User__c, providerType);
+
+        // Subject (V2-7889: Encrypt for security)
+        Id userId = staging.User__c;
+        String subject = String.isNotBlank(calEvent.subject) ?
+            calEvent.subject.left(4000) : 'Calendar Event';
+        staging.Subject__c = AIWorkspaceEncryptionService.encryptEmailBody(subject, userId);
+
+        // Body/Description (V2-7889: Encrypt for security)
+        if (String.isNotBlank(calEvent.description)) {
+            String textBody = calEvent.description.left(32000);
+            staging.Text_Body__c = AIWorkspaceEncryptionService.encryptEmailBody(textBody, userId);
+        }
+        
+        // Location
+        if (String.isNotBlank(calEvent.location)) {
+            staging.Location__c = calEvent.location.left(255);
+        }
+        
+        // Start and End times
+        staging.Start_DateTime__c = calEvent.startDateTime;
+        staging.End_DateTime__c = calEvent.endDateTime;
+        staging.Is_All_Day__c = calEvent.isAllDay;
+        
+        // Organizer
+        if (String.isNotBlank(calEvent.organizerEmail) || String.isNotBlank(calEvent.organizerName)) {
+            String organizer = '';
+            if (String.isNotBlank(calEvent.organizerName)) {
+                organizer = calEvent.organizerName;
+            }
+            if (String.isNotBlank(calEvent.organizerEmail)) {
+                organizer += (String.isNotBlank(organizer) ? ' <' : '') + calEvent.organizerEmail + (String.isNotBlank(organizer) ? '>' : '');
+            }
+            staging.Organizer__c = organizer.left(255);
+        }
+        
+        // Attendees
+        if (calEvent.attendees != null && !calEvent.attendees.isEmpty()) {
+            List<String> attendeeList = new List<String>();
+            for (AIMicrosoftCalendarService.Attendee att : calEvent.attendees) {
+                String attendee = '';
+                if (String.isNotBlank(att.name)) {
+                    attendee = att.name;
+                }
+                if (String.isNotBlank(att.email)) {
+                    attendee += (String.isNotBlank(attendee) ? ' <' : '') + att.email + (String.isNotBlank(attendee) ? '>' : '');
+                }
+                if (String.isNotBlank(attendee)) {
+                    attendeeList.add(attendee);
+                }
+            }
+            if (!attendeeList.isEmpty()) {
+                staging.Attendees__c = String.join(attendeeList, '; ').left(4000);
+            }
+        }
+        
+        return staging;
     }
     
     /**
@@ -1055,10 +1388,7 @@ public with sharing class AICalendarSyncController {
         if (!eventsToUpdate.isEmpty()) {
             // Check object-level update permission
             // Use FLSCheck for FLS/OLS enforcement
-            List<Event> accessibleEvents = FLSCheck.getInstance().updateCheck(eventsToUpdate);
-            if (accessibleEvents != null && !accessibleEvents.isEmpty()) {
-                update accessibleEvents;
-            }
+            FLSCheck.getInstance().updateDML(eventsToUpdate, false);
         }
         
         // Step 2: Create EventRelation records for Contacts and Leads
@@ -1119,12 +1449,7 @@ public with sharing class AICalendarSyncController {
         
         // Insert EventRelation records (with FLS enforcement)
         if (!relationsToInsert.isEmpty()) {
-            // Check object-level create permission
-            // Use FLSCheck for FLS/OLS enforcement
-            List<EventRelation> accessibleRelations = FLSCheck.getInstance().insertCheck(relationsToInsert);
-            if (accessibleRelations != null && !accessibleRelations.isEmpty()) {
-                insert accessibleRelations;
-            }
+            FLSCheck.getInstance().insertDML(relationsToInsert, false);
         }
     }
     
@@ -1277,13 +1602,13 @@ public with sharing class AICalendarSyncController {
             }
             
             // Use FLSCheck for FLS/OLS enforcement
-            List<Event> accessibleEvents = FLSCheck.getInstance().insertCheck(eventsToInsert);
+            eventsToInsert = (List<Event>)FLSCheck.getInstance().insertCheck(eventsToInsert);
             
-            if (accessibleEvents == null || accessibleEvents.isEmpty()) {
+            if (eventsToInsert == null || eventsToInsert.isEmpty()) {
                 return result;
             }
             
-            Database.SaveResult[] saveResults = Database.insert(accessibleEvents, false);
+            Database.SaveResult[] saveResults = Database.insert(eventsToInsert, false);
             for (Integer i = 0; i < saveResults.size(); i++) {
                 if (saveResults[i].isSuccess()) {
                     result.eventIds.add(saveResults[i].getId());

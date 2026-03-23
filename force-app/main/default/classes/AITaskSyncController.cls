@@ -70,7 +70,9 @@ public with sharing class AITaskSyncController {
 
     /**
      * Match info for a task (similar to AICalendarEventCreator.EventMatchInfo)
+     * V2-7889: Made @TestVisible for test coverage
      */
+    @TestVisible
     public class TaskMatchInfo {
         public Id whoId;
         public String whoName;
@@ -79,12 +81,14 @@ public with sharing class AITaskSyncController {
         public String whatName;
         public String whatType;
         public Integer confidence;
-        public List<Id> allMatchedContactIds; // All matched contacts for Shared Activities
+        public List<Id> allMatchedContactIds;
     }
 
     /**
      * Cache for bulkified Contact/Lead lookup
+     * V2-7889: Made @TestVisible for test coverage
      */
+    @TestVisible
     private class MatchCache {
         public Map<String, Contact> emailToContact = new Map<String, Contact>();
         public Map<String, Lead> emailToLead = new Map<String, Lead>();
@@ -144,6 +148,10 @@ public with sharing class AITaskSyncController {
                 // Fetch from all lists with offset
                 tasks = AIMicrosoftTaskService.getAllTasksWithOffset(fetchLimit, offset, includeCompleted);
             }
+
+            // V2-7889: Note - Tasks don't have organizer/from fields (they're personal to-do items)
+            // Domain exclusion filtering is not applicable to tasks
+            // If needed in future, filtering logic can be added here
 
             // Check if there are more tasks
             if (tasks.size() > maxResults) {
@@ -213,7 +221,6 @@ public with sharing class AITaskSyncController {
 
         } catch (Exception e) {
             response.error = 'Error fetching tasks: ' + e.getMessage();
-            System.debug('AITaskSyncController.getTasks error: ' + e.getMessage() + '\n' + e.getStackTraceString());
         }
 
         return response;
@@ -392,7 +399,6 @@ public with sharing class AITaskSyncController {
             response.isTaskAccessible = false;
         } catch (Exception e) {
             response.error = 'Error fetching Google tasks: ' + e.getMessage();
-            System.debug('AITaskSyncController.getGoogleTasks error: ' + e.getMessage() + '\n' + e.getStackTraceString());
         }
 
         return response;
@@ -554,7 +560,6 @@ public with sharing class AITaskSyncController {
 
         } catch (Exception e) {
             result.errors.add('Import error: ' + e.getMessage());
-            System.debug('AITaskSyncController.importGoogleTasks error: ' + e.getMessage() + '\n' + e.getStackTraceString());
         }
 
         // COMMENTED OUT: Bell notifications disabled for auto-sync (scheduler/Run Now)
@@ -718,7 +723,6 @@ public with sharing class AITaskSyncController {
 
         } catch (Exception e) {
             result.errors.add('Error importing tasks: ' + e.getMessage());
-            System.debug('AITaskSyncController.importTasks error: ' + e.getMessage());
         }
 
         // NOTE: Manual imports do NOT create sync logs
@@ -767,9 +771,7 @@ public with sharing class AITaskSyncController {
             }
 
             FLSCheck.getInstance().insertDML(new List<AI_Workspace_Sync_Log__c>{syncLog});
-            System.debug('Created task sync log: ' + status + ' for user ' + UserInfo.getUserId());
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error creating task sync log: ' + e.getMessage());
         }
     }
 
@@ -777,7 +779,9 @@ public with sharing class AITaskSyncController {
      * Build cache of Contacts/Leads from all email addresses in tasks
      * BULKIFIED: Single SOQL query for Contacts, single for Leads
      * NO REGEX - uses simple string parsing
+     * V2-7889: Made @TestVisible for test coverage
      */
+    @TestVisible
     private static MatchCache buildMatchCache(List<AIMicrosoftTaskService.ToDoTask> tasks) {
         MatchCache cache = new MatchCache();
 
@@ -826,11 +830,13 @@ public with sharing class AITaskSyncController {
      * Match task content to Contact/Lead using cached data (no SOQL in loop)
      * Sets WhoId on Task and collects ALL matched contacts for TaskRelation
      * NO REGEX - uses simple string parsing
+     * V2-7889: Made @TestVisible for test coverage
      * @param toDoTask The Microsoft To-Do task
      * @param sfTask The Salesforce Task to update with WhoId
      * @param cache Pre-built cache of email -> Contact/Lead mappings
      * @return TaskMatchInfo with primary match and all matched contact IDs
      */
+    @TestVisible
     private static TaskMatchInfo matchTaskWithCache(
         AIMicrosoftTaskService.ToDoTask toDoTask,
         Task sfTask,
@@ -912,7 +918,6 @@ public with sharing class AITaskSyncController {
 
         // TaskRelation may not exist in all orgs (requires Shared Activities enabled)
         if (taskRelationType == null) {
-            System.debug('TaskRelation object not available - Shared Activities may not be enabled');
             return;
         }
 
@@ -931,19 +936,11 @@ public with sharing class AITaskSyncController {
             List<SObject> accessibleRelations = FLSCheck.getInstance().insertCheck(relationsToInsert);
             
             if (accessibleRelations == null || accessibleRelations.isEmpty()) {
-                System.debug(LoggingLevel.WARN, 'Insufficient permissions to create TaskRelation records');
                 return;
             }
             
-            // Use partial success to handle any permission issues
-            Database.SaveResult[] results = Database.insert(accessibleRelations, false);
-            Integer successCount = 0;
-            for (Database.SaveResult sr : results) {
-                if (sr.isSuccess()) {
-                    successCount++;
-                }
-            }
-            System.debug('Created ' + successCount + ' TaskRelation records for Shared Activities');
+            // V2-7889: Use FLSCheck for FLS/CRUD enforcement
+            FLSCheck.getInstance().insertDML(accessibleRelations, false);
         }
     }
 
@@ -960,7 +957,6 @@ public with sharing class AITaskSyncController {
             ];
 
             if (notifTypes.isEmpty()) {
-                System.debug('CustomNotificationType "' + AIConstants.WORKSPACE_SYNC_NOTIFICATION_TYPE + '" not found - skipping task notifications');
                 return;
             }
 
@@ -987,11 +983,9 @@ public with sharing class AITaskSyncController {
 
                     notification.send(new Set<String>{UserInfo.getUserId()});
                 } catch (Exception e) {
-                    System.debug('Failed to send task notification: ' + e.getMessage());
                 }
             }
         } catch (Exception e) {
-            System.debug('Error sending task import notifications: ' + e.getMessage());
         }
     }
 
@@ -1183,7 +1177,6 @@ public with sharing class AITaskSyncController {
                         }
                     } catch (Exception e) {
                         // Invalid ID format, skip this record
-                        System.debug('Invalid Task ID in staging record: ' + staging.Email_Message__c);
                     }
                 }
             }
@@ -1215,7 +1208,6 @@ public with sharing class AITaskSyncController {
                 }
             }
         } catch (Exception e) {
-            System.debug('Error querying imported tasks: ' + e.getMessage());
         }
 
         return importedMap;
@@ -1231,7 +1223,6 @@ public with sharing class AITaskSyncController {
      * This ensures badges display correctly even after staging records are deleted.
      */
     private static Map<String, ImportedTaskDetails> getImportedTaskDetails(Set<String> externalIds) {
-        System.debug(LoggingLevel.INFO, '>>> getImportedTaskDetails START for ' + externalIds.size() + ' external IDs');
         Map<String, ImportedTaskDetails> detailsMap = new Map<String, ImportedTaskDetails>();
 
         if (externalIds == null || externalIds.isEmpty()) {
@@ -1245,7 +1236,6 @@ public with sharing class AITaskSyncController {
             Map<String, Id> providerIdToStagingId = new Map<String, Id>();
             Set<String> foundProviderIds = new Set<String>();
             
-            System.debug(LoggingLevel.INFO, '>>> Querying staging records for external IDs: ' + externalIds);
             
             for (AI_Workspace_Staging__c staging : [
                 SELECT Id, Provider_Id__c, Email_Message__c
@@ -1267,7 +1257,6 @@ public with sharing class AITaskSyncController {
                         }
                     } catch (Exception e) {
                         // Not a valid Id, skip
-                        System.debug('Invalid Task ID in staging record: ' + staging.Email_Message__c);
                     }
                 }
             }
@@ -1304,8 +1293,6 @@ public with sharing class AITaskSyncController {
             Set<Id> taskIds = new Set<Id>(providerIdToTaskId.values());
             Map<Id, Task> taskMap = new Map<Id, Task>();
             
-            System.debug(LoggingLevel.INFO, '>>> Found ' + taskIds.size() + ' Task IDs to query');
-            System.debug(LoggingLevel.INFO, '>>> Task IDs: ' + taskIds);
             
             if (!taskIds.isEmpty()) {
                 for (Task t : [
@@ -1314,9 +1301,6 @@ public with sharing class AITaskSyncController {
                     WHERE Id IN :taskIds
                 ]) {
                     taskMap.put(t.Id, t);
-                    System.debug(LoggingLevel.INFO, '>>> Task ' + t.Id + ': WhoId=' + t.WhoId + 
-                        ' (' + (t.WhoId != null ? t.Who.Name + ' - ' + t.Who.Type : 'null') + '), WhatId=' + t.WhatId +
-                        ' (' + (t.WhatId != null ? t.What.Name + ' - ' + t.What.Type : 'null') + ')');
                 }
             }
             
@@ -1343,7 +1327,6 @@ public with sharing class AITaskSyncController {
                             t.Who.Type
                         );
                         details.linkedRecords.add(linkedRecord);
-                        System.debug(LoggingLevel.INFO, '>>> Added WhoId to linkedRecords: ' + t.Who.Name + ' (' + t.Who.Type + ')');
                     }
                     
                     // Populate WhatId (Account/Opportunity)
@@ -1359,11 +1342,9 @@ public with sharing class AITaskSyncController {
                             t.What.Type
                         );
                         details.linkedRecords.add(linkedRecord);
-                        System.debug(LoggingLevel.INFO, '>>> Added WhatId to linkedRecords: ' + t.What.Name + ' (' + t.What.Type + ')');
                     }
                 }
                 
-                System.debug(LoggingLevel.INFO, '>>> Details for provider ' + providerId + ': ' + details.linkedRecords.size() + ' linked records');
                 detailsMap.put(providerId, details);
             }
             
@@ -1372,7 +1353,6 @@ public with sharing class AITaskSyncController {
                 queryTaskRelations(taskIds, providerIdToTaskId, detailsMap);
             }
         } catch (Exception e) {
-            System.debug('Error querying imported task details: ' + e.getMessage());
         }
 
         return detailsMap;
@@ -1437,7 +1417,6 @@ public with sharing class AITaskSyncController {
                 }
             }
         } catch (Exception e) {
-            System.debug('Error querying TaskRelation: ' + e.getMessage());
         }
     }
     
@@ -1445,12 +1424,12 @@ public with sharing class AITaskSyncController {
      * Get user email from Microsoft Graph using tokens from AI_Workspace_User__c
      */
     private static String getUserEmail() {
-        return getUserEmailForProvider('MICROSOFT_GRAPH');
+        return getUserEmailForProvider('MICROSOFT_TASKS');
     }
     
     /**
      * Get the authenticated user's email address for a specific provider
-     * @param providerType 'MICROSOFT_GRAPH' or 'GOOGLE_TASKS'
+     * @param providerType 'MICROSOFT_TASKS' or 'GOOGLE_TASKS'
      */
     private static String getUserEmailForProvider(String providerType) {
         try {
@@ -1501,7 +1480,6 @@ public with sharing class AITaskSyncController {
                 }
             }
         } catch (Exception e) {
-            System.debug('Error getting user email for provider ' + providerType + ': ' + e.getMessage());
         }
         return '';
     }
@@ -1509,9 +1487,11 @@ public with sharing class AITaskSyncController {
     /**
      * Extract email addresses from text without using regex
      * NO REGEX - avoids "regex too complicated" errors
+     * V2-7889: Made @TestVisible for test coverage
      * @param text The text to search for email addresses
      * @return Set of lowercase email addresses found
      */
+    @TestVisible
     private static Set<String> extractEmailsSimple(String text) {
         Set<String> emails = new Set<String>();
         if (String.isBlank(text)) {
@@ -1533,7 +1513,9 @@ public with sharing class AITaskSyncController {
 
     /**
      * Split text by common delimiters without regex
+     * V2-7889: Made @TestVisible for test coverage
      */
+    @TestVisible
     private static List<String> splitByDelimiters(String text) {
         List<String> words = new List<String>();
         String currentWord = '';
@@ -1561,7 +1543,9 @@ public with sharing class AITaskSyncController {
     /**
      * Check if a string looks like a valid email address
      * NO REGEX - simple character validation
+     * V2-7889: Made @TestVisible for test coverage
      */
+    @TestVisible
     private static Boolean isValidEmail(String word) {
         if (String.isBlank(word) || word.length() < 5) {
             return false;
@@ -1608,7 +1592,7 @@ public with sharing class AITaskSyncController {
      * This method will be called from the aiAutoRecordMatchingModal component
      * 
      * @param selections List of selections containing task IDs and associated record IDs
-     * @param providerType Provider type (MICROSOFT_GRAPH or GMAIL)
+     * @param providerType Provider type (MICROSOFT_TASKS or GOOGLE_TASKS)
      * @return Map with success status and counts
      */
     @AuraEnabled
@@ -1616,10 +1600,6 @@ public with sharing class AITaskSyncController {
         List<Map<String, Object>> selections,
         String providerType
     ) {
-        System.debug(LoggingLevel.INFO, '>>> associateTasksFromModal START');
-        System.debug(LoggingLevel.INFO, '>>> Selections count: ' + (selections != null ? selections.size() : 0));
-        System.debug(LoggingLevel.INFO, '>>> Provider type: ' + providerType);
-        System.debug(LoggingLevel.INFO, '>>> Selections: ' + JSON.serializePretty(selections));
         
         Map<String, Object> result = new Map<String, Object>{
             'success' => true,
@@ -1641,28 +1621,21 @@ public with sharing class AITaskSyncController {
                 taskIds.add((String) selection.get('messageId')); // Using messageId for consistency with email modal
             }
             
-            System.debug(LoggingLevel.INFO, '>>> Task IDs to import: ' + taskIds);
             
             // Import the tasks first - call appropriate method based on provider
             ImportResult importResult;
             if (providerType == 'GOOGLE_TASKS') {
                 importResult = importGoogleTasks(taskIds);
             } else {
-                // Handle both 'MICROSOFT_TASKS' and 'MICROSOFT_GRAPH' (for backwards compatibility)
+                // Handle MICROSOFT_TASKS
                 importResult = importTasks(taskIds);
             }
-            
-            System.debug(LoggingLevel.INFO, '>>> Import result - successCount: ' + importResult.successCount + 
-                ', failedCount: ' + importResult.failedCount + ', duplicateCount: ' + importResult.duplicateCount);
-            System.debug(LoggingLevel.INFO, '>>> Created Task IDs: ' + importResult.taskIds);
-            System.debug(LoggingLevel.INFO, '>>> Import errors: ' + importResult.errors);
             
             // Check if there were any errors
             if (importResult.errors != null && !importResult.errors.isEmpty()) {
                 result.put('success', false);
                 result.put('failedCount', importResult.failedCount);
                 ((List<String>) result.get('errors')).addAll(importResult.errors);
-                System.debug(LoggingLevel.ERROR, '>>> Returning with errors');
                 return result;
             }
             
@@ -1671,11 +1644,8 @@ public with sharing class AITaskSyncController {
             
             // Link tasks to Contacts/Leads/Accounts/Opportunities
             if (!importResult.taskIds.isEmpty()) {
-                System.debug(LoggingLevel.INFO, '>>> Calling linkTasksToRecords with ' + importResult.taskIds.size() + ' task IDs');
                 linkTasksToRecords(importResult.taskIds, selections);
-                System.debug(LoggingLevel.INFO, '>>> linkTasksToRecords completed successfully');
             } else {
-                System.debug(LoggingLevel.WARN, '>>> No Task IDs to link - importResult.taskIds is empty');
             }
             
             // NOTE: Notifications are already sent by:
@@ -1684,7 +1654,6 @@ public with sharing class AITaskSyncController {
             // No additional notification call needed here
             
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error in associateTasksFromModal: ' + e.getMessage());
             result.put('success', false);
             result.put('failedCount', selections != null ? selections.size() : 0);
             ((List<String>) result.get('errors')).add(e.getMessage());
@@ -1705,21 +1674,14 @@ public with sharing class AITaskSyncController {
      * @param selections List of user selections with contactIds, leadIds, accountId, opportunityId
      */
     private static void linkTasksToRecords(List<Id> taskIds, List<Map<String, Object>> selections) {
-        System.debug(LoggingLevel.INFO, '>>> linkTasksToRecords START');
         
         if (taskIds == null || taskIds.isEmpty() || selections == null || selections.isEmpty()) {
-            System.debug(LoggingLevel.WARN, '>>> linkTasksToRecords: Empty taskIds or selections');
             return;
         }
         
-        System.debug(LoggingLevel.INFO, '>>> LINK_TASKS_DEBUG: taskIds count = ' + taskIds.size());
-        System.debug(LoggingLevel.INFO, '>>> LINK_TASKS_DEBUG: taskIds = ' + taskIds);
-        System.debug(LoggingLevel.INFO, '>>> LINK_TASKS_DEBUG: selections count = ' + selections.size());
-        System.debug(LoggingLevel.INFO, '>>> LINK_TASKS_DEBUG: selections = ' + JSON.serializePretty(selections));
         
         // Check if TaskRelation is available (Shared Activities enabled)
         Boolean hasTaskRelation = Schema.getGlobalDescribe().containsKey('TaskRelation');
-        System.debug(LoggingLevel.INFO, '>>> TaskRelation (Shared Activities) available: ' + hasTaskRelation);
         
         // Build map of task index to selection
         // Assumption: taskIds are in the same order as successful selections
@@ -1728,13 +1690,11 @@ public with sharing class AITaskSyncController {
         for (Map<String, Object> selection : selections) {
             if (successfulIndex < taskIds.size()) {
                 taskIndexToSelection.put(successfulIndex, selection);
-                System.debug(LoggingLevel.INFO, '>>> Mapped task index ' + successfulIndex + ' to selection: ' + JSON.serialize(selection));
                 successfulIndex++;
             }
         }
         
         // Step 1: Update Tasks with WhatId (Account or Opportunity) and WhoId (if TaskRelation not available)
-        System.debug(LoggingLevel.INFO, '>>> Step 1: Building Task updates');
         List<Task> tasksToUpdate = new List<Task>();
         Map<Id, Boolean> taskIdHasWhatId = new Map<Id, Boolean>();
         Map<Id, List<Id>> taskIdToRelationIds = new Map<Id, List<Id>>();
@@ -1743,10 +1703,8 @@ public with sharing class AITaskSyncController {
             Id taskId = taskIds[i];
             Map<String, Object> selection = taskIndexToSelection.get(i);
             
-            System.debug(LoggingLevel.INFO, '>>> Processing Task ' + i + ' (ID: ' + taskId + ')');
             
             if (selection == null) {
-                System.debug(LoggingLevel.WARN, '>>> No selection found for task index ' + i);
                 continue;
             }
             
@@ -1755,16 +1713,11 @@ public with sharing class AITaskSyncController {
             List<Object> contactIdsList = (List<Object>) selection.get('contactIds');
             List<Object> leadIdsList = (List<Object>) selection.get('leadIds');
             
-            System.debug(LoggingLevel.INFO, '>>> Selection for Task ' + taskId + ': opportunityId=' + opportunityId + 
-                ', accountId=' + accountId + ', contactIds=' + contactIdsList + ', leadIds=' + leadIdsList);
-            
             // Validate and filter out invalid IDs (e.g., staging record IDs)
             if (String.isNotBlank(opportunityId) && !isValidOpportunityId(opportunityId)) {
-                System.debug(LoggingLevel.WARN, 'Invalid Opportunity ID: ' + opportunityId);
                 opportunityId = null;
             }
             if (String.isNotBlank(accountId) && !isValidAccountId(accountId)) {
-                System.debug(LoggingLevel.WARN, 'Invalid Account ID: ' + accountId);
                 accountId = null;
             }
             
@@ -1775,113 +1728,85 @@ public with sharing class AITaskSyncController {
             if (String.isNotBlank(opportunityId)) {
                 t.WhatId = opportunityId;
                 hasWhatId = true;
-                System.debug(LoggingLevel.INFO, '>>> Set WhatId to Opportunity: ' + opportunityId);
             } else if (String.isNotBlank(accountId)) {
                 t.WhatId = accountId;
                 hasWhatId = true;
-                System.debug(LoggingLevel.INFO, '>>> Set WhatId to Account: ' + accountId);
             }
             
             taskIdHasWhatId.put(taskId, hasWhatId);
             
             // If TaskRelation NOT available, set WhoId to first Contact or Lead
             if (!hasTaskRelation) {
-                System.debug(LoggingLevel.INFO, '>>> TaskRelation NOT available - using WhoId for single Contact/Lead');
                 if (contactIdsList != null && !contactIdsList.isEmpty()) {
                     Id firstContactId = (Id) contactIdsList[0];
                     if (isValidContactId(String.valueOf(firstContactId))) {
                         t.WhoId = firstContactId;
-                        System.debug(LoggingLevel.INFO, '>>> Set WhoId to Contact: ' + firstContactId);
                     }
                 } else if (leadIdsList != null && !leadIdsList.isEmpty()) {
                     Id firstLeadId = (Id) leadIdsList[0];
                     if (isValidLeadId(String.valueOf(firstLeadId))) {
                         t.WhoId = firstLeadId;
-                        System.debug(LoggingLevel.INFO, '>>> Set WhoId to Lead: ' + firstLeadId);
                     }
                 }
             } else {
                 // TaskRelation available - collect relation IDs
-                System.debug(LoggingLevel.INFO, '>>> TaskRelation available - will create TaskRelation records');
                 List<Id> relationIds = new List<Id>();
                 
                 // Add Contacts (with validation)
                 if (contactIdsList != null && !contactIdsList.isEmpty()) {
-                    System.debug(LoggingLevel.INFO, '>>> Processing ' + contactIdsList.size() + ' Contact IDs');
                     for (Object contactIdObj : contactIdsList) {
                         String contactIdStr = String.valueOf(contactIdObj);
                         if (isValidContactId(contactIdStr)) {
                             relationIds.add((Id) contactIdObj);
-                            System.debug(LoggingLevel.INFO, '>>> Added Contact to relations: ' + contactIdStr);
                         } else {
-                            System.debug(LoggingLevel.WARN, '>>> Invalid Contact ID: ' + contactIdStr);
                         }
                     }
                 }
                 
                 // Add Leads ONLY if WhatId is NOT set (Salesforce restriction)
                 if (!hasWhatId && leadIdsList != null && !leadIdsList.isEmpty()) {
-                    System.debug(LoggingLevel.INFO, '>>> Processing ' + leadIdsList.size() + ' Lead IDs (no WhatId set)');
                     for (Object leadIdObj : leadIdsList) {
                         String leadIdStr = String.valueOf(leadIdObj);
                         if (isValidLeadId(leadIdStr)) {
                             relationIds.add((Id) leadIdObj);
-                            System.debug(LoggingLevel.INFO, '>>> Added Lead to relations: ' + leadIdStr);
                         } else {
-                            System.debug(LoggingLevel.WARN, '>>> Invalid Lead ID: ' + leadIdStr);
                         }
                     }
                 } else if (hasWhatId && leadIdsList != null && !leadIdsList.isEmpty()) {
-                    System.debug(LoggingLevel.WARN, '>>> Skipping Leads because WhatId is set (Salesforce restriction)');
                 }
                 
                 if (!relationIds.isEmpty()) {
                     taskIdToRelationIds.put(taskId, relationIds);
-                    System.debug(LoggingLevel.INFO, '>>> Will create ' + relationIds.size() + ' TaskRelation records for Task ' + taskId);
                 }
             }
             
             tasksToUpdate.add(t);
         }
         
-        System.debug(LoggingLevel.INFO, '>>> Total Tasks to update: ' + tasksToUpdate.size());
         
         // Update Tasks with WhatId and WhoId (if applicable) - with FLS enforcement
         if (!tasksToUpdate.isEmpty()) {
-            System.debug(LoggingLevel.INFO, '>>> Updating ' + tasksToUpdate.size() + ' Tasks with WhatId/WhoId');
             // Check object-level update permission
             // Use FLSCheck for FLS/OLS enforcement
             List<Task> accessibleTasks = FLSCheck.getInstance().updateCheck(tasksToUpdate);
             
             if (accessibleTasks == null || accessibleTasks.isEmpty()) {
-                System.debug(LoggingLevel.ERROR, '>>> Insufficient permissions to update Task records');
             } else {
-                System.debug(LoggingLevel.INFO, '>>> Performing Database.update for ' + accessibleTasks.size() + ' accessible Tasks');
-                Database.SaveResult[] updateResults = Database.update(accessibleTasks, false);
-                for (Integer i = 0; i < updateResults.size(); i++) {
-                    if (updateResults[i].isSuccess()) {
-                        System.debug(LoggingLevel.INFO, '>>> Successfully updated Task: ' + accessibleTasks[i].Id);
-                    } else {
-                        Task failedTask = accessibleTasks[i];
-                        String errorMsg = updateResults[i].getErrors()[0].getMessage();
-                        System.debug(LoggingLevel.ERROR, '>>> Error updating Task ' + failedTask.Id + 
-                            ' (WhatId: ' + failedTask.WhatId + ', WhoId: ' + failedTask.WhoId + '): ' + errorMsg);
-                    
-                        // Throw exception to show user which field has invalid ID
-                        throw new AuraHandledException('Error linking task: ' + errorMsg + 
-                            ' (WhatId: ' + failedTask.WhatId + ', WhoId: ' + failedTask.WhoId + ')');
-                    }
+                // V2-7889: Use FLSCheck for FLS/CRUD enforcement
+                try {
+                    FLSCheck.getInstance().updateDML(accessibleTasks, false);
+                } catch (Exception e) {
+                    // Throw exception to show user which field has invalid ID
+                    throw new AuraHandledException('Error linking task: ' + e.getMessage());
                 }
             }
         }
         
         // Step 2: Create TaskRelation records (if Shared Activities enabled)
         if (hasTaskRelation && !taskIdToRelationIds.isEmpty()) {
-            System.debug(LoggingLevel.INFO, '>>> Creating TaskRelation records for ' + taskIdToRelationIds.size() + ' Tasks');
             createTaskRelations(taskIdToRelationIds);
         }
         
-        System.debug(LoggingLevel.INFO, '>>> linkTasksToRecords END');
     }
     
     /**

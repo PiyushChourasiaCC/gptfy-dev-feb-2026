@@ -142,111 +142,91 @@ private class AISyncSettingsServiceTest {
     }
 
     @isTest
-    static void testExcludeMarketing_DefaultsToTrue() {
-        AISyncSettingsService.setCachedSettings(null);
-        AISyncSettingsService.clearCache();
-
-        Test.startTest();
-        Boolean excludeMarketing = AISyncSettingsService.excludeMarketing();
-        Test.stopTest();
-
-        Assert.isTrue(true, 'Should complete without exception');
-    }
-
-    @isTest
-    static void testExcludeConfidential() {
+    static void testGetExcludedDomains() {
         AI_Workspace_Sync_Settings__c mockSettings = new AI_Workspace_Sync_Settings__c(
-            Exclude_Confidential__c = true
+            Excluded_Domains__c = 'spam.com, marketing.net'
         );
         AISyncSettingsService.setCachedSettings(mockSettings);
 
         Test.startTest();
-        Boolean exclude = AISyncSettingsService.excludeConfidential();
+        String domains = AISyncSettingsService.getExcludedDomains();
         Test.stopTest();
 
-        Assert.areEqual(true, exclude, 'Should exclude confidential');
+        Assert.areEqual('spam.com, marketing.net', domains, 'Should return excluded domains');
     }
 
     @isTest
-    static void testExcludeInternal() {
+    static void testGetExcludedLabelsCategories() {
         AI_Workspace_Sync_Settings__c mockSettings = new AI_Workspace_Sync_Settings__c(
-            Exclude_Internal__c = false
+            Excluded_Labels_Categories__c = 'Marketing, Confidential'
         );
         AISyncSettingsService.setCachedSettings(mockSettings);
 
         Test.startTest();
-        Boolean exclude = AISyncSettingsService.excludeInternal();
+        String labels = AISyncSettingsService.getExcludedLabelsCategories();
         Test.stopTest();
 
-        Assert.areEqual(false, exclude, 'Should not exclude internal');
+        Assert.areEqual('Marketing, Confidential', labels, 'Should return excluded labels');
     }
 
     @isTest
-    static void testGetInternalDomains() {
+    static void testGetExcludedDomainsList() {
         AI_Workspace_Sync_Settings__c mockSettings = new AI_Workspace_Sync_Settings__c(
-            Internal_Domains__c = 'acme.com, example.org, Test.NET'
+            Excluded_Domains__c = 'spam.com, marketing.net, TEST.ORG'
         );
         AISyncSettingsService.setCachedSettings(mockSettings);
 
         Test.startTest();
-        Set<String> domains = AISyncSettingsService.getInternalDomains();
+        List<String> domains = AISyncSettingsService.getExcludedDomainsList();
         Test.stopTest();
 
         Assert.areEqual(3, domains.size(), 'Should have 3 domains');
-        Assert.isTrue(domains.contains('acme.com'), 'Should contain acme.com');
-        Assert.isTrue(domains.contains('example.org'), 'Should contain example.org');
-        Assert.isTrue(domains.contains('test.net'), 'Should contain test.net (lowercase)');
+        Assert.isTrue(domains.contains('spam.com'), 'Should contain spam.com');
+        Assert.isTrue(domains.contains('marketing.net'), 'Should contain marketing.net');
+        Assert.isTrue(domains.contains('test.org'), 'Should contain test.org (lowercase)');
     }
 
     @isTest
-    static void testGetInternalDomains_Empty() {
+    static void testGetExcludedDomainsList_Empty() {
         AI_Workspace_Sync_Settings__c mockSettings = new AI_Workspace_Sync_Settings__c(
-            Internal_Domains__c = ''
+            Excluded_Domains__c = ''
         );
         AISyncSettingsService.setCachedSettings(mockSettings);
 
         Test.startTest();
-        Set<String> domains = AISyncSettingsService.getInternalDomains();
+        List<String> domains = AISyncSettingsService.getExcludedDomainsList();
         Test.stopTest();
 
         Assert.areEqual(0, domains.size(), 'Should have no domains');
     }
 
     @isTest
-    static void testIsDomainInternal_True() {
+    static void testGetExcludedLabelsList() {
         AI_Workspace_Sync_Settings__c mockSettings = new AI_Workspace_Sync_Settings__c(
-            Internal_Domains__c = 'internal.com, company.org'
+            Excluded_Labels_Categories__c = 'Marketing, Confidential, SPAM'
         );
         AISyncSettingsService.setCachedSettings(mockSettings);
 
         Test.startTest();
-        Boolean isInternal = AISyncSettingsService.isDomainInternal('INTERNAL.COM');
+        List<String> labels = AISyncSettingsService.getExcludedLabelsList();
         Test.stopTest();
 
-        Assert.areEqual(true, isInternal, 'Should match internal domain (case-insensitive)');
+        Assert.areEqual(3, labels.size(), 'Should have 3 labels');
+        Assert.isTrue(labels.contains('marketing'), 'Should contain marketing (lowercase)');
+        Assert.isTrue(labels.contains('confidential'), 'Should contain confidential');
+        Assert.isTrue(labels.contains('spam'), 'Should contain spam (lowercase)');
     }
 
     @isTest
-    static void testIsDomainInternal_False() {
-        AI_Workspace_Sync_Settings__c mockSettings = new AI_Workspace_Sync_Settings__c(
-            Internal_Domains__c = 'internal.com'
-        );
+    static void testGetExcludedLabelsList_Null() {
+        AI_Workspace_Sync_Settings__c mockSettings = new AI_Workspace_Sync_Settings__c();
         AISyncSettingsService.setCachedSettings(mockSettings);
 
         Test.startTest();
-        Boolean isInternal = AISyncSettingsService.isDomainInternal('external.com');
+        List<String> labels = AISyncSettingsService.getExcludedLabelsList();
         Test.stopTest();
 
-        Assert.areEqual(false, isInternal, 'Should not match external domain');
-    }
-
-    @isTest
-    static void testIsDomainInternal_Blank() {
-        Test.startTest();
-        Boolean isInternal = AISyncSettingsService.isDomainInternal('');
-        Test.stopTest();
-
-        Assert.areEqual(false, isInternal, 'Blank domain should return false');
+        Assert.areEqual(0, labels.size(), 'Should have no labels when null');
     }
 
     @isTest
@@ -530,43 +510,6 @@ private class AISyncSettingsServiceTest {
         Assert.areEqual(true, include, 'Should include completed tasks');
     }
 
-    @isTest
-    static void testExcludePublicDomains() {
-        AI_Workspace_Sync_Settings__c mockSettings = new AI_Workspace_Sync_Settings__c(
-            Exclude_Public_Domains__c = true
-        );
-        AISyncSettingsService.setCachedSettings(mockSettings);
-
-        Test.startTest();
-        Boolean exclude = AISyncSettingsService.excludePublicDomains();
-        Test.stopTest();
-
-        Assert.areEqual(true, exclude, 'Should exclude public domains');
-    }
-
-    @isTest
-    static void testGetPublicDomains() {
-        Test.startTest();
-        Set<String> domains = AISyncSettingsService.getPublicDomains();
-        Test.stopTest();
-
-        Assert.isTrue(domains.contains('gmail.com'), 'Should contain gmail.com');
-        Assert.isTrue(domains.contains('outlook.com'), 'Should contain outlook.com');
-        Assert.isTrue(domains.contains('yahoo.com'), 'Should contain yahoo.com');
-    }
-
-    @isTest
-    static void testIsPublicDomain() {
-        Test.startTest();
-        Boolean isGmail = AISyncSettingsService.isPublicDomain('gmail.com');
-        Boolean isNotPublic = AISyncSettingsService.isPublicDomain('company.com');
-        Boolean isBlank = AISyncSettingsService.isPublicDomain('');
-        Test.stopTest();
-
-        Assert.areEqual(true, isGmail, 'gmail.com should be public');
-        Assert.areEqual(false, isNotPublic, 'company.com should not be public');
-        Assert.areEqual(false, isBlank, 'Blank should return false');
-    }
 
     @isTest
     static void testGetEmailsPerBatch() {

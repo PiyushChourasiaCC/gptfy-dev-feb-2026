@@ -65,4 +65,56 @@ global with sharing class AIGlobalUtility {
         }
         return aiResponses;
     }
+
+    /**
+     * @description: Encrypts a plain text string using a specific user's context.
+     *               This method provides a secure way to encrypt sensitive data without exposing
+     *               the encryption key or salt. The encryption is user-specific, meaning only the
+     *               same user (with the same User ID) can decrypt the data.
+     * 
+     * Encryption Details:
+     * - Algorithm: AES256 with Managed IV
+     * - Key: Generated using SHA256(OrgId + UserId + CustomSalt)
+     * - Output: Base64-encoded encrypted string
+     * 
+     * IMPORTANT: You must provide the User ID that will be used for both encryption and decryption.
+     *            The same User ID must be used to decrypt the data later.
+     * 
+     * @param plainText The plain text string to encrypt
+     * @param userId The Salesforce User ID to use for encryption key generation (REQUIRED)
+     * @return Base64-encoded encrypted string, or null if input is blank
+     * @throws AIWorkspaceEncryptionService.EncryptionException if encryption fails
+     * @jira V2-7889
+     * 
+     * @example
+     * Id userId = '005XXXXXXXXXXXXXX';
+     * String encrypted = AIGlobalUtility.encryptData('Sensitive Information', userId);
+     * System.debug('Encrypted: ' + encrypted);
+     */
+    global static String encryptData(String plainText, Id userId) {
+        return AIWorkspaceEncryptionService.encrypt(plainText, userId);
+    }
+
+    /**
+     * @description: Decrypts an encrypted string using a specific user's context.
+     *               This method can only decrypt data that was encrypted using the same User ID.
+     *               The decryption key is generated using the provided User ID.
+     * 
+     * IMPORTANT: You must provide the SAME User ID that was used during encryption.
+     *            Using a different User ID will result in decryption failure.
+     * 
+     * @param encryptedText The Base64-encoded encrypted string
+     * @param userId The Salesforce User ID to use for decryption key generation (REQUIRED)
+     * @return Decrypted plain text string, or null if input is blank
+     * @throws AIWorkspaceEncryptionService.EncryptionException if decryption fails
+     * @jira V2-7889
+     * 
+     * @example
+     * Id userId = '005XXXXXXXXXXXXXX';
+     * String decrypted = AIGlobalUtility.decryptData(encryptedString, userId);
+     * System.debug('Decrypted: ' + decrypted);
+     */
+    global static String decryptData(String encryptedText, Id userId) {
+        return AIWorkspaceEncryptionService.decrypt(encryptedText, userId);
+    }
 }

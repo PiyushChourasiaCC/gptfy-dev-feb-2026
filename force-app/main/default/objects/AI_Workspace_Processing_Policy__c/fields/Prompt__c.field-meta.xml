@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Prompt__c</fullName>
+    <deleteConstraint>Restrict</deleteConstraint>
+    <description>Lookup to AI Prompt</description>
+    <label>Prompt</label>
+    <lookupFilter>
+        <active>true</active>
+        <filterItems>
+            <field>AI_Prompt__c.Object__c</field>
+            <operation>contains</operation>
+            <value>AI_Workspace_Staging__c</value>
+        </filterItems>
+        <filterItems>
+            <field>AI_Prompt__c.Status__c</field>
+            <operation>equals</operation>
+            <value>Active</value>
+        </filterItems>
+        <isOptional>true</isOptional>
+    </lookupFilter>
+    <referenceTo>AI_Prompt__c</referenceTo>
+    <relationshipLabel>Workspace Processing Policies</relationshipLabel>
+    <relationshipName>Workspace_Processing_Policies</relationshipName>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

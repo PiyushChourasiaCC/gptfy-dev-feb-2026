@@ -6,7 +6,7 @@
                 <div class="no-provider-content">
                     <div class="no-provider-icon">⚙️</div>
                     <h2>Task Sync Not Configured</h2>
-                    <p>Please enable at least one task provider (Outlook or Gmail) from:</p>
+                    <p>Please enable at least one task provider (Outlook or Gmail) from Settings</p>
                     <p class="settings-path"><strong>AI Settings → Workspace Sync</strong></p>
                 </div>
             </div>
@@ -191,7 +191,7 @@
                         <button class="retry-connection-btn" onclick={handleRetryConnection} title="Refresh connection without leaving this page">
                             🔄 Refresh Connection
                         </button>
-                        <a href={authenticationSettingsUrl} class="auth-link">🔐 Connect Tasks</a>
+                        <button class="auth-link" onclick={handleConnectClick}>🔐 Connect Tasks</button>
                     </div>
                 </div>
             </template>

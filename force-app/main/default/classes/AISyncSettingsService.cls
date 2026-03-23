@@ -175,97 +175,69 @@ public without sharing class AISyncSettingsService {
     }
 
     // =========================================================================
-    // Exclusion Settings
+    // Exclusion Settings (V2-7889)
     // =========================================================================
 
     /**
-     * Check if marketing emails should be excluded
+     * Get excluded domains from settings
+     * @return Comma-separated string of domains to exclude, or null
      */
-    public static Boolean excludeMarketing() {
+    public static String getExcludedDomains() {
         AI_Workspace_Sync_Settings__c settings = getSettings();
-        return settings == null || settings.Exclude_Marketing__c == true; // Default to true
+        return settings != null ? settings.Excluded_Domains__c : null;
     }
 
     /**
-     * Check if confidential emails should be excluded
+     * Get excluded labels/categories from settings
+     * @return Comma-separated string of labels/categories to exclude, or null
      */
-    public static Boolean excludeConfidential() {
+    public static String getExcludedLabelsCategories() {
         AI_Workspace_Sync_Settings__c settings = getSettings();
-        return settings == null || settings.Exclude_Confidential__c == true; // Default to true
+        return settings != null ? settings.Excluded_Labels_Categories__c : null;
     }
 
     /**
-     * Check if internal emails should be excluded
+     * Get excluded domains as a list
+     * @return List of domains to exclude (lowercase, trimmed)
      */
-    public static Boolean excludeInternal() {
-        AI_Workspace_Sync_Settings__c settings = getSettings();
-        return settings == null || settings.Exclude_Internal__c == true; // Default to true
-    }
-
-    /**
-     * Check if public domain emails should be excluded from lead auto-creation.
-     * When enabled, emails from public domains (gmail.com, yahoo.com, etc.)
-     * will not generate leads automatically.
-     */
-    public static Boolean excludePublicDomains() {
-        AI_Workspace_Sync_Settings__c settings = getSettings();
-        return settings == null || settings.Exclude_Public_Domains__c == true; // Default to true
-    }
-
-    /**
-     * Get the set of public email domains to exclude from lead creation.
-     * Returns a hardcoded list of common public email providers.
-     */
-    public static Set<String> getPublicDomains() {
-        return new Set<String>{
-            // Google
-            'gmail.com', 'googlemail.com', 'google.com',
-            // Microsoft
-            'outlook.com', 'hotmail.com', 'live.com', 'msn.com',
-            // Yahoo
-            'yahoo.com', 'yahoo.co.uk', 'yahoo.co.in', 'ymail.com',
-            // Apple
-            'icloud.com', 'me.com', 'mac.com',
-            // Other popular providers
-            'aol.com', 'protonmail.com', 'proton.me',
-            'zoho.com', 'mail.com', 'gmx.com', 'gmx.net',
-            'yandex.com', 'yandex.ru', 'qq.com', '163.com', '126.com',
-            'rediffmail.com', 'tutanota.com', 'fastmail.com'
-        };
-    }
-
-    /**
-     * Check if a domain is a public email domain
-     */
-    public static Boolean isPublicDomain(String domain) {
-        if (String.isBlank(domain)) return false;
-        return getPublicDomains().contains(domain.toLowerCase());
-    }
-
-    /**
-     * Get the set of internal/excluded domains
-     */
-    public static Set<String> getInternalDomains() {
-        Set<String> domains = new Set<String>();
-        AI_Workspace_Sync_Settings__c settings = getSettings();
-
-        if (settings != null && String.isNotBlank(settings.Internal_Domains__c)) {
-            for (String domain : settings.Internal_Domains__c.split(',')) {
-                String trimmed = domain.trim().toLowerCase();
-                if (String.isNotBlank(trimmed)) {
-                    domains.add(trimmed);
-                }
+    public static List<String> getExcludedDomainsList() {
+        List<String> domains = new List<String>();
+        String excludedDomains = getExcludedDomains();
+        
+        if (String.isBlank(excludedDomains)) {
+            return domains;
+        }
+        
+        for (String domain : excludedDomains.split(',')) {
+            String trimmed = domain.trim().toLowerCase();
+            if (String.isNotBlank(trimmed)) {
+                domains.add(trimmed);
             }
         }
+        
         return domains;
     }
 
     /**
-     * Check if a domain is in the internal/excluded list
+     * Get excluded labels/categories as a list
+     * @return List of labels/categories to exclude (lowercase, trimmed)
      */
-    public static Boolean isDomainInternal(String domain) {
-        if (String.isBlank(domain)) return false;
-        return getInternalDomains().contains(domain.toLowerCase());
+    public static List<String> getExcludedLabelsList() {
+        List<String> labels = new List<String>();
+        String excludedLabels = getExcludedLabelsCategories();
+        
+        if (String.isBlank(excludedLabels)) {
+            return labels;
+        }
+        
+        for (String label : excludedLabels.split(',')) {
+            String trimmed = label.trim().toLowerCase();
+            if (String.isNotBlank(trimmed)) {
+                labels.add(trimmed);
+            }
+        }
+        
+        return labels;
     }
 
     // =========================================================================

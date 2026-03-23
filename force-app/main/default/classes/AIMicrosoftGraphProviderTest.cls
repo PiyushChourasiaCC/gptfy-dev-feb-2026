@@ -241,8 +241,8 @@ public class AIMicrosoftGraphProviderTest {
         AIEmailProviderService.ProviderType providerType = provider.getProviderType();
         Test.stopTest();
         
-        Assert.areEqual(AIEmailProviderService.ProviderType.MICROSOFT_GRAPH, providerType, 
-            'Should return MICROSOFT_GRAPH provider type');
+        Assert.areEqual(AIEmailProviderService.ProviderType.MICROSOFT_EMAIL, providerType,
+            'Should return MICROSOFT_EMAIL provider type');
     }
 
     /**

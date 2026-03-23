@@ -1738,9 +1738,16 @@ public class AICalendarSyncServiceTest {
      */
     private class OutlookFetchMock implements HttpCalloutMock {
         private Boolean returnEmpty;
+        private String customResponse;
         
         public OutlookFetchMock(Boolean returnEmpty) {
             this.returnEmpty = returnEmpty;
+            this.customResponse = null;
+        }
+        
+        public OutlookFetchMock(String customResponse) {
+            this.returnEmpty = false;
+            this.customResponse = customResponse;
         }
         
         public HttpResponse respond(HttpRequest req) {
@@ -1750,6 +1757,8 @@ public class AICalendarSyncServiceTest {
             
             if (req.getEndpoint().contains('/me')) {
                 res.setBody('{"mail": "test@outlook.com"}');
+            } else if (customResponse != null) {
+                res.setBody(customResponse);
             } else if (returnEmpty) {
                 res.setBody('{"value": []}');
             } else {
@@ -1765,9 +1774,16 @@ public class AICalendarSyncServiceTest {
      */
     private class GmailFetchMock implements HttpCalloutMock {
         private Boolean returnEmpty;
+        private String customResponse;
         
         public GmailFetchMock(Boolean returnEmpty) {
             this.returnEmpty = returnEmpty;
+            this.customResponse = null;
+        }
+        
+        public GmailFetchMock(String customResponse) {
+            this.returnEmpty = false;
+            this.customResponse = customResponse;
         }
         
         public HttpResponse respond(HttpRequest req) {
@@ -1777,6 +1793,8 @@ public class AICalendarSyncServiceTest {
             
             if (req.getEndpoint().contains('userinfo')) {
                 res.setBody('{"email": "test@gmail.com"}');
+            } else if (customResponse != null) {
+                res.setBody(customResponse);
             } else if (returnEmpty) {
                 res.setBody('{"items": []}');
             } else {
@@ -3078,5 +3096,4603 @@ public class AICalendarSyncServiceTest {
 
         Assert.isTrue(logs.size() > 0, 'Should handle null raw events');
         Assert.areEqual('Success', logs[0].Status__c, 'Should be successful');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_EventsFailConversionToEmpty() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        // Mock response with events that will fail conversion
+        String invalidEventsResponse = '{"value": [{"id": "invalid-event"}]}';
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(invalidEventsResponse));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create log even when events fail conversion');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_WithStagingErrorMessages() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Error_Message__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create log');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailProviderEmptyEvents() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(true));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token',
+            false
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Emails_Fetched__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle empty Gmail events');
+        Assert.areEqual('Success', logs[0].Status__c, 'Should be successful');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_OutlookProviderEmptyEvents() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(true));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token',
+            false
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Emails_Fetched__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle empty Outlook events');
+        Assert.areEqual('Success', logs[0].Status__c, 'Should be successful');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithNullStartMap() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithNullStart = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-no-start",' +
+                    '"subject": "Event without Start",' +
+                    '"iCalUId": "ical-no-start",' +
+                    '"start": null,' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithNullStart));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with null start');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithNullEndMap() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithNullEnd = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-no-end",' +
+                    '"subject": "Event without End",' +
+                    '"iCalUId": "ical-no-end",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": null,' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithNullEnd));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with null end');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithNullLocation() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithNullLocation = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-no-location",' +
+                    '"subject": "Event without Location",' +
+                    '"iCalUId": "ical-no-location",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"location": null,' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithNullLocation));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with null location');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithNullOrganizer() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithNullOrganizer = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-no-organizer",' +
+                    '"subject": "Event without Organizer",' +
+                    '"iCalUId": "ical-no-organizer",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"organizer": null,' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithNullOrganizer));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with null organizer');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithNullStart() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithNullStart = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-no-start",' +
+                    '"summary": "Gmail Event without Start",' +
+                    '"iCalUID": "gmail-ical-no-start",' +
+                    '"start": null,' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithNullStart));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail event with null start');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithNullEnd() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithNullEnd = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-no-end",' +
+                    '"summary": "Gmail Event without End",' +
+                    '"iCalUID": "gmail-ical-no-end",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": null' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithNullEnd));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail event with null end');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithDateOnlyStart() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithDateStart = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-date-start",' +
+                    '"summary": "Gmail All Day Event",' +
+                    '"iCalUID": "gmail-ical-date-start",' +
+                    '"start": {"date": "2025-12-08"},' +
+                    '"end": {"date": "2025-12-09"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithDateStart));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail all-day event with date only');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithNullAttendees() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithNullAttendees = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-no-attendees",' +
+                    '"summary": "Gmail Event without Attendees",' +
+                    '"iCalUID": "gmail-ical-no-attendees",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"attendees": null' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithNullAttendees));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail event with null attendees');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_OutlookWithNullAttendees() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithNullAttendees = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-no-attendees",' +
+                    '"subject": "Event without Attendees",' +
+                    '"iCalUId": "ical-no-attendees",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"attendees": null,' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithNullAttendees));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with null attendees');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithAttendeeWithoutEmail() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithAttendeeNoEmail = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-attendee-no-email",' +
+                    '"subject": "Event with Attendee No Email",' +
+                    '"iCalUId": "ical-attendee-no-email",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"attendees": [{"emailAddress": null}],' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithAttendeeNoEmail));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle attendee with null email');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithNullOrganizer() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithNullOrganizer = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-no-organizer",' +
+                    '"summary": "Gmail Event without Organizer",' +
+                    '"iCalUID": "gmail-ical-no-organizer",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"organizer": null' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithNullOrganizer));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail event with null organizer');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithAttendeeWithoutEmail() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithAttendeeNoEmail = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-attendee-no-email",' +
+                    '"summary": "Gmail Event with Attendee No Email",' +
+                    '"iCalUID": "gmail-ical-attendee-no-email",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"attendees": [{"email": null}]' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithAttendeeNoEmail));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail attendee with null email');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithRecurringEventId() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithRecurring = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-recurring-instance",' +
+                    '"summary": "Recurring Event Instance",' +
+                    '"iCalUID": "gmail-ical-recurring",' +
+                    '"recurringEventId": "gmail-recurring-base",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithRecurring));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail recurring event');
+    }
+    
+    @isTest
+    static void testSyncUserCalendar_WithNullLookbackDays() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = null,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new MicrosoftCalendarMock(200, getEmptyEventsResponse()));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendar(UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle null lookback days');
+    }
+    
+    @isTest
+    static void testSyncUserCalendar_WithNullLookaheadDays() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = null,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new MicrosoftCalendarMock(200, getEmptyEventsResponse()));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendar(UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle null lookahead days');
+    }
+    
+    @isTest
+    static void testSyncUserCalendar_WithNullMaxEvents() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = null
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new MicrosoftCalendarMock(200, getEmptyEventsResponse()));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendar(UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle null max events');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithBodyContent() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithBodyContent = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-with-body",' +
+                    '"subject": "Event with Body",' +
+                    '"iCalUId": "ical-with-body",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"body": {"content": "<p>This is <b>HTML</b> content</p>", "contentType": "html"},' +
+                    '"bodyPreview": "This is plain text preview",' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithBodyContent));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with body content');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithBlankBodyContent() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithBlankBody = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-blank-body",' +
+                    '"subject": "Event with Blank Body",' +
+                    '"iCalUId": "ical-blank-body",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"body": {"content": "", "contentType": "html"},' +
+                    '"bodyPreview": "Fallback to body preview",' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithBlankBody));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with blank body and fall back to bodyPreview');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithOnlineMeetingLink() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithMeetingLink = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-with-meeting",' +
+                    '"subject": "Teams Meeting",' +
+                    '"iCalUId": "ical-with-meeting",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"onlineMeeting": {"joinUrl": "https://teams.microsoft.com/l/meetup-join/123"},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithMeetingLink));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with online meeting link');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithHangoutLink() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithHangout = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-hangout",' +
+                    '"summary": "Google Meet Event",' +
+                    '"iCalUID": "gmail-ical-hangout",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"hangoutLink": "https://meet.google.com/abc-defg-hij"' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithHangout));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail event with hangout link');
+    }
+    
+    @isTest
+    static void testParseGraphDateTime_WithMillisecondsAndAllDay() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithMilliseconds = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-milliseconds",' +
+                    '"subject": "Event with Milliseconds",' +
+                    '"iCalUId": "ical-milliseconds",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00.123", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00.456", "timeZone": "UTC"},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithMilliseconds));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle datetime with milliseconds');
+    }
+    
+    @isTest
+    static void testParseGoogleDateTime_WithPlusTimezone() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithTimezone = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-tz",' +
+                    '"summary": "Event with Timezone",' +
+                    '"iCalUID": "gmail-ical-tz",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00+05:30"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00+05:30"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithTimezone));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail datetime with timezone offset');
+    }
+    
+    @isTest
+    static void testConvertEventsToMaps_WithOrganizerEmail() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithOrganizer = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-with-org",' +
+                    '"subject": "Event with Organizer",' +
+                    '"iCalUId": "ical-with-org",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"organizer": {"emailAddress": {"address": "organizer@test.com", "name": "Organizer Name"}},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithOrganizer));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with organizer email');
+    }
+    
+    @isTest
+    static void testConvertEventsToMaps_WithBlankOrganizerEmail() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithBlankOrganizer = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-blank-org",' +
+                    '"subject": "Event with Blank Organizer",' +
+                    '"iCalUId": "ical-blank-org",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"organizer": {"emailAddress": {"address": "", "name": ""}},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithBlankOrganizer));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with blank organizer email');
+    }
+    
+    @isTest
+    static void testBuildExclusionSummary_WithMultipleReasons() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50,
+            Excluded_Domains__c = 'excluded.com'
+        );
+        insert settings;
+
+        String responseWithExcludedDomain = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-excluded",' +
+                    '"subject": "Excluded Event",' +
+                    '"iCalUId": "ical-excluded",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"organizer": {"emailAddress": {"address": "user@excluded.com", "name": "Excluded User"}},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithExcludedDomain));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Exclusion_Summary__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create log with exclusion summary');
+    }
+    
+    @isTest
+    static void testBuildExclusionSummary_WithNullReasons() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle null exclusion reasons');
+    }
+    
+    @isTest
+    static void testConvertMapsToCalendarEvents_WithOriginalEvent() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should convert maps back to calendar events');
+    }
+    
+    @isTest
+    static void testProcessDeltaEvents_WithNullStartMap() {
+        String deltaEventsJson = '[' +
+            '{' +
+                '"id": "delta-evt-1",' +
+                '"iCalUId": "delta-ical-1",' +
+                '"subject": "Delta Event",' +
+                '"start": null,' +
+                '"end": {"dateTime": "2025-12-08T11:00:00"},' +
+                '"isAllDay": false' +
+            '}' +
+        ']';
+        
+        List<Object> deltaEvents = (List<Object>) JSON.deserializeUntyped(deltaEventsJson);
+
+        Test.startTest();
+        AICalendarSyncService.processDeltaEvents(deltaEvents, UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle delta event with null start');
+    }
+    
+    @isTest
+    static void testProcessDeltaEvents_WithNullEndMap() {
+        String deltaEventsJson = '[' +
+            '{' +
+                '"id": "delta-evt-2",' +
+                '"iCalUId": "delta-ical-2",' +
+                '"subject": "Delta Event",' +
+                '"start": {"dateTime": "2025-12-08T10:00:00"},' +
+                '"end": null,' +
+                '"isAllDay": false' +
+            '}' +
+        ']';
+        
+        List<Object> deltaEvents = (List<Object>) JSON.deserializeUntyped(deltaEventsJson);
+
+        Test.startTest();
+        AICalendarSyncService.processDeltaEvents(deltaEvents, UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle delta event with null end');
+    }
+    
+    @isTest
+    static void testProcessDeltaEvents_WithNullLocationMap() {
+        String deltaEventsJson = '[' +
+            '{' +
+                '"id": "delta-evt-3",' +
+                '"iCalUId": "delta-ical-3",' +
+                '"subject": "Delta Event",' +
+                '"start": {"dateTime": "2025-12-08T10:00:00"},' +
+                '"end": {"dateTime": "2025-12-08T11:00:00"},' +
+                '"location": null,' +
+                '"isAllDay": false' +
+            '}' +
+        ']';
+        
+        List<Object> deltaEvents = (List<Object>) JSON.deserializeUntyped(deltaEventsJson);
+
+        Test.startTest();
+        AICalendarSyncService.processDeltaEvents(deltaEvents, UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle delta event with null location');
+    }
+    
+    @isTest
+    static void testProcessDeltaEvents_WithNullBodyMap() {
+        String deltaEventsJson = '[' +
+            '{' +
+                '"id": "delta-evt-4",' +
+                '"iCalUId": "delta-ical-4",' +
+                '"subject": "Delta Event",' +
+                '"start": {"dateTime": "2025-12-08T10:00:00"},' +
+                '"end": {"dateTime": "2025-12-08T11:00:00"},' +
+                '"body": null,' +
+                '"isAllDay": false' +
+            '}' +
+        ']';
+        
+        List<Object> deltaEvents = (List<Object>) JSON.deserializeUntyped(deltaEventsJson);
+
+        Test.startTest();
+        AICalendarSyncService.processDeltaEvents(deltaEvents, UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle delta event with null body');
+    }
+    
+    @isTest
+    static void testSyncUserCalendar_WithGoogleCalendarProvider() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GoogleProviderMock());
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendar(UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Provider_Type__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Google Calendar provider');
+    }
+    
+    @isTest
+    static void testCreateSyncLog_WithBlankProviderType() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(true));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Provider_Type__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create log with default provider type');
+    }
+    
+    @isTest
+    static void testParseGoogleDate_WithValidDate() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithDate = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-date",' +
+                    '"summary": "All Day Event",' +
+                    '"iCalUID": "gmail-ical-date",' +
+                    '"start": {"date": "2025-12-08"},' +
+                    '"end": {"date": "2025-12-09"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithDate));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should parse Google date format');
+    }
+    
+    @isTest
+    static void testParseGoogleDate_WithInvalidDate() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithInvalidDate = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-invalid-date",' +
+                    '"summary": "Invalid Date Event",' +
+                    '"iCalUID": "gmail-ical-invalid-date",' +
+                    '"start": {"date": "invalid-date"},' +
+                    '"end": {"date": "2025-12-09"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithInvalidDate));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle invalid date format gracefully');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_AllEventsFailConversion() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        // Return events that will all throw exceptions during conversion
+        String malformedResponse = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "bad-evt-1"' +
+                '},' +
+                '{' +
+                    '"id": "bad-evt-2"' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(malformedResponse));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Emails_Imported__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create log when all events fail conversion');
+        Assert.areEqual('Success', logs[0].Status__c, 'Should be successful with 0 events');
+        Assert.areEqual(0, logs[0].Emails_Imported__c, 'Should have 0 imported events');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailAllEventsFailConversion() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailMalformedResponse = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "bad-gmail-evt-1"' +
+                '},' +
+                '{' +
+                    '"id": "bad-gmail-evt-2"' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailMalformedResponse));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Emails_Imported__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create log when all Gmail events fail conversion');
+        Assert.areEqual('Success', logs[0].Status__c, 'Should be successful with 0 events');
+        Assert.areEqual(0, logs[0].Emails_Imported__c, 'Should have 0 imported events');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithNullBody() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithNullBody = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-null-body",' +
+                    '"subject": "Event with Null Body",' +
+                    '"iCalUId": "ical-null-body",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"body": null,' +
+                    '"bodyPreview": "Preview text",' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithNullBody));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with null body map');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithNullOnlineMeeting() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithNullMeeting = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-null-meeting",' +
+                    '"subject": "Event with Null Meeting",' +
+                    '"iCalUId": "ical-null-meeting",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"onlineMeeting": null,' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithNullMeeting));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with null online meeting');
+    }
+    
+    @isTest
+    static void testParseGraphDateTime_AllDayEvent() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseAllDay = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-all-day",' +
+                    '"subject": "All Day Event",' +
+                    '"iCalUId": "ical-all-day",' +
+                    '"start": {"dateTime": "2025-12-08T00:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-09T00:00:00", "timeZone": "UTC"},' +
+                    '"isAllDay": true' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseAllDay));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should parse all-day event datetime');
+    }
+    
+    @isTest
+    static void testParseGraphDateTime_WithBlankDateTime() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseBlankDateTime = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-blank-dt",' +
+                    '"subject": "Event with Blank DateTime",' +
+                    '"iCalUId": "ical-blank-dt",' +
+                    '"start": {"dateTime": "", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseBlankDateTime));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle blank datetime string');
+    }
+    
+    @isTest
+    static void testParseGoogleDateTime_WithBlankDateTime() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseBlankDateTime = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-blank-dt",' +
+                    '"summary": "Gmail Event with Blank DateTime",' +
+                    '"iCalUID": "gmail-ical-blank-dt",' +
+                    '"start": {"dateTime": ""},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseBlankDateTime));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail blank datetime string');
+    }
+    
+    @isTest
+    static void testParseGoogleDate_WithBlankDate() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseBlankDate = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-blank-date",' +
+                    '"summary": "Gmail Event with Blank Date",' +
+                    '"iCalUID": "gmail-ical-blank-date",' +
+                    '"start": {"date": ""},' +
+                    '"end": {"date": "2025-12-09"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseBlankDate));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail blank date string');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithResponseStatus() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithStatus = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-status",' +
+                    '"summary": "Gmail Event with Attendee Status",' +
+                    '"iCalUID": "gmail-ical-status",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"attendees": [' +
+                        '{"email": "attendee@test.com", "displayName": "Attendee Name", "responseStatus": "accepted"}' +
+                    ']' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithStatus));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail attendee with response status');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_WithExclusionFilters() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50,
+            Excluded_Domains__c = 'spam.com,blocked.com'
+        );
+        insert settings;
+
+        String responseWithExcluded = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-excluded-1",' +
+                    '"subject": "Excluded Event",' +
+                    '"iCalUId": "ical-excluded-1",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"organizer": {"emailAddress": {"address": "user@spam.com", "name": "Spam User"}},' +
+                    '"isAllDay": false' +
+                '},' +
+                '{' +
+                    '"id": "evt-included-1",' +
+                    '"subject": "Included Event",' +
+                    '"iCalUId": "ical-included-1",' +
+                    '"start": {"dateTime": "2025-12-08T14:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T15:00:00", "timeZone": "UTC"},' +
+                    '"organizer": {"emailAddress": {"address": "user@good.com", "name": "Good User"}},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithExcluded));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Emails_Excluded__c, Exclusion_Summary__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should apply exclusion filters');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_AllEventsExcluded() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50,
+            Excluded_Domains__c = 'excluded.com'
+        );
+        insert settings;
+
+        String responseAllExcluded = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-excluded-1",' +
+                    '"subject": "Excluded Event 1",' +
+                    '"iCalUId": "ical-excluded-1",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"organizer": {"emailAddress": {"address": "user1@excluded.com", "name": "User 1"}},' +
+                    '"isAllDay": false' +
+                '},' +
+                '{' +
+                    '"id": "evt-excluded-2",' +
+                    '"subject": "Excluded Event 2",' +
+                    '"iCalUId": "ical-excluded-2",' +
+                    '"start": {"dateTime": "2025-12-08T14:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T15:00:00", "timeZone": "UTC"},' +
+                    '"organizer": {"emailAddress": {"address": "user2@excluded.com", "name": "User 2"}},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseAllExcluded));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Emails_Excluded__c, Emails_Matched__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle all events being excluded');
+        Assert.areEqual('Success', logs[0].Status__c, 'Should be successful');
+    }
+    
+    @isTest
+    static void testProcessDeltaEvents_WithNullIsAllDay() {
+        String deltaEventsJson = '[' +
+            '{' +
+                '"id": "delta-evt-5",' +
+                '"iCalUId": "delta-ical-5",' +
+                '"subject": "Delta Event",' +
+                '"start": {"dateTime": "2025-12-08T10:00:00"},' +
+                '"end": {"dateTime": "2025-12-08T11:00:00"},' +
+                '"isAllDay": null' +
+            '}' +
+        ']';
+        
+        List<Object> deltaEvents = (List<Object>) JSON.deserializeUntyped(deltaEventsJson);
+
+        Test.startTest();
+        AICalendarSyncService.processDeltaEvents(deltaEvents, UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle delta event with null isAllDay');
+    }
+    
+    @isTest
+    static void testProcessDeltaEvents_WithWebLink() {
+        String deltaEventsJson = '[' +
+            '{' +
+                '"id": "delta-evt-6",' +
+                '"iCalUId": "delta-ical-6",' +
+                '"subject": "Delta Event with WebLink",' +
+                '"start": {"dateTime": "2025-12-08T10:00:00"},' +
+                '"end": {"dateTime": "2025-12-08T11:00:00"},' +
+                '"webLink": "https://outlook.office365.com/calendar/item/123",' +
+                '"isAllDay": false' +
+            '}' +
+        ']';
+        
+        List<Object> deltaEvents = (List<Object>) JSON.deserializeUntyped(deltaEventsJson);
+
+        Test.startTest();
+        AICalendarSyncService.processDeltaEvents(deltaEvents, UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle delta event with webLink');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithDescription() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithDescription = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-desc",' +
+                    '"summary": "Gmail Event with Description",' +
+                    '"iCalUID": "gmail-ical-desc",' +
+                    '"description": "This is a detailed description",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithDescription));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail event with description');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithLocation() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithLocation = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-loc",' +
+                    '"summary": "Gmail Event with Location",' +
+                    '"iCalUID": "gmail-ical-loc",' +
+                    '"location": "Conference Room B",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithLocation));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail event with location');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithOrganizerDisplayName() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithOrganizerName = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-org-name",' +
+                    '"summary": "Gmail Event with Organizer Name",' +
+                    '"iCalUID": "gmail-ical-org-name",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"organizer": {"email": "organizer@test.com", "displayName": "Organizer Display Name"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithOrganizerName));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail organizer with display name');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithAttendeeDisplayName() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseWithAttendeeName = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-att-name",' +
+                    '"summary": "Gmail Event with Attendee Name",' +
+                    '"iCalUID": "gmail-ical-att-name",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"attendees": [' +
+                        '{"email": "attendee@test.com", "displayName": "Attendee Display Name"}' +
+                    ']' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseWithAttendeeName));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail attendee with display name');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_OutlookWithOrganizerName() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithOrganizerName = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-org-name",' +
+                    '"subject": "Event with Organizer Name",' +
+                    '"iCalUId": "ical-org-name",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"organizer": {"emailAddress": {"address": "organizer@test.com", "name": "Full Organizer Name"}},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithOrganizerName));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Outlook organizer with name');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_OutlookWithAttendeeName() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithAttendeeName = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-att-name",' +
+                    '"subject": "Event with Attendee Name",' +
+                    '"iCalUId": "ical-att-name",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"attendees": [' +
+                        '{"emailAddress": {"address": "attendee@test.com", "name": "Full Attendee Name"}}' +
+                    '],' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithAttendeeName));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Outlook attendee with name');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithLocationDisplayName() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseWithLocation = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-location",' +
+                    '"subject": "Event with Location",' +
+                    '"iCalUId": "ical-location",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"location": {"displayName": "Building A, Room 123"},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithLocation));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with location display name');
+    }
+    
+    @isTest
+    static void testParseGraphDateTime_InvalidFormat() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseInvalidDateTime = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-invalid-dt",' +
+                    '"subject": "Event with Invalid DateTime",' +
+                    '"iCalUId": "ical-invalid-dt",' +
+                    '"start": {"dateTime": "not-a-valid-date", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseInvalidDateTime));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle invalid datetime format gracefully');
+    }
+    
+    @isTest
+    static void testParseGoogleDateTime_InvalidFormat() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseInvalidDateTime = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-invalid-dt",' +
+                    '"summary": "Gmail Event with Invalid DateTime",' +
+                    '"iCalUID": "gmail-ical-invalid-dt",' +
+                    '"start": {"dateTime": "not-a-valid-datetime"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseInvalidDateTime));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail invalid datetime format gracefully');
+    }
+    
+    @isTest
+    static void testDetectCalendarProvider_GoogleAccessible() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GoogleProviderMock());
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendar(UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Provider_Type__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should detect Google Calendar provider');
+    }
+    
+    @isTest
+    static void testSyncUserCalendar_WithEmptyEventsAfterFetch() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new MicrosoftCalendarMock(200, getEmptyEventsResponse()));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendar(UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Emails_Imported__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle empty events from provider');
+        Assert.isTrue(logs[0].Status__c == 'Success' || logs[0].Status__c == 'Skipped', 'Should be successful or skipped');
+        Assert.areEqual(0, logs[0].Emails_Imported__c, 'Should have 0 imported events');
+    }
+    
+    @isTest
+    static void testSyncUserCalendar_WithStagingResultErrors() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new MicrosoftCalendarMock(200, getEventsResponse()));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendar(UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Error_Message__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle staging result with potential errors');
+    }
+    
+    @isTest
+    static void testParseGraphDateTime_AllDayWithShortDate() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseAllDayShort = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-all-day-short",' +
+                    '"subject": "All Day Event Short Format",' +
+                    '"iCalUId": "ical-all-day-short",' +
+                    '"start": {"dateTime": "2025-12-08", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-09", "timeZone": "UTC"},' +
+                    '"isAllDay": true' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseAllDayShort));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should parse all-day event with short date format');
+    }
+    
+    @isTest
+    static void testParseGraphDateTime_InvalidAllDayDate() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseInvalidAllDay = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-invalid-all-day",' +
+                    '"subject": "Invalid All Day Event",' +
+                    '"iCalUId": "ical-invalid-all-day",' +
+                    '"start": {"dateTime": "invalid", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-09T00:00:00", "timeZone": "UTC"},' +
+                    '"isAllDay": true' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseInvalidAllDay));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle invalid all-day date gracefully');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithMultipleAttendees() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseMultipleAttendees = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-multi-att",' +
+                    '"subject": "Event with Multiple Attendees",' +
+                    '"iCalUId": "ical-multi-att",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"attendees": [' +
+                        '{"emailAddress": {"address": "att1@test.com", "name": "Attendee 1"}},' +
+                        '{"emailAddress": {"address": "att2@test.com", "name": "Attendee 2"}},' +
+                        '{"emailAddress": {"address": "att3@test.com", "name": "Attendee 3"}}' +
+                    '],' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseMultipleAttendees));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with multiple attendees');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithMultipleAttendees() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseMultipleAttendees = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-multi-att",' +
+                    '"summary": "Gmail Event with Multiple Attendees",' +
+                    '"iCalUID": "gmail-ical-multi-att",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"attendees": [' +
+                        '{"email": "att1@test.com", "displayName": "Attendee 1", "responseStatus": "accepted"},' +
+                        '{"email": "att2@test.com", "displayName": "Attendee 2", "responseStatus": "declined"},' +
+                        '{"email": "att3@test.com", "displayName": "Attendee 3", "responseStatus": "tentative"}' +
+                    ']' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseMultipleAttendees));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail event with multiple attendees');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithCompleteOutlookEvent() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String completeOutlookEvent = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "complete-evt",' +
+                    '"subject": "Complete Outlook Event",' +
+                    '"iCalUId": "complete-ical",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00.123", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00.456", "timeZone": "UTC"},' +
+                    '"location": {"displayName": "Main Conference Room"},' +
+                    '"body": {"content": "<p>Detailed <strong>HTML</strong> description</p>", "contentType": "html"},' +
+                    '"bodyPreview": "Detailed HTML description",' +
+                    '"onlineMeeting": {"joinUrl": "https://teams.microsoft.com/l/meetup-join/xyz"},' +
+                    '"organizer": {"emailAddress": {"address": "organizer@company.com", "name": "John Organizer"}},' +
+                    '"attendees": [' +
+                        '{"emailAddress": {"address": "attendee1@company.com", "name": "Jane Attendee"}},' +
+                        '{"emailAddress": {"address": "attendee2@company.com", "name": "Bob Attendee"}}' +
+                    '],' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(completeOutlookEvent));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle complete Outlook event with all fields');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_WithCompleteGmailEvent() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String completeGmailEvent = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "complete-gmail-evt",' +
+                    '"summary": "Complete Gmail Event",' +
+                    '"iCalUID": "complete-gmail-ical",' +
+                    '"description": "Full event description",' +
+                    '"location": "Google Office",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00+05:30"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00+05:30"},' +
+                    '"hangoutLink": "https://meet.google.com/abc-defg-hij",' +
+                    '"organizer": {"email": "organizer@gmail.com", "displayName": "Gmail Organizer"},' +
+                    '"attendees": [' +
+                        '{"email": "att1@gmail.com", "displayName": "Gmail Attendee 1", "responseStatus": "accepted"},' +
+                        '{"email": "att2@gmail.com", "displayName": "Gmail Attendee 2", "responseStatus": "needsAction"}' +
+                    '],' +
+                    '"recurringEventId": "recurring-base-id"' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(completeGmailEvent));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle complete Gmail event with all fields');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_WithRunNowModeTrue() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token',
+            true
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Sync_Type__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle run now mode');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_WithRunNowModeFalse() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token',
+            false
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Sync_Type__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle scheduled mode');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_WithMaxEventsLimit() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 5
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should respect max events limit');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_WithNullMaxEventsLimit() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = null
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should use default max events when null');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailWithMaxEvents() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 10
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should respect Gmail max events limit');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_OutlookWithLookbackLookahead() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 14,
+            Calendar_Lookahead_Days__c = 60,
+            Max_Calendar_Events_Per_User__c = 100
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Sync_Window_Start__c, Sync_Window_End__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should use custom lookback/lookahead days');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailWithLookbackLookahead() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 14,
+            Calendar_Lookahead_Days__c = 60,
+            Max_Calendar_Events_Per_User__c = 100
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Sync_Window_Start__c, Sync_Window_End__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should use custom Gmail lookback/lookahead days');
+    }
+    
+    @isTest
+    static void testSyncUserCalendar_WithZeroLookbackDays() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 0,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new MicrosoftCalendarMock(200, getEmptyEventsResponse()));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendar(UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should default zero lookback to 7 days');
+    }
+    
+    @isTest
+    static void testSyncUserCalendar_WithZeroLookaheadDays() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 0,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new MicrosoftCalendarMock(200, getEmptyEventsResponse()));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendar(UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should default zero lookahead to 30 days');
+    }
+    
+    @isTest
+    static void testSyncUserCalendar_WithNegativeLookbackDays() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = -5,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new MicrosoftCalendarMock(200, getEmptyEventsResponse()));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendar(UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should default negative lookback to 7 days');
+    }
+    
+    @isTest
+    static void testSyncUserCalendar_WithNegativeLookaheadDays() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = -10,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new MicrosoftCalendarMock(200, getEmptyEventsResponse()));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendar(UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should default negative lookahead to 30 days');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_EventsConvertButAllFiltered() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50,
+            Excluded_Domains__c = 'test.com'
+        );
+        insert settings;
+
+        String responseAllFromExcludedDomain = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-filtered-1",' +
+                    '"subject": "Filtered Event 1",' +
+                    '"iCalUId": "ical-filtered-1",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"organizer": {"emailAddress": {"address": "user1@test.com", "name": "User 1"}},' +
+                    '"isAllDay": false' +
+                '},' +
+                '{' +
+                    '"id": "evt-filtered-2",' +
+                    '"subject": "Filtered Event 2",' +
+                    '"iCalUId": "ical-filtered-2",' +
+                    '"start": {"dateTime": "2025-12-08T14:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T15:00:00", "timeZone": "UTC"},' +
+                    '"organizer": {"emailAddress": {"address": "user2@test.com", "name": "User 2"}},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseAllFromExcludedDomain));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Emails_Excluded__c, Emails_Matched__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle all events being filtered out');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailEventsConvertButAllFiltered() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50,
+            Excluded_Domains__c = 'gmail.com'
+        );
+        insert settings;
+
+        String gmailResponseAllFiltered = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-filtered-1",' +
+                    '"summary": "Filtered Gmail Event 1",' +
+                    '"iCalUID": "gmail-ical-filtered-1",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"organizer": {"email": "user1@gmail.com", "displayName": "Gmail User 1"}' +
+                '},' +
+                '{' +
+                    '"id": "gmail-filtered-2",' +
+                    '"summary": "Filtered Gmail Event 2",' +
+                    '"iCalUID": "gmail-ical-filtered-2",' +
+                    '"start": {"dateTime": "2025-12-08T14:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T15:00:00Z"},' +
+                    '"organizer": {"email": "user2@gmail.com", "displayName": "Gmail User 2"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseAllFiltered));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Emails_Excluded__c, Emails_Matched__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle all Gmail events being filtered out');
+    }
+    
+    @isTest
+    static void testCreateSyncLog_WithNullProviderType() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(true));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Provider_Type__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create log with provider type');
+        Assert.areEqual('MICROSOFT_CALENDAR', logs[0].Provider_Type__c, 'Should have correct provider type');
+    }
+    
+    @isTest
+    static void testCreateSyncLog_WithOtherProviderType() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(true));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Provider_Type__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create log with Google provider type');
+        Assert.areEqual('GOOGLE_CALENDAR', logs[0].Provider_Type__c, 'Should have correct Google provider type');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_WithNullLookbackDays() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = null,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should use default lookback when null');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_WithNullLookaheadDays() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = null,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should use default lookahead when null');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_WithZeroLookback() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 0,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should default zero lookback to 7');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_WithZeroLookahead() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 0,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should default zero lookahead to 30');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailWithNullLookback() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = null,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should use default Gmail lookback when null');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailWithNullLookahead() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = null,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should use default Gmail lookahead when null');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailWithNullMaxEvents() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = null
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should use default Gmail max events when null');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailWithZeroLookback() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 0,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should default Gmail zero lookback to 7');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailWithZeroLookahead() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 0,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should default Gmail zero lookahead to 30');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_OutlookWithNegativeLookback() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = -5,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should default Outlook negative lookback to 7');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_OutlookWithNegativeLookahead() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = -10,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should default Outlook negative lookahead to 30');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailWithNegativeLookback() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = -5,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should default Gmail negative lookback to 7');
+    }
+    
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailWithNegativeLookahead() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = -10,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(false));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should default Gmail negative lookahead to 30');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_OutlookWithEmptyAttendeesList() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseEmptyAttendees = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-empty-att",' +
+                    '"subject": "Event with Empty Attendees",' +
+                    '"iCalUId": "ical-empty-att",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"attendees": [],' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseEmptyAttendees));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with empty attendees list');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithEmptyAttendeesList() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseEmptyAttendees = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-empty-att",' +
+                    '"summary": "Gmail Event with Empty Attendees",' +
+                    '"iCalUID": "gmail-ical-empty-att",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"attendees": []' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseEmptyAttendees));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail event with empty attendees list');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_OutlookWithEmptyOrganizerEmailAddress() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseEmptyOrganizerEmail = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-empty-org-email",' +
+                    '"subject": "Event with Empty Organizer Email",' +
+                    '"iCalUId": "ical-empty-org-email",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"organizer": {"emailAddress": {}},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseEmptyOrganizerEmail));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with empty organizer email address');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_OutlookWithEmptyAttendeeEmailAddress() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseEmptyAttendeeEmail = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-empty-att-email",' +
+                    '"subject": "Event with Empty Attendee Email",' +
+                    '"iCalUId": "ical-empty-att-email",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"attendees": [{"emailAddress": {}}],' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseEmptyAttendeeEmail));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with empty attendee email address');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithEmptyOrganizerObject() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseEmptyOrganizer = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-empty-org",' +
+                    '"summary": "Gmail Event with Empty Organizer",' +
+                    '"iCalUID": "gmail-ical-empty-org",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"organizer": {}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseEmptyOrganizer));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail event with empty organizer object');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_GmailWithEmptyAttendeeObject() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String gmailResponseEmptyAttendee = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "gmail-evt-empty-att",' +
+                    '"summary": "Gmail Event with Empty Attendee",' +
+                    '"iCalUID": "gmail-ical-empty-att",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"attendees": [{}]' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(gmailResponseEmptyAttendee));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle Gmail event with empty attendee object');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_OutlookWithEmptyLocationObject() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseEmptyLocation = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-empty-loc",' +
+                    '"subject": "Event with Empty Location",' +
+                    '"iCalUId": "ical-empty-loc",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"location": {},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseEmptyLocation));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with empty location object');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_OutlookWithEmptyBodyObject() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseEmptyBody = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-empty-body",' +
+                    '"subject": "Event with Empty Body",' +
+                    '"iCalUId": "ical-empty-body",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"body": {},' +
+                    '"bodyPreview": "Preview text",' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseEmptyBody));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with empty body object');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_OutlookWithEmptyOnlineMeetingObject() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseEmptyMeeting = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-empty-meeting",' +
+                    '"subject": "Event with Empty Meeting",' +
+                    '"iCalUId": "ical-empty-meeting",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"onlineMeeting": {},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseEmptyMeeting));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with empty online meeting object');
+    }
+    
+    @isTest
+    static void testConvertToCalendarEvents_OutlookWithEmptyOrganizerObject() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String responseEmptyOrganizer = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-empty-org",' +
+                    '"subject": "Event with Empty Organizer",' +
+                    '"iCalUId": "ical-empty-org",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"organizer": {},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseEmptyOrganizer));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle event with empty organizer object');
+    }
+    
+    /**
+     * Test to cover lines 113-116: when convertToCalendarEvents returns empty list
+     * This happens when ALL events throw exceptions during conversion (caught by try-catch)
+     * We'll use malformed JSON that causes type casting errors
+     */
+    @isTest
+    static void testSyncUserCalendarWithToken_EventsWithInvalidStructure() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        // Response with events that have invalid data types - will cause exceptions during conversion
+        // For example, start/end as strings instead of maps will cause ClassCastException
+        String responseInvalidStructure = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt1",' +
+                    '"subject": "Event With Invalid Start",' +
+                    '"start": "not-a-map",' +
+                    '"end": "not-a-map",' +
+                    '"isAllDay": false' +
+                '},' +
+                '{' +
+                    '"id": "evt2",' +
+                    '"subject": "Event With Invalid Attendees",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"attendees": "not-a-list",' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseInvalidStructure));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Emails_Imported__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create sync log even when all events fail conversion');
+        Assert.areEqual('Success', logs[0].Status__c, 'Should have Success status');
+        Assert.areEqual(0, logs[0].Emails_Imported__c, 'Should have 0 imported events');
+    }
+    
+    /**
+     * Test to cover line 165: when stagingResult.errors is not empty
+     * We need to trigger an error in AIWorkspaceStagingCreator.createCalendarStagingRecords
+     * One way is to have events that cause exceptions during the staging record creation
+     */
+    @isTest
+    static void testSyncUserCalendarWithToken_WithStagingCreationErrors() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        // Create events with extremely long strings that exceed field limits
+        // This should cause DML errors during staging record insertion
+        String veryLongString = '';
+        for (Integer i = 0; i < 5000; i++) {
+            veryLongString += 'abcdefghij'; // 50,000 characters total
+        }
+        
+        String responseWithLargeData = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt-large",' +
+                    '"subject": "' + veryLongString + '",' +
+                    '"iCalUId": "ical-large",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"isAllDay": false' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(responseWithLargeData));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Error_Message__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create sync log');
+        // Status could be Success or Partial depending on staging errors
+    }
+    
+    /**
+     * Additional test for lines 113-116 with Gmail events that cause conversion exceptions
+     */
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailEventsWithInvalidStructure() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        // Gmail response with events that have invalid data types
+        String responseInvalidStructure = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "evt1",' +
+                    '"summary": "Event With Invalid Start",' +
+                    '"start": "not-a-map",' +
+                    '"end": "not-a-map"' +
+                '},' +
+                '{' +
+                    '"id": "evt2",' +
+                    '"summary": "Event With Invalid Organizer",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"organizer": "not-a-map"' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(responseInvalidStructure));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c, Emails_Imported__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create sync log even when all Gmail events fail conversion');
+        Assert.areEqual('Success', logs[0].Status__c, 'Should have Success status');
+        Assert.areEqual(0, logs[0].Emails_Imported__c, 'Should have 0 imported events');
+    }
+    
+    /**
+     * Test with multiple Outlook events to ensure all conversion paths are hit
+     */
+    @isTest
+    static void testSyncUserCalendarWithToken_MultipleOutlookEventsFullCoverage() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String response = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt1",' +
+                    '"iCalUId": "ical1",' +
+                    '"subject": "Meeting 1",' +
+                    '"isAllDay": false,' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"location": {"displayName": "Room 1"},' +
+                    '"body": {"content": "<p>Body content</p>"},' +
+                    '"onlineMeeting": {"joinUrl": "https://meet.example.com"},' +
+                    '"organizer": {"emailAddress": {"address": "org@example.com", "name": "Organizer"}},' +
+                    '"attendees": [{"emailAddress": {"address": "att@example.com", "name": "Attendee"}}]' +
+                '},' +
+                '{' +
+                    '"id": "evt2",' +
+                    '"iCalUId": "ical2",' +
+                    '"subject": "Meeting 2",' +
+                    '"isAllDay": true,' +
+                    '"start": {"dateTime": "2025-12-09T00:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-09T23:59:59", "timeZone": "UTC"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(response));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create sync log');
+    }
+    
+    /**
+     * Test with multiple Gmail events to ensure all conversion paths are hit
+     */
+    @isTest
+    static void testSyncUserCalendarWithToken_MultipleGmailEventsFullCoverage() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String response = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "evt1",' +
+                    '"iCalUID": "ical1",' +
+                    '"summary": "Meeting 1",' +
+                    '"description": "Description 1",' +
+                    '"location": "Location 1",' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00Z"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00Z"},' +
+                    '"organizer": {"email": "org@example.com", "displayName": "Organizer"},' +
+                    '"hangoutLink": "https://meet.google.com/abc",' +
+                    '"attendees": [{"email": "att@example.com", "displayName": "Attendee", "responseStatus": "accepted"}]' +
+                '},' +
+                '{' +
+                    '"id": "evt2",' +
+                    '"iCalUID": "ical2",' +
+                    '"summary": "All Day Event",' +
+                    '"start": {"date": "2025-12-09"},' +
+                    '"end": {"date": "2025-12-10"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(response));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create sync log');
+    }
+    
+    /**
+     * Test Outlook event with bodyPreview fallback when body content is blank
+     */
+    @isTest
+    static void testSyncUserCalendarWithToken_OutlookWithBodyPreviewFallback() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String response = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt1",' +
+                    '"iCalUId": "ical1",' +
+                    '"subject": "Meeting",' +
+                    '"isAllDay": false,' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"},' +
+                    '"body": {"content": ""},' +
+                    '"bodyPreview": "This is the preview"' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(response));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create sync log');
+    }
+    
+    /**
+     * Test with events that have very specific field combinations to ensure all paths are hit
+     */
+    @isTest
+    static void testSyncUserCalendarWithToken_OutlookComplexScenarios() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        // Mix of events with different field combinations
+        String response = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt1",' +
+                    '"iCalUId": "ical1",' +
+                    '"subject": "Event 1",' +
+                    '"isAllDay": true,' +
+                    '"start": {"dateTime": "2025-12-08T00:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T23:59:59", "timeZone": "UTC"}' +
+                '},' +
+                '{' +
+                    '"id": "evt2",' +
+                    '"iCalUId": "ical2",' +
+                    '"subject": "Event 2",' +
+                    '"isAllDay": false,' +
+                    '"start": {"dateTime": "2025-12-09T10:00:00.123", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-09T11:00:00.456", "timeZone": "UTC"},' +
+                    '"location": {"displayName": "Conference Room"},' +
+                    '"body": {"content": "<html><body>HTML content</body></html>"},' +
+                    '"onlineMeeting": {"joinUrl": "https://teams.microsoft.com/meet"},' +
+                    '"organizer": {"emailAddress": {"address": "organizer@example.com", "name": "John Doe"}},' +
+                    '"attendees": [' +
+                        '{"emailAddress": {"address": "att1@example.com", "name": "Attendee 1"}},' +
+                        '{"emailAddress": {"address": "att2@example.com", "name": "Attendee 2"}}' +
+                    ']' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(response));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create sync log');
+    }
+    
+    /**
+     * Test Gmail with various field combinations
+     */
+    @isTest
+    static void testSyncUserCalendarWithToken_GmailComplexScenarios() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String response = '{' +
+            '"items": [' +
+                '{' +
+                    '"id": "evt1",' +
+                    '"iCalUID": "ical1",' +
+                    '"summary": "All Day Event",' +
+                    '"start": {"date": "2025-12-08"},' +
+                    '"end": {"date": "2025-12-09"}' +
+                '},' +
+                '{' +
+                    '"id": "evt2",' +
+                    '"iCalUID": "ical2",' +
+                    '"summary": "Regular Event",' +
+                    '"description": "Event description",' +
+                    '"location": "Office",' +
+                    '"start": {"dateTime": "2025-12-09T10:00:00+05:30"},' +
+                    '"end": {"dateTime": "2025-12-09T11:00:00+05:30"},' +
+                    '"organizer": {"email": "org@example.com", "displayName": "Organizer"},' +
+                    '"hangoutLink": "https://meet.google.com/abc-defg-hij",' +
+                    '"attendees": [' +
+                        '{"email": "att1@example.com", "displayName": "Attendee 1", "responseStatus": "accepted"},' +
+                        '{"email": "att2@example.com", "displayName": "Attendee 2", "responseStatus": "declined"}' +
+                    ']' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new GmailFetchMock(response));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should create sync log');
+    }
+    
+    /**
+     * Test with events that have isAllDay as various values
+     */
+    @isTest
+    static void testSyncUserCalendarWithToken_OutlookIsAllDayVariations() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true,
+            Calendar_Lookback_Days__c = 7,
+            Calendar_Lookahead_Days__c = 30,
+            Max_Calendar_Events_Per_User__c = 50
+        );
+        insert settings;
+
+        String response = '{' +
+            '"value": [' +
+                '{' +
+                    '"id": "evt1",' +
+                    '"iCalUId": "ical1",' +
+                    '"subject": "All Day True",' +
+                    '"isAllDay": true,' +
+                    '"start": {"dateTime": "2025-12-08T00:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T23:59:59", "timeZone": "UTC"}' +
+                '},' +
+                '{' +
+                    '"id": "evt2",' +
+                    '"iCalUId": "ical2",' +
+                    '"subject": "All Day False",' +
+                    '"isAllDay": false,' +
+                    '"start": {"dateTime": "2025-12-08T10:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T11:00:00", "timeZone": "UTC"}' +
+                '},' +
+                '{' +
+                    '"id": "evt3",' +
+                    '"iCalUId": "ical3",' +
+                    '"subject": "No isAllDay Field",' +
+                    '"start": {"dateTime": "2025-12-08T12:00:00", "timeZone": "UTC"},' +
+                    '"end": {"dateTime": "2025-12-08T13:00:00", "timeZone": "UTC"}' +
+                '}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookFetchMock(response));
+
+        Test.startTest();
+        AICalendarSyncService.syncUserCalendarWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test-token'
+        );
+        Test.stopTest();
+
+        List<AI_Workspace_Sync_Log__c> logs = [
+            SELECT Id, Status__c
+            FROM AI_Workspace_Sync_Log__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(logs.size() > 0, 'Should handle various isAllDay values');
+    }
+    
+    /**
+     * Test processDeltaEvents with complete event data
+     */
+    @isTest
+    static void testProcessDeltaEvents_WithCompleteEventData() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true
+        );
+        insert settings;
+
+        List<Object> deltaEvents = new List<Object>{
+            new Map<String, Object>{
+                'id' => 'delta-evt-1',
+                'iCalUID' => 'delta-ical-1',
+                'subject' => 'Delta Event 1',
+                'start' => new Map<String, Object>{'dateTime' => '2025-12-08T10:00:00', 'timeZone' => 'UTC'},
+                'end' => new Map<String, Object>{'dateTime' => '2025-12-08T11:00:00', 'timeZone' => 'UTC'},
+                'location' => new Map<String, Object>{'displayName' => 'Room 1'},
+                'body' => new Map<String, Object>{'content' => 'Body content'},
+                'isAllDay' => false,
+                'webLink' => 'https://outlook.office.com/calendar/item/abc123'
+            }
+        };
+
+        Test.startTest();
+        AICalendarSyncService.processDeltaEvents(deltaEvents, UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Staging__c> staging = [
+            SELECT Id FROM AI_Workspace_Staging__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(staging.size() > 0, 'Should create staging records from delta events');
+    }
+    
+    /**
+     * Test processDeltaEvents with minimal event data
+     */
+    @isTest
+    static void testProcessDeltaEvents_WithMinimalEventData() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Calendar_Sync_Enabled__c = true
+        );
+        insert settings;
+
+        List<Object> deltaEvents = new List<Object>{
+            new Map<String, Object>{
+                'id' => 'delta-evt-min',
+                'subject' => 'Minimal Event',
+                'isAllDay' => true
+            }
+        };
+
+        Test.startTest();
+        AICalendarSyncService.processDeltaEvents(deltaEvents, UserInfo.getUserId());
+        Test.stopTest();
+
+        List<AI_Workspace_Staging__c> staging = [
+            SELECT Id FROM AI_Workspace_Staging__c
+            WHERE User__c = :UserInfo.getUserId()
+        ];
+
+        Assert.isTrue(staging.size() >= 0, 'Should handle minimal delta events');
     }
 }

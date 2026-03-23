@@ -44,7 +44,9 @@
                     <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
                         <div class="metric-card">
                             <div class="metric-label">MONEY SAVED</div>
-                            <div class="metric-value">{moneySaved}</div>
+                            <div class="metric-value">
+                                <lightning-formatted-number value={moneySaved} format-style="currency"></lightning-formatted-number>
+                            </div>
                             <div class="metric-subtitle">Total Value</div>
                         </div>
                     </div>
@@ -107,7 +109,10 @@
                                 <h3 class="nav-card-title">ROI Dashboard</h3>
                             </div>
                             <p class="nav-card-description">See revenue & productivity gain metrics.</p>
-                            <div class="nav-card-metric">{roiSavings}</div>
+                            <div class="nav-card-metric">
+                                <lightning-formatted-number value={moneySaved} format-style="currency"></lightning-formatted-number>
+                                &#32;Saved
+                            </div>
                         </div>
                     </div>
                     
@@ -223,7 +228,18 @@
             <h2 class="slds-text-heading_medium slds-m-bottom_medium slds-p-left_small">Workspace Sync</h2>
             <div class="slds-grid slds-gutters slds-wrap">
                 
-                <!-- Workspace Authentication Card -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
+                    <div class="nav-card" onclick={handleWorkspaceSync}>
+                        <div class="nav-card-header">
+                            <lightning-icon icon-name="standard:product_workspace" size="medium" class="nav-card-icon"></lightning-icon>
+                            <h3 class="nav-card-title">Workspace Sync</h3>
+                        </div>
+                        <p class="nav-card-description">Keep your emails, calendar and tasks in sync with Salesforce.</p>
+                        <div class="nav-card-metric">{workspaceSyncMetric}</div>
+                    </div>
+                </div>
+
+                <!-- 
                 <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
                     <div class="nav-card" onclick={handleWorkspaceAuthentication}>
                         <div class="nav-card-header">
@@ -235,7 +251,6 @@
                     </div>
                 </div>
                 
-                <!-- Email Sync Card -->
                 <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
                     <div class="nav-card" onclick={handleEmailSync}>
                         <div class="nav-card-header">
@@ -246,8 +261,7 @@
                         <div class="nav-card-metric">{emailSyncMetric}</div>
                     </div>
                 </div>
-                
-                <!-- Calendar Sync Card -->
+    
                 <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
                     <div class="nav-card" onclick={handleCalendarSync}>
                         <div class="nav-card-header">
@@ -258,8 +272,7 @@
                         <div class="nav-card-metric">{calendarSyncMetric}</div>
                     </div>
                 </div>
-                
-                <!-- Task Sync Card -->
+
                 <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">
                     <div class="nav-card" onclick={handleTaskSync}>
                         <div class="nav-card-header">
@@ -269,7 +282,7 @@
                         <p class="nav-card-description">Keep your tasks in sync with Salesforce.</p>
                         <div class="nav-card-metric">{taskSyncMetric}</div>
                     </div>
-                </div>
+                </div-->
                 
                 <!-- Workspace Sync Scheduler Card -->
                 <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3 slds-m-bottom_medium">

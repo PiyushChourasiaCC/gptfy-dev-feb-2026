@@ -19,7 +19,7 @@
  * @author GPTfy
  * @date 2026-01
  */
-public with sharing class AIStagingEmailMatcherScheduler implements Schedulable {
+global with sharing class AIStagingEmailMatcherScheduler implements Schedulable {
     
     private static final String JOB_NAME = 'AI Staging Email Matcher';
     private static final Integer DEFAULT_FREQUENCY_MINUTES = 15;
@@ -31,7 +31,7 @@ public with sharing class AIStagingEmailMatcherScheduler implements Schedulable 
     /**
      * Default constructor
      */
-    public AIStagingEmailMatcherScheduler() {
+    global AIStagingEmailMatcherScheduler() {
         this.frequencyMinutes = DEFAULT_FREQUENCY_MINUTES;
         this.batchSize = DEFAULT_BATCH_SIZE;
     }
@@ -39,7 +39,7 @@ public with sharing class AIStagingEmailMatcherScheduler implements Schedulable 
     /**
      * Constructor with custom settings
      */
-    public AIStagingEmailMatcherScheduler(Integer frequencyMinutes, Integer batchSize) {
+    global AIStagingEmailMatcherScheduler(Integer frequencyMinutes, Integer batchSize) {
         this.frequencyMinutes = frequencyMinutes != null ? frequencyMinutes : DEFAULT_FREQUENCY_MINUTES;
         this.batchSize = batchSize != null ? batchSize : DEFAULT_BATCH_SIZE;
     }
@@ -47,7 +47,7 @@ public with sharing class AIStagingEmailMatcherScheduler implements Schedulable 
     /**
      * Execute the scheduled job
      */
-    public void execute(SchedulableContext ctx) {
+    global void execute(SchedulableContext ctx) {
         try {
             // Run the batch
             AIStagingEmailMatcherBatch.runBatch(batchSize);

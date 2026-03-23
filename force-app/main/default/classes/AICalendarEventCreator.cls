@@ -19,6 +19,7 @@ public with sharing class AICalendarEventCreator {
         @AuraEnabled public Integer successCount;
         @AuraEnabled public Integer failedCount;
         @AuraEnabled public Integer duplicateCount;
+        @AuraEnabled public Integer excludedCount;
         @AuraEnabled public Integer matchedCount;
         @AuraEnabled public List<String> errors;
         @AuraEnabled public List<Id> eventIds;
@@ -28,6 +29,7 @@ public with sharing class AICalendarEventCreator {
             this.successCount = 0;
             this.failedCount = 0;
             this.duplicateCount = 0;
+            this.excludedCount = 0;
             this.matchedCount = 0;
             this.errors = new List<String>();
             this.eventIds = new List<Id>();
@@ -163,8 +165,9 @@ public with sharing class AICalendarEventCreator {
             }
         }
 
+        eventsToInsert = (List<Event>)FLSCheck.getInstance().insertCheck(eventsToInsert);
         // Insert events
-        if (!eventsToInsert.isEmpty()) {
+        if(eventsToInsert != null && !eventsToInsert.isEmpty()){
             Database.SaveResult[] saveResults = Database.insert(eventsToInsert, false);
 
             // Collect Event IDs for EventRelation creation
@@ -384,9 +387,9 @@ public with sharing class AICalendarEventCreator {
 
         if (!relationsToInsert.isEmpty()) {
             // Use partial success to handle any permission issues
-            List<SObject> relationsToBeInserted = FLSCheck.getInstance().insertCheck(relationsToInsert);
-            if(relationsToBeInserted != null && !relationsToBeInserted.isEmpty()){
-                Database.SaveResult[] results = Database.insert(relationsToBeInserted, false);
+            relationsToInsert = (List<EventRelation>)FLSCheck.getInstance().insertCheck(relationsToInsert);
+            if(relationsToInsert != null && !relationsToInsert.isEmpty()){
+                Database.SaveResult[] results = Database.insert(relationsToInsert, false);
                 Integer successCount = 0;
                 for (Database.SaveResult sr : results) {
                     if (sr.isSuccess()) {
@@ -568,7 +571,7 @@ public with sharing class AICalendarEventCreator {
                     FROM AI_Workspace_Staging__c
                     WHERE ICalUID__c IN :remainingIds
                     AND RecordType.DeveloperName = 'Calendar'
-                    AND Status__c = 'Matched'
+                    AND Status__c = 'Imported'
                     AND Email_Message__c != null
                 ]) {
                     if (String.isNotBlank(staging.ICalUID__c) && String.isNotBlank(staging.Email_Message__c)) {

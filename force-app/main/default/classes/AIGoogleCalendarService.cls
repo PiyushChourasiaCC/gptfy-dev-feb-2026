@@ -76,13 +76,11 @@ public with sharing class AIGoogleCalendarService {
             if (response.getStatusCode() == 200) {
                 events = parseEventsResponse(response.getBody());
             } else {
-                System.debug('Google Calendar API error: ' + response.getStatusCode() + ' - ' + response.getBody());
                 throw new CalendarServiceException('Failed to fetch calendar events: ' + response.getStatusCode());
             }
         } catch (CalendarServiceException e) {
             throw e;
         } catch (Exception e) {
-            System.debug('Google Calendar service error: ' + e.getMessage());
             throw new CalendarServiceException('Google Calendar service error: ' + e.getMessage());
         }
 
@@ -151,13 +149,11 @@ public with sharing class AIGoogleCalendarService {
                     events.add(allEvents[i]);
                 }
             } else {
-                System.debug('Google Calendar API error: ' + response.getStatusCode() + ' - ' + response.getBody());
                 throw new CalendarServiceException('Failed to fetch calendar events: ' + response.getStatusCode());
             }
         } catch (CalendarServiceException e) {
             throw e;
         } catch (Exception e) {
-            System.debug('Google Calendar service error: ' + e.getMessage());
             throw new CalendarServiceException('Google Calendar service error: ' + e.getMessage());
         }
 
@@ -219,7 +215,6 @@ public with sharing class AIGoogleCalendarService {
 
             return response.getStatusCode() == 200;
         } catch (Exception e) {
-            System.debug('Google Calendar access check failed: ' + e.getMessage());
             return false;
         }
     }
@@ -252,7 +247,7 @@ public with sharing class AIGoogleCalendarService {
                 calendarInfo.put('name', 'Google Calendar');
             }
         } catch (Exception e) {
-            System.debug('Error fetching Google calendar info: ' + e.getMessage());
+            // Ignore
         }
 
         return calendarInfo;
@@ -326,9 +321,18 @@ public with sharing class AIGoogleCalendarService {
         // Parse location
         evt.location = (String) eventData.get('location');
 
-        // Parse organizer
+        // V2-7889: Parse organizer - Use creator field as primary source (actual event creator)
+        // The 'organizer' field in Google Calendar represents the calendar owner, which can differ
+        // from the actual person who created the event (especially for delegated/shared calendars)
+        Map<String, Object> creator = (Map<String, Object>) eventData.get('creator');
         Map<String, Object> organizer = (Map<String, Object>) eventData.get('organizer');
-        if (organizer != null) {
+        
+        // Prefer creator over organizer for accurate event attribution
+        if (creator != null) {
+            evt.organizerEmail = (String) creator.get('email');
+            evt.organizerName = (String) creator.get('displayName');
+        } else if (organizer != null) {
+            // Fallback to organizer if creator is not available
             evt.organizerEmail = (String) organizer.get('email');
             evt.organizerName = (String) organizer.get('displayName');
         }
@@ -398,7 +402,6 @@ public with sharing class AIGoogleCalendarService {
             Date d = Date.valueOf(dateStr);
             return DateTime.newInstance(d, Time.newInstance(0, 0, 0, 0));
         } catch (Exception e) {
-            System.debug('Error parsing date: ' + dateStr + ' - ' + e.getMessage());
             return null;
         }
     }
@@ -439,7 +442,6 @@ public with sharing class AIGoogleCalendarService {
             // Parse as GMT (Google returns in UTC when requested)
             return DateTime.valueOfGmt(normalized.replace('T', ' '));
         } catch (Exception e) {
-            System.debug('Error parsing datetime: ' + dateTimeStr + ' - ' + e.getMessage());
             return null;
         }
     }

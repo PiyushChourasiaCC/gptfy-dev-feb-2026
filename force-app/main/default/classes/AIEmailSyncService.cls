@@ -283,21 +283,31 @@ public with sharing class AIEmailSyncService {
             return;
         }
         
-        // Step 2: Apply exclusion filters
-        AIEmailExclusionService.BatchExclusionResult exclusionResult =
-            AIEmailExclusionService.filterBatch(dedupeResult.newEmails, ctx.providerType, userEmail);
+        // Step 2: Apply exclusion filters (V2-7889: New filtering service)
+        String excludedDomains = AISyncSettingsService.getExcludedDomains();
+        String excludedLabels = AISyncSettingsService.getExcludedLabelsCategories();
         
-        syncLog.Emails_Excluded__c = exclusionResult.excludedEmails.size();
-        syncLog.Exclusion_Summary__c = AIEmailExclusionService.toExclusionSummaryText(exclusionResult.exclusionCounts);
+        AIWorkspaceFilterService.FilterResult filterResult =
+            AIWorkspaceFilterService.applyAllFilters(
+                dedupeResult.newEmails, 
+                excludedDomains, 
+                excludedLabels, 
+                'Email', 
+                ctx.provider
+            );
         
-        if (exclusionResult.includedEmails.isEmpty()) {
+        syncLog.Emails_Excluded__c = filterResult.excludedCount;
+        syncLog.Exclusion_Summary__c = 'Excluded by domain: ' + filterResult.exclusionReasons.get('domain') + 
+                                        ', by label: ' + filterResult.exclusionReasons.get('label');
+        
+        if (filterResult.includedRecords.isEmpty()) {
             syncLog.Emails_Imported__c = 0;
             return;
         }
         
         // Step 3: Fetch full email details (including body)
         List<Map<String, Object>> fullEmails = fetchFullEmailDetailsWithToken(
-            exclusionResult.includedEmails, ctx.provider, ctx.accessToken
+            filterResult.includedRecords, ctx.provider, ctx.accessToken
         );
         
         if (fullEmails.isEmpty()) {
@@ -326,6 +336,8 @@ public with sharing class AIEmailSyncService {
         // matchedCount = staging records that matched to Lead/Contact
         // unmatchedCount = staging records that didn't match any Lead/Contact
         // importedCount = actual EmailMessage records created in Salesforce
+        // V2-7889: Add staging-level duplicates to the sync log duplicate count
+        syncLog.Emails_Duplicate__c += stagingResult.duplicateCount;
         syncLog.Emails_Matched__c = stagingResult.matchedCount;
         syncLog.Emails_Unmatched__c = stagingResult.unmatchedCount;
         syncLog.Emails_Imported__c = stagingResult.importedCount;
@@ -538,15 +550,24 @@ public with sharing class AIEmailSyncService {
 
             if (!dedupeResult.newEmails.isEmpty()) {
 
-                // Exclude
-                AIEmailExclusionService.BatchExclusionResult exclusionResult =
-                    AIEmailExclusionService.filterBatch(dedupeResult.newEmails, 'MICROSOFT_EMAIL', userEmail);
+                // Exclude (V2-7889: New filtering service)
+                String excludedDomains = AISyncSettingsService.getExcludedDomains();
+                String excludedLabels = AISyncSettingsService.getExcludedLabelsCategories();
                 
-                syncLog.Emails_Excluded__c = exclusionResult.excludedEmails.size();
+        AIWorkspaceFilterService.FilterResult filterResult =
+            AIWorkspaceFilterService.applyAllFilters(
+                dedupeResult.newEmails,
+                excludedDomains,
+                excludedLabels,
+                'Email',
+                'MICROSOFT_EMAIL'
+            );
                 
-                if (!exclusionResult.includedEmails.isEmpty()) {
+                syncLog.Emails_Excluded__c = filterResult.excludedCount;
+                
+                if (!filterResult.includedRecords.isEmpty()) {
                     // Fetch full email details
-                    List<Map<String, Object>> fullEmails = fetchFullEmailDetails(exclusionResult.includedEmails, provider);
+                    List<Map<String, Object>> fullEmails = fetchFullEmailDetails(filterResult.includedRecords, provider);
 
                     if (!fullEmails.isEmpty()) {
                         // Create staging records and match them
@@ -561,6 +582,8 @@ public with sharing class AIEmailSyncService {
                             );
                         
                         // Use actual counts from staging result
+                        // V2-7889: Add staging-level duplicates to the sync log duplicate count
+                        syncLog.Emails_Duplicate__c += stagingResult.duplicateCount;
                         syncLog.Emails_Matched__c = stagingResult.matchedCount;
                         syncLog.Emails_Unmatched__c = stagingResult.unmatchedCount;
                         syncLog.Emails_Imported__c = stagingResult.importedCount;
@@ -668,20 +691,30 @@ public with sharing class AIEmailSyncService {
             return;
         }
 
-        // Step 2: Apply exclusion filters
-        AIEmailExclusionService.BatchExclusionResult exclusionResult =
-            AIEmailExclusionService.filterBatch(dedupeResult.newEmails, ctx.providerType, userEmail);
+        // Step 2: Apply exclusion filters (V2-7889: New filtering service)
+        String excludedDomains = AISyncSettingsService.getExcludedDomains();
+        String excludedLabels = AISyncSettingsService.getExcludedLabelsCategories();
+        
+        AIWorkspaceFilterService.FilterResult filterResult =
+            AIWorkspaceFilterService.applyAllFilters(
+                dedupeResult.newEmails, 
+                excludedDomains, 
+                excludedLabels, 
+                'Email', 
+                ctx.providerType
+            );
 
-        syncLog.Emails_Excluded__c = exclusionResult.excludedEmails.size();
-        syncLog.Exclusion_Summary__c = AIEmailExclusionService.toExclusionSummaryText(exclusionResult.exclusionCounts);
+        syncLog.Emails_Excluded__c = filterResult.excludedCount;
+        syncLog.Exclusion_Summary__c = 'Excluded by domain: ' + filterResult.exclusionReasons.get('domain') + 
+                                        ', by label: ' + filterResult.exclusionReasons.get('label');
 
-        if (exclusionResult.includedEmails.isEmpty()) {
+        if (filterResult.includedRecords.isEmpty()) {
             syncLog.Emails_Imported__c = 0;
             return;
         }
 
         // Step 3: Fetch full email details (including body)
-        List<Map<String, Object>> fullEmails = fetchFullEmailDetails(exclusionResult.includedEmails, ctx.provider);
+        List<Map<String, Object>> fullEmails = fetchFullEmailDetails(filterResult.includedRecords, ctx.provider);
 
         if (fullEmails.isEmpty()) {
             syncLog.Emails_Matched__c = 0;
@@ -707,6 +740,8 @@ public with sharing class AIEmailSyncService {
         List<Id> createdRecordIds = stagingResult.stagingRecordIds;
 
         // Use actual counts from staging result
+        // V2-7889: Add staging-level duplicates to the sync log duplicate count
+        syncLog.Emails_Duplicate__c += stagingResult.duplicateCount;
         syncLog.Emails_Matched__c = stagingResult.matchedCount;
         syncLog.Emails_Unmatched__c = stagingResult.unmatchedCount;
         syncLog.Emails_Imported__c = stagingResult.importedCount;

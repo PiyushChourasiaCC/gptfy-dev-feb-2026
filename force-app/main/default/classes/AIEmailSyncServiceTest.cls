@@ -97,7 +97,7 @@ public class AIEmailSyncServiceTest {
 
         Test.startTest();
         AIEmailExclusionService.ExclusionResult result =
-            AIEmailExclusionService.checkExclusion(marketingEmail, 'GMAIL');
+            AIEmailExclusionService.checkExclusion(marketingEmail, 'GMAIL_EMAIL');
         Test.stopTest();
 
         // Clean up
@@ -462,7 +462,7 @@ public class AIEmailSyncServiceTest {
 
         Test.startTest();
         AIEmailExclusionService.ExclusionResult result =
-            AIEmailExclusionService.checkExclusion(socialEmail, 'GMAIL');
+            AIEmailExclusionService.checkExclusion(socialEmail, 'GMAIL_EMAIL');
         Test.stopTest();
 
         // Clean up
@@ -937,7 +937,7 @@ public class AIEmailSyncServiceTest {
         AIEmailProviderService.ProviderType pType = provider.getProviderType();
         Test.stopTest();
 
-        Assert.areEqual(AIEmailProviderService.ProviderType.GMAIL, pType, 'Should return GMAIL type');
+        Assert.areEqual(AIEmailProviderService.ProviderType.GMAIL_EMAIL, pType, 'Should return GMAIL_EMAIL type');
     }
 
     @isTest
@@ -1530,11 +1530,11 @@ public class AIEmailSyncServiceTest {
     @isTest
     static void testEmailProviderFactory_GetGmailProvider() {
         Test.startTest();
-        AIEmailProviderService provider = AIEmailProviderFactory.getProvider('GMAIL');
+        AIEmailProviderService provider = AIEmailProviderFactory.getProvider('GMAIL_EMAIL');
         Test.stopTest();
 
         Assert.areNotEqual(null, provider, 'Should return Gmail provider');
-        Assert.areEqual(AIEmailProviderService.ProviderType.GMAIL, provider.getProviderType(), 'Should be Gmail type');
+        Assert.areEqual(AIEmailProviderService.ProviderType.GMAIL_EMAIL, provider.getProviderType(), 'Should be Gmail type');
     }
 
     @isTest
@@ -2458,7 +2458,7 @@ public class AIEmailSyncServiceTest {
         AIEmailProviderService.ProviderType pType = provider.getProviderType();
         Test.stopTest();
 
-        Assert.areEqual(AIEmailProviderService.ProviderType.MICROSOFT_GRAPH, pType, 'Should return MICROSOFT_GRAPH');
+        Assert.areEqual(AIEmailProviderService.ProviderType.MICROSOFT_EMAIL, pType, 'Should return MICROSOFT_EMAIL');
     }
 
     @isTest

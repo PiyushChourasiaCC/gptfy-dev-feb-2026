@@ -214,7 +214,7 @@ private class AIEmailSyncDigestServiceTest {
                 Subject__c = em.Subject,
                 From_Address__c = em.FromAddress,
                 User__c = UserInfo.getUserId(),
-                Status__c = 'Matched',
+                Status__c = 'Imported',
                 Provider__c = 'Outlook'
             );
             stagingRecords.add(staging);
@@ -588,7 +588,7 @@ private class AIEmailSyncDigestServiceTest {
             Subject__c = em.Subject,
             From_Address__c = em.FromAddress,
             User__c = UserInfo.getUserId(),
-            Status__c = 'Matched',
+            Status__c = 'Imported',
             Provider__c = 'Gmail'
         );
         insert staging;
@@ -640,7 +640,7 @@ private class AIEmailSyncDigestServiceTest {
             Subject__c = em.Subject,
             From_Address__c = em.FromAddress,
             User__c = UserInfo.getUserId(),
-            Status__c = 'Matched',
+            Status__c = 'Imported',
             Provider__c = 'Gmail'
         );
         insert staging;
@@ -704,7 +704,7 @@ private class AIEmailSyncDigestServiceTest {
             Subject__c = em.Subject,
             From_Address__c = em.FromAddress,
             User__c = UserInfo.getUserId(),
-            Status__c = 'Matched',
+            Status__c = 'Imported',
             Provider__c = 'Gmail'
         );
         insert staging;
@@ -763,7 +763,7 @@ private class AIEmailSyncDigestServiceTest {
                 Subject__c = em.Subject,
                 From_Address__c = em.FromAddress,
                 User__c = UserInfo.getUserId(),
-                Status__c = 'Matched',
+                Status__c = 'Imported',
                 Provider__c = 'Gmail'
             ));
         }
@@ -818,7 +818,7 @@ private class AIEmailSyncDigestServiceTest {
             Subject__c = em.Subject,
             From_Address__c = em.FromAddress,
             User__c = UserInfo.getUserId(),
-            Status__c = 'Matched',
+            Status__c = 'Imported',
             Provider__c = 'Gmail'
         );
         insert staging;
@@ -873,7 +873,7 @@ private class AIEmailSyncDigestServiceTest {
             Subject__c = em.Subject,
             From_Address__c = em.FromAddress,
             User__c = UserInfo.getUserId(),
-            Status__c = 'Matched',
+            Status__c = 'Imported',
             Provider__c = 'Gmail'
         );
         insert staging;

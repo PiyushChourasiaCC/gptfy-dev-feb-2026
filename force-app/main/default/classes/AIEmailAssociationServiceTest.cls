@@ -323,7 +323,7 @@ private class AIEmailAssociationServiceTest {
         AI_Workspace_Staging__c staging = new AI_Workspace_Staging__c(
             Subject__c = 'Test Staging Email',
             Message_Identifier__c = 'test-staging-123',
-            Status__c = 'Matched',
+            Status__c = 'Imported',
             Email_Message__c = em.Id,
             User__c = UserInfo.getUserId(),
             RecordTypeId = emailRecordTypeId,
@@ -354,7 +354,7 @@ private class AIEmailAssociationServiceTest {
         AI_Workspace_Staging__c staging = new AI_Workspace_Staging__c(
             Subject__c = 'Test Unmatched Email',
             Message_Identifier__c = 'test-unmatched-123',
-            Status__c = 'Unmatched',
+            Status__c = 'Staged',
             User__c = UserInfo.getUserId(),
             RecordTypeId = emailRecordTypeId,
             Provider__c = 'MICROSOFT_CALENDAR'
@@ -394,7 +394,7 @@ private class AIEmailAssociationServiceTest {
         AI_Workspace_Staging__c staging = new AI_Workspace_Staging__c(
             Subject__c = 'Test Deleted Email',
             Message_Identifier__c = 'test-deleted-123',
-            Status__c = 'Matched',
+            Status__c = 'Imported',
             Email_Message__c = em.Id,
             User__c = UserInfo.getUserId(),
             RecordTypeId = emailRecordTypeId,
@@ -423,7 +423,7 @@ private class AIEmailAssociationServiceTest {
             FROM AI_Workspace_Staging__c 
             WHERE Id = :staging.Id
         ];
-        Assert.areEqual('Unmatched', updatedStaging.Status__c, 'Staging status should be reset to Unmatched');
+        Assert.areEqual('Staged', updatedStaging.Status__c, 'Staging status should be reset to Unmatched');
         Assert.areEqual(null, updatedStaging.Email_Message__c, 'Email_Message__c should be cleared');
     }
 
@@ -437,7 +437,7 @@ private class AIEmailAssociationServiceTest {
         AI_Workspace_Staging__c staging = new AI_Workspace_Staging__c(
             Subject__c = 'Test Invalid ID',
             Message_Identifier__c = 'test-invalid-id-123',
-            Status__c = 'Matched',
+            Status__c = 'Imported',
             Email_Message__c = 'invalid-id',
             User__c = UserInfo.getUserId(),
             RecordTypeId = emailRecordTypeId,

@@ -78,13 +78,6 @@ public with sharing class AIQuickMatchService {
             Map<String, Object> email = emails[i];
             MatchResult result = matchWithCache(email, cache, internalDomains);
             results.add(result);
-
-            System.debug('AIQuickMatchService: Email ' + i + ' - From: ' + result.fromAddress + ', Confidence: ' + result.confidence + ', MatchType: ' + result.matchType);
-        }
-
-        // Log results
-        if (results.isEmpty()) {
-            System.debug('AIQuickMatchService: No lead candidates (all matched or excluded)');
         }
 
         return results;
@@ -300,21 +293,10 @@ public with sharing class AIQuickMatchService {
         Set<Id> matchedContactIds = new Set<Id>();
         Set<Id> accountIdsFromContacts = new Set<Id>();
 
-        // Check if internal exclusion is enabled (for Contact matching)
-        Boolean excludeInternalContacts = AISyncSettingsService.excludeInternal();
-
         // STEP 1: Find ALL matching Contacts (collect all, not just first)
         for (String emailLower : participantEmails) {
             if (cache.emailToContact.containsKey(emailLower)) {
                 Contact c = cache.emailToContact.get(emailLower);
-
-                // Skip if this Contact is from an internal domain (same company as user)
-                // BUT only if Exclude_Internal__c setting is enabled
-                String contactDomain = extractDomain(c.Email);
-                if (excludeInternalContacts && contactDomain != null && internalDomains.contains(contactDomain.toLowerCase())) {
-                    result.matchDetails.add('Skipped internal Contact: ' + c.Name + ' (' + contactDomain + ') - Exclude_Internal enabled');
-                    continue;
-                }
 
                 matchedContactIds.add(c.Id);
                 result.matchDetails.add('Matched Contact: ' + c.Name + ' (' + emailLower + ')');
@@ -545,7 +527,7 @@ public with sharing class AIQuickMatchService {
             // Could add Gmail user email lookup here in future
 
         } catch (Exception e) {
-            System.debug('Error getting authenticated user match: ' + e.getMessage());
+            
         }
 
         return null;
@@ -558,13 +540,11 @@ public with sharing class AIQuickMatchService {
         try {
             // Check if user has a connection first
             if (!AIWorkspaceTokenService.hasConnection(AIWorkspaceTokenService.PROVIDER_OUTLOOK)) {
-                System.debug('Outlook connection not found for current user');
                 return null;
             }
             
             String accessToken = AIWorkspaceTokenService.getAccessToken(AIWorkspaceTokenService.PROVIDER_OUTLOOK);
             if (String.isBlank(accessToken)) {
-                System.debug('Outlook access token not found for current user');
                 return null;
             }
             
@@ -586,7 +566,7 @@ public with sharing class AIQuickMatchService {
                 return email;
             }
         } catch (Exception e) {
-            System.debug('Error getting Microsoft Graph user email: ' + e.getMessage());
+            
         }
         return null;
     }
@@ -679,19 +659,11 @@ public with sharing class AIQuickMatchService {
      */
     private static Boolean isPublicEmailDomain(String domain) {
         if (String.isBlank(domain)) return true;
-
-        // Check if public domain exclusion is enabled in settings
-        if (AISyncSettingsService.excludePublicDomains() && AISyncSettingsService.isPublicDomain(domain)) {
-            return true;
-        }
-
-        // Also check Internal_Domains__c for company-specific exclusions
-        return AISyncSettingsService.isDomainInternal(domain);
+        return false;
     }
 
     /**
      * Get set of internal company domains that should be excluded from matching
-     * Uses AISyncSettingsService for centralized domain management
      */
     private static Set<String> getInternalDomains(String currentUserDomain) {
         Set<String> internalDomains = new Set<String>();
@@ -699,12 +671,6 @@ public with sharing class AIQuickMatchService {
         // Add current user's domain
         if (String.isNotBlank(currentUserDomain)) {
             internalDomains.add(currentUserDomain.toLowerCase());
-        }
-
-        // Get excluded domains from settings
-        Set<String> excludedDomains = AISyncSettingsService.getInternalDomains();
-        if (excludedDomains != null) {
-            internalDomains.addAll(excludedDomains);
         }
 
         return internalDomains;

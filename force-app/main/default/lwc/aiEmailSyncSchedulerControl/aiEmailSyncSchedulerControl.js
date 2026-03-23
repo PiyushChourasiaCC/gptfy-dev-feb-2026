@@ -97,13 +97,13 @@ export default class aiEmailSyncSchedulerControl extends NavigationMixin(Lightni
             type: 'number'
         },
         {
-            label: 'Matched',
+            label: 'Staged',
             fieldName: 'emailsMatched',
             type: 'number'
         },
         {
-            label: 'Imported',
-            fieldName: 'emailsImported',
+            label: 'Duplicate',
+            fieldName: 'emailsDuplicate',
             type: 'number'
         },
         {

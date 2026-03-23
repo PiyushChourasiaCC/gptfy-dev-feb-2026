@@ -29,8 +29,8 @@ private class AIStagingEmailMatcherSchedulerTest {
                 From_Address__c = 'test.user@example.com',
                 From_Name__c = 'Test User',
                 Subject__c = 'Test Email ' + i,
-                Status__c = 'Unmatched',
-                Provider__c = 'MICROSOFT_GRAPH'
+                Status__c = 'Staged',
+                Provider__c = 'MICROSOFT_EMAIL'
             );
             
             if (emailRecordTypeId != null) {
@@ -97,7 +97,7 @@ private class AIStagingEmailMatcherSchedulerTest {
         Test.stopTest();
 
         // Verify batch was executed (staging records should be processed)
-        List<AI_Workspace_Staging__c> processed = [SELECT Id, Status__c FROM AI_Workspace_Staging__c WHERE Status__c = 'Matched'];
+        List<AI_Workspace_Staging__c> processed = [SELECT Id, Status__c FROM AI_Workspace_Staging__c WHERE Status__c = 'Imported'];
         Assert.isTrue(processed.size() > 0, 'Batch should have processed staging records');
         
         // Clean up
@@ -172,7 +172,7 @@ private class AIStagingEmailMatcherSchedulerTest {
         Assert.isNotNull(batchJobId, 'Batch job should be queued');
         
         // Verify staging records were processed
-        List<AI_Workspace_Staging__c> processed = [SELECT Id, Status__c FROM AI_Workspace_Staging__c WHERE Status__c = 'Matched'];
+        List<AI_Workspace_Staging__c> processed = [SELECT Id, Status__c FROM AI_Workspace_Staging__c WHERE Status__c = 'Imported'];
         Assert.isTrue(processed.size() > 0, 'Batch should have processed staging records');
     }
 

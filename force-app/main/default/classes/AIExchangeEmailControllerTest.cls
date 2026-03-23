@@ -122,7 +122,7 @@ private class AIExchangeEmailControllerTest {
 
         Test.startTest();
         Map<String, Object> result = AIExchangeEmailController.getExchangeEmails(
-            10, 0, '', null, 'MICROSOFT_GRAPH', null
+            10, 0, '', null, 'MICROSOFT_EMAIL', null
         );
         Test.stopTest();
 
@@ -135,7 +135,7 @@ private class AIExchangeEmailControllerTest {
 
         Test.startTest();
         Map<String, Object> result = AIExchangeEmailController.getExchangeEmails(
-            10, 0, '', null, 'MICROSOFT_GRAPH', 'page-token-123'
+            10, 0, '', null, 'MICROSOFT_EMAIL', 'page-token-123'
         );
         Test.stopTest();
 
@@ -175,7 +175,7 @@ private class AIExchangeEmailControllerTest {
 
         Test.startTest();
         Map<String, Object> result = AIExchangeEmailController.importSelectedEmails(
-            new List<String>{'msg-123'}, acc.Id, 'MICROSOFT_GRAPH'
+            new List<String>{'msg-123'}, acc.Id, 'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -194,7 +194,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.importSelectedEmails(
             new List<String>{'msg-456'},
             con.Id,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -226,7 +226,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.importSelectedEmails(
             new List<String>{'msg-1'},
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -238,11 +238,10 @@ private class AIExchangeEmailControllerTest {
     @isTest
     static void testImportSelectedEmails_AllEmailsExcluded() {
         Account acc = [SELECT Id FROM Account WHERE Name = 'Acme Corporation' LIMIT 1];
-        
-        // Enable internal email exclusion
+
+        // V2-7889: Enable domain exclusion using new field
         AI_Workspace_Sync_Settings__c settings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
-        settings.Exclude_Internal__c = true;
-        settings.Internal_Domains__c = 'test.com,internal.com';
+        settings.Excluded_Domains__c = 'test.com,internal.com';
         update settings;
 
         // Mock response with internal email
@@ -252,13 +251,15 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.importSelectedEmails(
             new List<String>{'msg-internal'},
             acc.Id,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
         Assert.areEqual(true, result.get('success'), 'Should succeed even when all emails excluded');
         Assert.areEqual(0, result.get('successCount'), 'Should have 0 successful imports');
         Assert.isTrue(result.containsKey('excludedCount'), 'Should have excludedCount field');
+        Integer excludedCount = (Integer) result.get('excludedCount');
+        Assert.isTrue(excludedCount > 0, 'Should have excluded at least one email');
     }
 
     // ========================================================================
@@ -270,7 +271,7 @@ private class AIExchangeEmailControllerTest {
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
 
         Test.startTest();
-        Boolean result = AIExchangeEmailController.checkAuthenticationStatus('MICROSOFT_GRAPH');
+        Boolean result = AIExchangeEmailController.checkAuthenticationStatus('MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areNotEqual(null, result, 'Should return authentication status');
@@ -296,7 +297,7 @@ private class AIExchangeEmailControllerTest {
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
 
         Test.startTest();
-        Map<String, Object> result = AIExchangeEmailController.getAuthenticationDetails('MICROSOFT_GRAPH');
+        Map<String, Object> result = AIExchangeEmailController.getAuthenticationDetails('MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.get('success'), 'Should succeed');
@@ -346,28 +347,28 @@ private class AIExchangeEmailControllerTest {
 
     @isTest
     static void testRefreshTokenAndGetDetails_GmailLWCFormat() {
-        // Test with 'GMAIL' format (sent by LWC component)
+        // Test with 'GMAIL_EMAIL' format (sent by LWC component)
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
 
         Test.startTest();
-        Map<String, Object> result = AIExchangeEmailController.refreshTokenAndGetDetails('GMAIL');
+        Map<String, Object> result = AIExchangeEmailController.refreshTokenAndGetDetails('GMAIL_EMAIL');
         Test.stopTest();
 
-        Assert.areEqual(true, result.get('success'), 'Should succeed with GMAIL format');
+        Assert.areEqual(true, result.get('success'), 'Should succeed with GMAIL_EMAIL format');
         Assert.isTrue(result.containsKey('isAuthenticated'), 'Should have isAuthenticated');
         Assert.isTrue(result.containsKey('refreshed'), 'Should have refreshed flag');
     }
 
     @isTest
     static void testRefreshTokenAndGetDetails_OutlookLWCFormat() {
-        // Test with 'MICROSOFT_GRAPH' format (sent by LWC component)
+        // Test with 'MICROSOFT_EMAIL' format (sent by LWC component)
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
 
         Test.startTest();
-        Map<String, Object> result = AIExchangeEmailController.refreshTokenAndGetDetails('MICROSOFT_GRAPH');
+        Map<String, Object> result = AIExchangeEmailController.refreshTokenAndGetDetails('MICROSOFT_EMAIL');
         Test.stopTest();
 
-        Assert.areEqual(true, result.get('success'), 'Should succeed with MICROSOFT_GRAPH format');
+        Assert.areEqual(true, result.get('success'), 'Should succeed with MICROSOFT_EMAIL format');
         Assert.isTrue(result.containsKey('isAuthenticated'), 'Should have isAuthenticated');
         Assert.isTrue(result.containsKey('refreshed'), 'Should have refreshed flag');
     }
@@ -428,7 +429,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoMatch(
             new List<String>{'msg-contact-test'},
             acc.Id,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -444,7 +445,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoMatch(
             new List<String>{'msg-lead-test'},
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -459,7 +460,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoMatch(
             new List<String>{'msg-unknown-test'},
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -472,7 +473,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoMatch(
             new List<String>(),
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -492,7 +493,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoMatch(
             tooManyIds,
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -507,7 +508,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoMatch(
             null,
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -537,7 +538,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoMatch(
             new List<String>{'msg-1', 'msg-2'},
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -556,7 +557,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoSyncWithAI(
             new List<String>{'msg-ai-test'},
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -569,7 +570,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoSyncWithAI(
             new List<String>(),
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -589,7 +590,7 @@ private class AIExchangeEmailControllerTest {
             AIEmailMatchingService.MatchResult result = AIExchangeEmailController.previewAIMatch(
                 'msg-preview-test',
                 null,
-                'MICROSOFT_GRAPH'
+                'MICROSOFT_EMAIL'
             );
             // May succeed or fail depending on auth
         } catch (Exception e) {
@@ -728,7 +729,7 @@ private class AIExchangeEmailControllerTest {
         try {
         Map<String, Object> result = AIExchangeEmailController.associateEmailsFromModal(
             selections,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
             // May fail due to auth issues
             Assert.isTrue(result.containsKey('successCount') || result.containsKey('failedCount'), 'Should have count fields');
@@ -745,7 +746,7 @@ private class AIExchangeEmailControllerTest {
         try {
         Map<String, Object> result = AIExchangeEmailController.associateEmailsFromModal(
             new List<Map<String, Object>>(),
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
             Assert.fail('Should have thrown IllegalArgumentException');
         } catch (IllegalArgumentException e) {
@@ -760,7 +761,7 @@ private class AIExchangeEmailControllerTest {
         try {
         Map<String, Object> result = AIExchangeEmailController.associateEmailsFromModal(
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
             Assert.fail('Should have thrown IllegalArgumentException');
         } catch (IllegalArgumentException e) {
@@ -793,7 +794,7 @@ private class AIExchangeEmailControllerTest {
         Test.startTest();
         Map<String, Object> result = AIExchangeEmailController.associateEmailsFromModal(
             selections,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -820,7 +821,7 @@ private class AIExchangeEmailControllerTest {
         Test.startTest();
         Map<String, Object> result = AIExchangeEmailController.associateEmailsFromModal(
             selections,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -847,7 +848,7 @@ private class AIExchangeEmailControllerTest {
         Test.startTest();
         Map<String, Object> result = AIExchangeEmailController.associateEmailsFromModal(
             selections,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -874,7 +875,7 @@ private class AIExchangeEmailControllerTest {
         Test.startTest();
         Map<String, Object> result = AIExchangeEmailController.associateEmailsFromModal(
             selections,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -895,7 +896,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoMatch(
             new List<String>{'msg-internal'},
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -1012,7 +1013,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoMatch(
             new List<String>{'msg-context-test'},
             acc.Id,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -1200,7 +1201,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.importSelectedEmails(
             new List<String>{'msg-internal-1', 'msg-internal-2'},
             acc.Id,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -1223,7 +1224,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoMatch(
             new List<String>{'msg-internal-1', 'msg-internal-2'},
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -1257,7 +1258,7 @@ private class AIExchangeEmailControllerTest {
         try {
             Map<String, Object> result = AIExchangeEmailController.associateEmailsFromModal(
                 selections,
-                'MICROSOFT_GRAPH'
+                'MICROSOFT_EMAIL'
             );
             Assert.isTrue(result.containsKey('excludedCount'), 'Should have excludedCount');
         } catch (Exception e) {
@@ -1296,7 +1297,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.importSelectedEmails(
             new List<String>{'msg-1', 'msg-2', 'msg-3'},
             acc.Id,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -1317,7 +1318,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoMatch(
             messageIds,
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -1327,11 +1328,10 @@ private class AIExchangeEmailControllerTest {
     @isTest
     static void testImportSelectedEmails_MixedExcludedAndValid() {
         Account acc = [SELECT Id FROM Account WHERE Name = 'Acme Corporation' LIMIT 1];
-        
-        // Enable exclusions
+
+        // V2-7889: Enable domain exclusions using new field
         AI_Workspace_Sync_Settings__c settings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
-        settings.Exclude_Internal__c = true;
-        settings.Internal_Domains__c = 'internal.com';
+        settings.Excluded_Domains__c = 'internal.com';
         update settings;
 
         // Use a mock that returns both internal and external emails
@@ -1341,15 +1341,15 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.importSelectedEmails(
             new List<String>{'msg-external', 'msg-internal'},
             acc.Id,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
         // Should have some excluded and some imported
         Assert.isTrue(result.containsKey('excludedCount'), 'Should have excludedCount');
         Assert.isTrue(result.containsKey('successCount'), 'Should have successCount');
-        List<String> errors = (List<String>) result.get('errors');
-        Assert.isTrue(errors != null && !errors.isEmpty(), 'Should have exclusion errors');
+        Integer excludedCount = (Integer) result.get('excludedCount');
+        Assert.isTrue(excludedCount > 0, 'Should have excluded at least one email');
     }
 
     @isTest
@@ -1366,7 +1366,7 @@ private class AIExchangeEmailControllerTest {
         Map<String, Object> result = AIExchangeEmailController.autoMatch(
             new List<String>{'msg-external', 'msg-internal'},
             null,
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_EMAIL'
         );
         Test.stopTest();
 
@@ -1931,6 +1931,29 @@ private class AIExchangeEmailControllerTest {
     }
 
     @isTest
+    static void testImportSelectedEmails_FailedFetch() {
+        // V2-7889: Test when Gmail API returns null (failed fetch)
+        Test.setMock(HttpCalloutMock.class, new NullEmailMock());
+        
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        List<String> messageIds = new List<String>{'invalid-msg-id'};
+        
+        Test.startTest();
+        Map<String, Object> result = AIExchangeEmailController.importSelectedEmails(
+            messageIds,
+            acc.Id,
+            'GMAIL_EMAIL'
+        );
+        Test.stopTest();
+        
+        Assert.isFalse((Boolean) result.get('success'), 'Should return success=false when fetch fails');
+        Assert.areEqual(1, (Integer) result.get('failedCount'), 'Should report 1 failed fetch');
+        Assert.areEqual(0, (Integer) result.get('successCount'), 'Should have 0 success count');
+        String error = (String) result.get('error');
+        Assert.isTrue(error.contains('could not be fetched'), 'Error should mention fetch failure');
+    }
+
+    @isTest
     static void testPreviewAIMatch_WithNullMessageId() {
         // Test preview with null message ID
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
@@ -1958,6 +1981,17 @@ private class AIExchangeEmailControllerTest {
             res.setHeader('Content-Type', 'application/json');
             res.setStatusCode(401);
             res.setBody('{"error": {"message": "Authentication failed"}}');
+            return res;
+        }
+    }
+
+    // V2-7889: Mock for null email response (failed fetch)
+    private class NullEmailMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(404);
+            res.setBody('{"error": {"message": "Email not found"}}');
             return res;
         }
     }

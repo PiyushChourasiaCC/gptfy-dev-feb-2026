@@ -129,6 +129,7 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
     /**
      * Finalizer execute - Called after queueable completes
      * Uses finalizer to chain, which avoids "too many queueable jobs" error
+     * V2-7889: Also triggers Phase 2 batches when all users are processed
      */
     public void execute(FinalizerContext context) {
         if (shouldChain && !disableChaining) {
@@ -144,13 +145,20 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
             } else {
                 System.enqueueJob(nextJob);
             }
+        } else if (!shouldChain && !disableChaining) {
+            // V2-7889: Main queueable complete - Phase 2 will be triggered by chainable queueables
+            // Each AIEmailSyncChainableQueueable triggers Phase 2 when it completes
+            // This ensures Phase 2 runs AFTER staging records are created
+        } else {
         }
+        
     }
     
     /**
      * Get workspace user record
      * Note: Refresh_Token__c is encrypted so we can't filter on it in SOQL
      */
+    @TestVisible
     private AI_Workspace_User__c getWorkspaceUser(Id workspaceUserId) {
         List<AI_Workspace_User__c> users = [
             SELECT Id, User__c, Provider__c, Refresh_Token__c
@@ -172,6 +180,7 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
      * Decrypt refresh token using the appropriate OAuth controller
      * Uses the workspace user's User__c field to get the correct encryption key
      */
+    @TestVisible
     private String decryptRefreshToken(AI_Workspace_User__c workspaceUser) {
         if (String.isBlank(workspaceUser.Refresh_Token__c)) {
             return null;
@@ -210,6 +219,7 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
     /**
      * Execute the current sync type
      */
+    @TestVisible
     private void executeSync(AI_Workspace_User__c workspaceUser, String accessToken) {
         try {
             switch on currentSyncType {
@@ -300,20 +310,14 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
                     // Sync window is from forward cursor (last newest email) to NOW
                     syncWindowStart = gmailForwardCursor;  // Start from where we left off
                     syncWindowEnd = DateTime.now();        // End at current time
-                    System.debug('GMAIL_FIFO|startChainableEmailSync: Backfill complete - forward sync only');
                 } else {
                     // BACKFILL IN PROGRESS: Need both forward and backfill sync
                     // Sync_Window_Start = lookback boundary (for backfill target)
                     // Sync_Window_End = backfill cursor (oldest email processed so far)
                     syncWindowStart = gmailWindow.lookbackBoundary;
                     syncWindowEnd = gmailWindow.backfillCursor;
-                    System.debug('GMAIL_FIFO|startChainableEmailSync: Backfill in progress');
                 }
                 
-                System.debug('GMAIL_FIFO|  Forward Cursor (newest seen): ' + gmailForwardCursor);
-                System.debug('GMAIL_FIFO|  Sync Window Start: ' + syncWindowStart);
-                System.debug('GMAIL_FIFO|  Sync Window End: ' + syncWindowEnd);
-                System.debug('GMAIL_FIFO|  Backfill Complete: ' + gmailBackfillComplete);
             } else {
                 // Outlook uses standard FIFO (oldest first API ordering)
                 syncWindowStart = getLastSyncTime(workspaceUser.User__c, providerType);
@@ -398,6 +402,7 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
     /**
      * Wrapper class for Gmail two-pointer sync window
      */
+    @TestVisible
     private class GmailSyncWindow {
         public DateTime forwardCursor;      // Start point for forward sync (newest email seen)
         public DateTime backfillCursor;     // Current position in backfill (oldest email processed)
@@ -407,6 +412,7 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
     
     /**
      * Get Gmail two-pointer sync window
+     * V2-7889
      * 
      * For Gmail, we need two cursors:
      * 1. Forward Cursor: Where to start fetching new emails (newest email we've seen)
@@ -424,6 +430,7 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
      * - Lookback Boundary = Same as first sync calculation
      * - Backfill Complete = Sync_Window_End__c <= lookback boundary
      */
+    @TestVisible
     private GmailSyncWindow getGmailTwoPointerSyncWindow(Id userId, String providerType) {
         GmailSyncWindow window = new GmailSyncWindow();
         
@@ -473,19 +480,16 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
                 // When backfill is complete, set backfillCursor to NOW
                 // This ensures Sync_Window_End__c shows the current time (end of forward sync window)
                 window.backfillCursor = DateTime.now();
-                System.debug('GMAIL_FIFO|getGmailTwoPointerSyncWindow: Backfill complete - setting backfillCursor to NOW');
             }
             
-            System.debug('GMAIL_FIFO|getGmailTwoPointerSyncWindow: Using prior sync log');
-            System.debug('GMAIL_FIFO|  Last Gmail_Forward_Cursor__c: ' + lastLog.Gmail_Forward_Cursor__c);
-            System.debug('GMAIL_FIFO|  Last Sync_Window_End__c: ' + lastLog.Sync_Window_End__c);
         } else {
-            // First sync - use Run Now lookback time or default
-            window.forwardCursor = DateTime.now();
+            // V2-7889: First sync - set forward cursor to lookback boundary
+            // This ensures forward sync fetches ALL emails in the lookback window (both inbox and sent)
+            // Setting it to NOW would create an empty window and skip all emails
+            window.forwardCursor = window.lookbackBoundary;
             window.backfillCursor = DateTime.now(); // Gmail returns newest first, so we start here
-            window.backfillComplete = false;
-            
-            System.debug('GMAIL_FIFO|getGmailTwoPointerSyncWindow: First sync - no prior logs');
+            window.backfillComplete = true; // No backfill needed since forward sync covers full window
+
         }
         
         return window;
@@ -505,12 +509,12 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
      * For Run Now mode (first run):
      *   - Uses lookback settings (defaults to 24 hours if empty/0)
      */
+    @TestVisible
     private DateTime getLastSyncTime(Id userId, String providerType) {
         // If Run Now mode, check if we should use lookback (only for first run)
         if (this.isRunNowMode) {
             DateTime lookbackTime = getRunNowLookbackTime(userId, providerType);
             if (lookbackTime != null) {
-                System.debug('SYNC_WINDOW|getLastSyncTime: Run Now first sync - using lookback time = ' + lookbackTime);
                 return lookbackTime;
             }
             // If getRunNowLookbackTime returns null, it means a prior sync exists
@@ -542,13 +546,11 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
         if (!lastLogs.isEmpty() && lastLogs[0].Sync_Window_End__c != null) {
             // For Outlook: Use Sync_Window_End__c as the new start (oldest first pagination)
             // NOTE: Gmail email sync uses getGmailTwoPointerSyncWindow() instead
-            System.debug('SYNC_WINDOW|getLastSyncTime: Outlook/Calendar/Task - using last sync end time = ' + lastLogs[0].Sync_Window_End__c);
             return lastLogs[0].Sync_Window_End__c;
         }
         
         // No prior successful sync - use sync-type specific default lookback
         DateTime defaultLookback = getDefaultLookbackTime();
-        System.debug('SYNC_WINDOW|getLastSyncTime: No prior sync - using default lookback = ' + defaultLookback);
         return defaultLookback;
     }
     
@@ -564,6 +566,7 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
      * 
      * Returns null if prior sync exists (will fall back to incremental sync)
      */
+    @TestVisible
     private DateTime getRunNowLookbackTime(Id userId, String providerType) {
         // Determine record type based on current sync type
         String recordType;
@@ -625,6 +628,7 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
      * Get default lookback time when no prior sync exists
      * Uses sync-type specific defaults from settings
      */
+    @TestVisible
     private DateTime getDefaultLookbackTime() {
         if (this.currentSyncType == SyncType.EMAIL) {
             // FIXED: Use Lookback_Hours__c from settings instead of hardcoded 24 hours
@@ -675,6 +679,7 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
     /**
      * Handle authentication failure
      */
+    @TestVisible
     private void handleAuthFailure(AI_Workspace_User__c workspaceUser, String errorMessage) {
         // Create a failed sync log entry
         // Determine record type based on current sync type
@@ -708,7 +713,9 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
     
     /**
      * Log sync error
+     * V2-7889
      */
+    @TestVisible
     private void logSyncError(AI_Workspace_User__c workspaceUser, SyncType syncType, Exception e) {
         // The individual sync services should have already logged their own errors
         // This is just for unexpected exceptions
@@ -718,6 +725,7 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
      * Prepare chain to next sync type or user
      * Sets state for the Finalizer to handle
      */
+    @TestVisible
     private void prepareChainToNext() {
         if (disableChaining || Test.isRunningTest()) {
             return;
@@ -754,6 +762,8 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
         // Check if more users to process
         if (nextIndex >= workspaceUserIds.size()) {
             shouldChain = false;
+            // V2-7889: Phase 2 batches will be triggered in the Finalizer
+            // (cannot trigger batches here due to queueable/batch conflicts)
             return;
         }
         
@@ -761,6 +771,19 @@ public with sharing class AIWorkspaceSyncQueueable implements Queueable, Databas
         // Note: In run-now mode, workspaceUserIds contains ONLY the current user's providers
         // So we process all of them (e.g., both Outlook and Gmail for the same user)
         shouldChain = true;
+    }
+    
+    /**
+     * V2-7889: Trigger Phase 2 batch job to match ALL staging records
+     * Called after Phase 1 (staging creation) completes for all users
+     * 
+     * Phase 2 batch job:
+     * - AIStagingEmailMatcherBatch: Unified batch that matches ALL staging records (Email, Calendar, Task)
+     */
+    private void triggerPhase2MatchingBatches() {
+        // V2-7889: Phase 2 (AIStagingEmailMatcherBatch) is now triggered by scheduler
+        // No automatic call from Phase 1 to allow manual control and better monitoring
+        // Use AIStagingEmailMatcherScheduler to schedule Phase 2, or run manually from Developer Console
     }
     
     /**

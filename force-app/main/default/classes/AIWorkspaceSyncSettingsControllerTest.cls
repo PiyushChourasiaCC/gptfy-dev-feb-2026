@@ -497,11 +497,8 @@ private class AIWorkspaceSyncSettingsControllerTest {
         AIWorkspaceSyncSettingsController.updateField('notifyUsers', true);
         
         // Exclusion rules
-        AIWorkspaceSyncSettingsController.updateField('excludeInternal', false);
-        AIWorkspaceSyncSettingsController.updateField('excludeMarketing', false);
-        AIWorkspaceSyncSettingsController.updateField('excludeConfidential', false);
-        AIWorkspaceSyncSettingsController.updateField('excludePublicDomains', false);
-        AIWorkspaceSyncSettingsController.updateField('internalDomains', 'example.com,test.com');
+        AIWorkspaceSyncSettingsController.updateField('excludedDomains', 'spam.com,marketing.com');
+        AIWorkspaceSyncSettingsController.updateField('excludedLabelsCategories', 'Marketing,Confidential');
         
         // Matching precedence
         AIWorkspaceSyncSettingsController.updateField('syncPrecedence', '{"1": ["Lead"]}');
@@ -514,8 +511,8 @@ private class AIWorkspaceSyncSettingsControllerTest {
         settings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
         Assert.isTrue(settings.Digest_Enabled__c, 'Digest should be enabled');
         Assert.areEqual('Weekly', settings.Digest_Frequency__c, 'Digest frequency should be updated');
-        Assert.isFalse(settings.Exclude_Internal__c, 'Exclude internal should be false');
-        Assert.areEqual('example.com,test.com', settings.Internal_Domains__c, 'Internal domains should be updated');
+        Assert.areEqual('spam.com,marketing.com', settings.Excluded_Domains__c, 'Excluded domains should be updated');
+        Assert.areEqual('Marketing,Confidential', settings.Excluded_Labels_Categories__c, 'Excluded labels should be updated');
     }
     
     @isTest
@@ -535,6 +532,8 @@ private class AIWorkspaceSyncSettingsControllerTest {
             Exclude_Confidential__c = false,
             Exclude_Public_Domains__c = false,
             Internal_Domains__c = 'example.com',
+            Excluded_Domains__c = 'spam.com',
+            Excluded_Labels_Categories__c = 'Marketing',
             Max_Users_Per_Batch__c = 15,
             Queueable_Delay_Minutes__c = 2
         );
@@ -553,8 +552,8 @@ private class AIWorkspaceSyncSettingsControllerTest {
         Assert.areEqual(9, result.digestHour, 'Digest hour should be 9');
         Assert.isTrue(result.notifyUsers, 'Notify users should be true');
         Assert.areEqual('{"1": ["Lead"]}', result.syncPrecedence, 'Sync precedence should match');
-        Assert.isFalse(result.excludeInternal, 'Exclude internal should be false');
-        Assert.areEqual('example.com', result.internalDomains, 'Internal domains should match');
+        Assert.areEqual('spam.com', result.excludedDomains, 'Excluded domains should match');
+        Assert.areEqual('Marketing', result.excludedLabelsCategories, 'Excluded labels should match');
         Assert.areEqual(15, result.maxUsersPerBatch, 'Max users per batch should be 15');
         Assert.areEqual(2, result.queueableDelayMinutes, 'Queueable delay should be 2');
     }

@@ -11,7 +11,7 @@
                     </div>
                 </div>
                 <template if:false={isAuthenticated}>
-                    <a href={authenticationSettingsUrl} class="auth-link">Connect</a>
+                    <button class="auth-link" onclick={handleConnectClick}>Connect</button>
                 </template>
             </div>
         </template>
@@ -24,8 +24,7 @@
                     <div class="no-provider-content">
                         <div class="no-provider-icon">⚙️</div>
                         <h2>Email Sync Not Configured</h2>
-                        <p>Please enable at least one email provider (Outlook or Gmail) from:</p>
-                        <p class="settings-path"><strong>AI Settings → Workspace Sync</strong></p>
+                        <p>Please enable at least one email provider (Outlook or Gmail) from Settings</p>
                     </div>
                 </div>
             </template>
@@ -201,10 +200,10 @@
                         <h2>Email Access Required</h2>
                         <p>{notAccessibleMessage}</p>
                         <div class="action-buttons">
-                            <button class="retry-connection-btn" onclick={handleRetryConnection} title="Refresh connection without leaving this page">
-                                🔄 Refresh Connection
-                            </button>
-                            <a href={authenticationSettingsUrl} class="auth-link">🔐 Connect Email</a>
+                        <button class="retry-connection-btn" onclick={handleRetryConnection} title="Refresh connection without leaving this page">
+                            🔄 Refresh Connection
+                        </button>
+                        <button class="auth-link" onclick={handleConnectClick}>🔐 Connect Email</button>
                         </div>
                     </div>
                 </template>

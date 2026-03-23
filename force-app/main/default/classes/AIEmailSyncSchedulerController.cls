@@ -30,11 +30,6 @@ public with sharing class AIEmailSyncSchedulerController {
                 allSettings.put('maxUsersPerBatch', settings.Max_Users_Per_Batch__c);
                 allSettings.put('maxEmailsPerUser', settings.Max_Emails_Per_User__c);
                 allSettings.put('notifyUsers', settings.Notify_Users__c);
-                allSettings.put('excludeMarketing', settings.Exclude_Marketing__c);
-                allSettings.put('excludeConfidential', settings.Exclude_Confidential__c);
-                allSettings.put('excludeInternal', settings.Exclude_Internal__c);
-                allSettings.put('internalDomains', settings.Internal_Domains__c);
-                allSettings.put('excludePublicDomains', settings.Exclude_Public_Domains__c);
                 allSettings.put('queueableDelayMinutes', settings.Queueable_Delay_Minutes__c);
                 allSettings.put('emailsPerBatch', settings.Emails_Per_Batch__c);
                 // Calendar sync settings
@@ -61,11 +56,6 @@ public with sharing class AIEmailSyncSchedulerController {
                 allSettings.put('maxUsersPerBatch', 10);
                 allSettings.put('maxEmailsPerUser', 50);
                 allSettings.put('notifyUsers', false);
-                allSettings.put('excludeMarketing', true);
-                allSettings.put('excludeConfidential', true);
-                allSettings.put('excludeInternal', true);
-                allSettings.put('internalDomains', '');
-                allSettings.put('excludePublicDomains', true);
                 allSettings.put('queueableDelayMinutes', 1);
                 allSettings.put('emailsPerBatch', 20);
                 // Defaults - Calendar
@@ -529,21 +519,27 @@ public with sharing class AIEmailSyncSchedulerController {
             if (settingsMap.containsKey('notifyUsers')) {
                 settings.Notify_Users__c = (Boolean) settingsMap.get('notifyUsers');
             }
-            if (settingsMap.containsKey('excludeMarketing')) {
-                settings.Exclude_Marketing__c = (Boolean) settingsMap.get('excludeMarketing');
+            if (settingsMap.containsKey('excludedDomains')) {
+                settings.Excluded_Domains__c = (String) settingsMap.get('excludedDomains');
             }
-            if (settingsMap.containsKey('excludeConfidential')) {
-                settings.Exclude_Confidential__c = (Boolean) settingsMap.get('excludeConfidential');
+            if (settingsMap.containsKey('excludedLabelsCategories')) {
+                settings.Excluded_Labels_Categories__c = (String) settingsMap.get('excludedLabelsCategories');
             }
-            if (settingsMap.containsKey('excludeInternal')) {
-                settings.Exclude_Internal__c = (Boolean) settingsMap.get('excludeInternal');
-            }
-            if (settingsMap.containsKey('internalDomains')) {
-                settings.Internal_Domains__c = (String) settingsMap.get('internalDomains');
-            }
-            if (settingsMap.containsKey('excludePublicDomains')) {
-                settings.Exclude_Public_Domains__c = (Boolean) settingsMap.get('excludePublicDomains');
-            }
+            // if (settingsMap.containsKey('excludeMarketing')) {
+            //     settings.Exclude_Marketing__c = (Boolean) settingsMap.get('excludeMarketing');
+            // }
+            // if (settingsMap.containsKey('excludeConfidential')) {
+            //     settings.Exclude_Confidential__c = (Boolean) settingsMap.get('excludeConfidential');
+            // }
+            // if (settingsMap.containsKey('excludeInternal')) {
+            //     settings.Exclude_Internal__c = (Boolean) settingsMap.get('excludeInternal');
+            // }
+            // if (settingsMap.containsKey('internalDomains')) {
+            //     settings.Internal_Domains__c = (String) settingsMap.get('internalDomains');
+            // }
+            // if (settingsMap.containsKey('excludePublicDomains')) {
+            //     settings.Exclude_Public_Domains__c = (Boolean) settingsMap.get('excludePublicDomains');
+            // }
             if (settingsMap.containsKey('queueableDelayMinutes')) {
                 settings.Queueable_Delay_Minutes__c = settingsMap.get('queueableDelayMinutes') != null ? 
                     Decimal.valueOf(String.valueOf(settingsMap.get('queueableDelayMinutes'))) : null;
@@ -650,10 +646,12 @@ public with sharing class AIEmailSyncSchedulerController {
             settings.Emails_Per_Batch__c = 20;
             settings.Queueable_Delay_Minutes__c = 1;
             settings.Notify_Users__c = false;
-            settings.Exclude_Marketing__c = true;
-            settings.Exclude_Confidential__c = true;
-            settings.Exclude_Internal__c = true;
-            settings.Exclude_Public_Domains__c = true;
+            settings.Excluded_Domains__c = '';
+            settings.Excluded_Labels_Categories__c = '';
+            // settings.Exclude_Marketing__c = true;
+            // settings.Exclude_Confidential__c = true;
+            // settings.Exclude_Internal__c = true;
+            // settings.Exclude_Public_Domains__c = true;
             
             // Calendar sync defaults
             settings.Calendar_Sync_Enabled__c = false;

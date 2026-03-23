@@ -1,0 +1,81 @@
+{
+  "name": "explore_slds_blueprints",
+  "description": "Search and explore SLDS Blueprints. Provide `name` (string or array, e.g. [\"Buttons\",\"Cards\"]) to get 1+ blueprint specs in a single call. Use `category`/`search`/`lightning_component`/`slds_class`/`styling_hook` to filter—each accepts a single value or array for multiple. Returns `blueprints` array with full specs.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          }
+        ],
+        "description": "Blueprint name(s) to get detailed documentation. Single string or array (e.g., [\"Buttons\", \"Cards\"]). Returns 1+ blueprints."
+      },
+      "category": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "Actions",
+              "Input",
+              "Layout",
+              "Navigation",
+              "Display",
+              "Data",
+              "Feedback",
+              "Overlay",
+              "Complex Components"
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Actions",
+                "Input",
+                "Layout",
+                "Navigation",
+                "Display",
+                "Data",
+                "Feedback",
+                "Overlay",
+                "Complex Components"
+              ]
+            },
+            "minItems": 1
+          }
+        ],
+        "description": "Filter by blueprint category. Single value or array for multiple categories."
+      },
+      "search": {
+        "type": "string",
+        "description": "Search term to filter blueprints by name or description"
+      },
+      "lightning_component": {
+        "$ref": "#/properties/name",
+        "description": "Filter by Lightning component name(s) (e.g., lightning-button or [\"lightning-button\", \"lightning-card\"])."
+      },
+      "slds_class": {
+        "$ref": "#/properties/name",
+        "description": "Filter by SLDS class name(s) (e.g., slds-button or [\"slds-button\", \"slds-accordion\"]). Returns blueprints that use any of these classes."
+      },
+      "styling_hook": {
+        "$ref": "#/properties/name",
+        "description": "Filter by styling hook name(s) (e.g., --slds-c-accordion-heading-color or array). Returns blueprints that reference any of these hooks."
+      }
+    },
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

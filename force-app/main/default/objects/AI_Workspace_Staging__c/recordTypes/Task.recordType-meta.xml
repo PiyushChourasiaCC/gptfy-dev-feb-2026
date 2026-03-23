@@ -25,23 +25,35 @@
             <default>false</default>
         </values>
         <values>
-            <fullName>MICROSOFT_GRAPH</fullName>
-            <default>false</default>
-        </values>
-        <values>
-            <fullName>MICROSOFT_TODO</fullName>
+            <fullName>MICROSOFT_TASKS</fullName>
             <default>false</default>
         </values>
     </picklistValues>
     <picklistValues>
         <picklist>Status__c</picklist>
         <values>
-            <fullName>Matched</fullName>
+            <fullName>Errored</fullName>
             <default>false</default>
         </values>
         <values>
-            <fullName>Unmatched</fullName>
+            <fullName>Imported</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Pending</fullName>
             <default>true</default>
+        </values>
+        <values>
+            <fullName>Ready</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Rejected</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Staged</fullName>
+            <default>false</default>
         </values>
     </picklistValues>
     <picklistValues>

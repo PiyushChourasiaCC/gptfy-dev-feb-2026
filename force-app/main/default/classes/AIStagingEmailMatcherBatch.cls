@@ -1,295 +1,318 @@
 /**
- * AIStagingEmailMatcherBatch - Batch processor for matching staging records to Lead/Contact/User
+ * AIStagingEmailMatcherBatch - Phase 2 batch processor for matching ALL staging records to Lead/Contact
+ * V2-7889: Unified batch that processes Email, Calendar, and Task staging records
  * 
- * Processes pending email staging records, matches sender emails using configurable
- * precedence rules, creates EmailMessage records for matches, and updates staging status.
+ * Processes ALL staged records (Status = 'Staged'), matches to Lead/Contact using configurable
+ * precedence rules, populates WhoId__c with comma-separated matched IDs, and marks as 'Ready'.
+ * If no match is found (WhoId__c is empty), the staging record is DELETED.
+ * 
+ * Phase 2 Logic (V2-7889):
+ * - Query ALL staging records with Status = 'Staged' (Email, Calendar, Task)
+ * - Match based on record type:
+ *   - Email: Uses From_Address__c, To_Address__c, Cc_Address__c
+ *   - Calendar: Uses Organizer__c, Attendees__c
+ *   - Task: Uses connected account email
+ * - Populate WhoId__c with comma-separated Contact/Lead IDs based on precedence
+ * - If matched (WhoId__c populated): Status = 'Ready'
+ * - If not matched (WhoId__c empty): DELETE the staging record
+ * 
+ * Precedence Logic:
+ * - Follows Sync_Precedence__c from AI_Workspace_Sync_Settings__c
+ * - Default: Try both Lead & Contact, then Lead only, then Contact only
+ * - Example: {"1": ["Lead", "Contact"], "2": ["Lead"], "3": ["Contact"]}
  * 
  * Design for Governor Limits:
  * - Batch size: 50 records (safe for SOQL/DML limits)
- * - Bulkified SOQL: All sender emails queried in bulk against Lead/Contact/User
+ * - Bulkified SOQL: All emails queried in bulk against Lead/Contact
  * - Uses Database.Batchable for large data volumes
  * - Stateful to track totals across batches
  * 
  * @author GPTfy
  * @date 2026-01
+ * @Jira V2-7889
  */
-public with sharing class AIStagingEmailMatcherBatch implements Database.Batchable<sObject>, Database.Stateful {
+global with sharing class AIStagingEmailMatcherBatch implements Database.Batchable<sObject>, Database.Stateful {
     
     // Running totals across batches
     private Integer totalProcessed = 0;
     private Integer totalMatched = 0;
-    private Integer totalUnmatched = 0;
-    private Integer totalEmailsCreated = 0;
+    private Integer totalDeleted = 0;
     private Integer totalErrors = 0;
     private List<String> errorMessages = new List<String>();
     
     // Maximum errors to track in memory
     private static final Integer MAX_ERRORS_TO_TRACK = 100;
     
+    // Record Type IDs cache
+    private static Id emailRecordTypeId;
+    private static Id calendarRecordTypeId;
+    private static Id taskRecordTypeId;
+    
+    // V2-7889: Initialize record type IDs
+    static {
+        Map<String, Schema.RecordTypeInfo> rtInfos = Schema.SObjectType.AI_Workspace_Staging__c.getRecordTypeInfosByDeveloperName();
+        emailRecordTypeId = rtInfos.get('Email')?.getRecordTypeId();
+        calendarRecordTypeId = rtInfos.get('Calendar')?.getRecordTypeId();
+        taskRecordTypeId = rtInfos.get('Task')?.getRecordTypeId();
+    }
+    
     /**
-     * Query pending email staging records
+     * Query pending staging records (all record types)
+     * V2-7889: Processes all Staged records - Email, Calendar, Task
      */
-    public Database.QueryLocator start(Database.BatchableContext bc) {
-        // Get the Email record type ID
-        Id emailRecordTypeId = Schema.SObjectType.AI_Workspace_Staging__c
-            .getRecordTypeInfosByDeveloperName()
-            .get('Email')
-            ?.getRecordTypeId();
-        
+    global Database.QueryLocator start(Database.BatchableContext bc) {
         String query = 'SELECT Id, From_Address__c, From_Name__c, To_Address__c, Cc_Address__c, Bcc_Address__c, ' +
                        'Subject__c, Text_Body__c, Html_Body__c, Message_Date__c, Message_Identifier__c, ' +
                        'Provider__c, Provider_Id__c, Provider_Conversation_Id__c, Importance__c, ' +
-                       'Is_Incoming__c, Has_Attachments__c, User__c, Sync_Log__c ' +
+                       'Is_Incoming__c, Has_Attachments__c, User__c, Sync_Log__c, ' +
+                       'Organizer__c, Attendees__c, RecordTypeId, ' +
+                       'AI_Workspace_User__c, AI_Workspace_User__r.Service_User_Email__c, AI_Workspace_User__r.User__c ' +
                        'FROM AI_Workspace_Staging__c ' +
-                       'WHERE Status__c = \'Unmatched\' ';
-        
-        if (emailRecordTypeId != null) {
-            query += 'AND RecordTypeId = \'' + emailRecordTypeId + '\' ';
-        }
-        
-        query += 'ORDER BY CreatedDate ASC';
+                       'WHERE Status__c = \'Staged\' ' +
+                       'ORDER BY CreatedDate ASC';
         
         return Database.getQueryLocator(query);
     }
     
     /**
      * Process each batch of staging records
+     * V2-7889: Handles Email, Calendar, and Task record types with appropriate matching logic
      * 
-     * NEW LOGIC: Uses the updated precedence matching that returns ALL matched IDs
-     * at the successful precedence level (e.g., if Precedence 1 = [Lead, Contact, User] and all match,
-     * creates EmailMessageRelation for all 3).
+     * Phase 2 Logic:
+     * - Match staging records to Lead/Contact using record-type specific logic
+     * - Populate WhoId__c with comma-separated matched IDs
+     * - If matched (WhoId__c populated): Status = 'Ready'
+     * - If not matched (WhoId__c empty): DELETE the staging record
      */
-    public void execute(Database.BatchableContext bc, List<AI_Workspace_Staging__c> scope) {
+    global void execute(Database.BatchableContext bc, List<AI_Workspace_Staging__c> scope) {
         if (scope == null || scope.isEmpty()) {
             return;
         }
         
         totalProcessed += scope.size();
         
-        // Match staging records using the matcher service
-        Map<Id, AIStagingMatcherService.MatchResult> matchResults = 
-            AIStagingMatcherService.matchStagingRecords(scope);
+        // V2-7889: Get sync settings to check which sync types are enabled
+        AI_Workspace_Sync_Settings__c settings = AISyncSettingsService.getSettings();
         
-        List<AI_Workspace_Staging__c> stagingToUpdate = new List<AI_Workspace_Staging__c>();
-        List<EmailMessage> emailsToCreate = new List<EmailMessage>();
-        Map<Integer, Id> emailIndexToStagingId = new Map<Integer, Id>();
-        // NEW: Store all matched IDs (lists) instead of single IDs
-        Map<Integer, List<Id>> emailIndexToContactIds = new Map<Integer, List<Id>>();
-        Map<Integer, List<Id>> emailIndexToLeadIds = new Map<Integer, List<Id>>();
-        
+        // V2-7889: Build map of staging ID to connected account email for each workspace user
+        // Use Service_User_Email__c from AI_Workspace_User__c for each user's context
+        Map<Id, String> connectedAccountEmailMap = new Map<Id, String>();
         for (AI_Workspace_Staging__c staging : scope) {
-            AIStagingMatcherService.MatchResult match = matchResults.get(staging.Id);
-            
-            AI_Workspace_Staging__c updateRecord = new AI_Workspace_Staging__c(Id = staging.Id);
-            
-            if (match != null && match.isMatched) {
-                // Mark as matched - associations stored in EmailMessageRelation
-                updateRecord.Status__c = 'Matched';
-                
-                // Create EmailMessage for matched records
-                EmailMessage em = createEmailMessageFromStaging(staging);
-                
-                // Store the index for later relation creation
-                emailIndexToStagingId.put(emailsToCreate.size(), staging.Id);
-                
-                // NEW: Track ALL matched Contacts for EmailMessageRelation
-                if (match.matchedContactIds != null && !match.matchedContactIds.isEmpty()) {
-                    emailIndexToContactIds.put(emailsToCreate.size(), match.matchedContactIds);
-                } else if (match.contactId != null) {
-                    // Backward compatibility
-                    emailIndexToContactIds.put(emailsToCreate.size(), new List<Id>{ match.contactId });
-                }
-                
-                // NEW: Track ALL matched Leads for EmailMessageRelation
-                if (match.matchedLeadIds != null && !match.matchedLeadIds.isEmpty()) {
-                    emailIndexToLeadIds.put(emailsToCreate.size(), match.matchedLeadIds);
-                } else if (match.leadId != null) {
-                    // Backward compatibility
-                    emailIndexToLeadIds.put(emailsToCreate.size(), new List<Id>{ match.leadId });
-                }
-                
-                emailsToCreate.add(em);
-                totalMatched++;
-            } else {
-                // No match found
-                updateRecord.Status__c = 'Unmatched';
-                totalUnmatched++;
+            if (staging.AI_Workspace_User__c != null && 
+                staging.AI_Workspace_User__r != null && 
+                String.isNotBlank(staging.AI_Workspace_User__r.Service_User_Email__c)) {
+                connectedAccountEmailMap.put(staging.Id, staging.AI_Workspace_User__r.Service_User_Email__c.toLowerCase().trim());
             }
-            
-            stagingToUpdate.add(updateRecord);
         }
         
-        // Insert EmailMessages and create relations
-        if (!emailsToCreate.isEmpty()) {
-            Map<Integer, Id> emailIndexToEmailMessageId = insertEmailMessages(emailsToCreate);
+        // V2-7889: Separate records by record type for appropriate matching
+        // Only process record types that have sync enabled in settings
+        List<AI_Workspace_Staging__c> emailRecords = new List<AI_Workspace_Staging__c>();
+        List<AI_Workspace_Staging__c> calendarRecords = new List<AI_Workspace_Staging__c>();
+        List<AI_Workspace_Staging__c> taskRecords = new List<AI_Workspace_Staging__c>();
+        List<AI_Workspace_Staging__c> recordsToSkip = new List<AI_Workspace_Staging__c>();
+        
+        Boolean emailSyncEnabled = settings != null && settings.Sync_Enabled__c == true;
+        Boolean calendarSyncEnabled = settings != null && settings.Calendar_Sync_Enabled__c == true;
+        Boolean taskSyncEnabled = settings != null && settings.Task_Sync_Enabled__c == true;
+        
+        for (AI_Workspace_Staging__c staging : scope) {
+            if (staging.RecordTypeId == emailRecordTypeId) {
+                emailRecords.add(staging);
+            } else if (staging.RecordTypeId == calendarRecordTypeId) {
+                calendarRecords.add(staging);
+            } else if (staging.RecordTypeId == taskRecordTypeId) {
+                taskRecords.add(staging);
+            } else {
+               	emailRecords.add(staging);
+            }
+        }
+        
+        // Match each record type using appropriate service
+        Map<Id, AIStagingMatcherService.MultiMatchResult> allMatchResults = new Map<Id, AIStagingMatcherService.MultiMatchResult>();
+        
+        // Match Email records - exclude connected account email per staging record
+        if (!emailRecords.isEmpty()) {
+            Map<Id, AIStagingMatcherService.MultiMatchResult> emailMatches = 
+                AIStagingMatcherService.matchEmailStagingRecordsMultiWithMap(emailRecords, connectedAccountEmailMap);
+            allMatchResults.putAll(emailMatches);
+        }
+        
+        // Match Calendar records - exclude connected account email per staging record
+        if (!calendarRecords.isEmpty()) {
+            Map<Id, AIStagingMatcherService.MultiMatchResult> calendarMatches = 
+                AIStagingMatcherService.matchCalendarStagingRecordsMultiWithMap(calendarRecords, connectedAccountEmailMap);
+            allMatchResults.putAll(calendarMatches);
+        }
+        
+        // Match Task records - uses connected account email FOR matching (not exclusion)
+        if (!taskRecords.isEmpty()) {
+            Map<Id, AIStagingMatcherService.MultiMatchResult> taskMatches = 
+                matchTaskStagingRecords(taskRecords, connectedAccountEmailMap);
+            allMatchResults.putAll(taskMatches);
+        }
+        
+        List<AI_Workspace_Staging__c> stagingToUpdate = new List<AI_Workspace_Staging__c>();
+        List<AI_Workspace_Staging__c> stagingToDelete = new List<AI_Workspace_Staging__c>();
+        
+        for (AI_Workspace_Staging__c staging : scope) {
+            AIStagingMatcherService.MultiMatchResult match = allMatchResults.get(staging.Id);
             
-            // Create EmailMessageRelations for ALL matched Contacts/Leads
-            createEmailMessageRelationsMultiple(emailIndexToEmailMessageId, emailIndexToContactIds, emailIndexToLeadIds);
-            
-            // Update staging records with EmailMessage reference (stored as Text ID)
-            for (Integer idx : emailIndexToEmailMessageId.keySet()) {
-                Id stagingId = emailIndexToStagingId.get(idx);
-                Id emailMessageId = emailIndexToEmailMessageId.get(idx);
-                
-                if (stagingId != null && emailMessageId != null) {
-                    for (AI_Workspace_Staging__c staging : stagingToUpdate) {
-                        if (staging.Id == stagingId) {
-                            staging.Email_Message__c = String.valueOf(emailMessageId);
-                            break;
+            if (match != null && match.hasAnyMatch) {
+                // MATCHED: Populate WhoId__c with comma-separated Contact/Lead IDs
+                List<String> whoIds = new List<String>();
+                if (match.allMatches != null) {
+                    for (AIStagingMatcherService.MatchResult matchResult : match.allMatches) {
+                        if (matchResult.leadId != null) {
+                            whoIds.add(String.valueOf(matchResult.leadId));
+                        }
+                        if (matchResult.contactId != null) {
+                            whoIds.add(String.valueOf(matchResult.contactId));
                         }
                     }
                 }
+                
+                String whoIdValue = String.join(whoIds, ',');
+                
+                AI_Workspace_Staging__c updateRecord = new AI_Workspace_Staging__c(Id = staging.Id);
+                updateRecord.WhoId__c = whoIdValue;
+                updateRecord.Status__c = 'Ready';
+                stagingToUpdate.add(updateRecord);
+                totalMatched++;
+            } else {
+                stagingToDelete.add(new AI_Workspace_Staging__c(Id = staging.Id));
+                totalDeleted++;
             }
         }
         
-        // Update staging records
+        // Update staging records marked as Ready
         if (!stagingToUpdate.isEmpty()) {
             stagingToUpdate = (List<AI_Workspace_Staging__c>)FLSCheck.getInstance().updateCheck(stagingToUpdate);
             if(stagingToUpdate != null && !stagingToUpdate.isEmpty()){
-                Database.SaveResult[] updateResults = Database.update(stagingToUpdate, false);
-                for (Integer i = 0; i < updateResults.size(); i++) {
-                    if (!updateResults[i].isSuccess()) {
-                        for (Database.Error err : updateResults[i].getErrors()) {
-                            trackError('Update staging ' + stagingToUpdate.get(i).get('Id') + ': ' + err.getMessage());
+                try {
+                    // V2-7889: Use allOrNone=false to ensure partial success
+                    Database.SaveResult[] updateResults = Database.update(stagingToUpdate, false);
+                    for (Integer i = 0; i < updateResults.size(); i++) {
+                        if (!updateResults[i].isSuccess()) {
+                            for (Database.Error err : updateResults[i].getErrors()) {
+                                String errorMsg = 'Update staging ' + stagingToUpdate.get(i).Id + ': ' + err.getMessage();
+                                trackError(errorMsg);
+                            }
                         }
                     }
-                }
-            }
-        }
-    }
-    
-    /**
-     * Create EmailMessage from staging record data
-     * 
-     * Note: We populate standard EmailMessage fields:
-     * - MessageIdentifier (standard): For deduplication (RFC 2822 Message-ID / internetMessageId)
-     * - Email_Provider_Type__c (custom): For provider tracking (MICROSOFT_GRAPH or GMAIL)
-     * 
-     * These two fields are critical for deduplication even after Staging records are deleted,
-     * and for counting imported emails by provider.
-     */
-    private EmailMessage createEmailMessageFromStaging(AI_Workspace_Staging__c staging) {
-        EmailMessage em = new EmailMessage();
-        
-        // Standard EmailMessage fields
-        em.Subject = staging.Subject__c;
-        em.FromAddress = staging.From_Address__c;
-        em.FromName = staging.From_Name__c;
-        em.ToAddress = staging.To_Address__c;
-        em.CcAddress = staging.Cc_Address__c;
-        em.BccAddress = staging.Bcc_Address__c;
-        em.TextBody = staging.Text_Body__c;
-        em.HtmlBody = staging.Html_Body__c;
-        em.MessageDate = staging.Message_Date__c;
-        em.MessageIdentifier = staging.Message_Identifier__c;
-        em.Incoming = staging.Is_Incoming__c != null ? staging.Is_Incoming__c : true;
-        em.Status = '3'; // Sent/Received status
-        
-        // Custom field for provider tracking (still needed to know which provider the email came from)
-        // Deduplication now uses the standard MessageIdentifier field
-        Map<String, Schema.SObjectField> fieldMap = Schema.SObjectType.EmailMessage.fields.getMap();
-        
-        if (isEmailFieldCreateable(fieldMap, 'Email_Provider_Type__c')) {
-            em.put('Email_Provider_Type__c', staging.Provider__c);
-        }
-        
-        return em;
-    }
-    
-    /**
-     * Check if a field exists on EmailMessage and is createable
-     */
-    private Boolean isEmailFieldCreateable(Map<String, Schema.SObjectField> fieldMap, String fieldName) {
-        if (!fieldMap.containsKey(fieldName)) {
-            return false;
-        }
-        return fieldMap.get(fieldName).getDescribe().isCreateable();
-    }
-    
-    /**
-     * Insert EmailMessages and return map of index to created record ID
-     */
-    private Map<Integer, Id> insertEmailMessages(List<EmailMessage> emails) {
-        Map<Integer, Id> indexToId = new Map<Integer, Id>();
-        
-        Database.SaveResult[] results = Database.insert(emails, false);
-        
-        for (Integer i = 0; i < results.size(); i++) {
-            if (results[i].isSuccess()) {
-                indexToId.put(i, results[i].getId());
-                totalEmailsCreated++;
-            } else {
-                for (Database.Error err : results[i].getErrors()) {
-                    trackError('Create EmailMessage: ' + err.getMessage());
+                } catch (Exception e) {
+                    trackError('Batch update exception: ' + e.getMessage());
                 }
             }
         }
         
-        return indexToId;
+        // Delete staging records with no match (WhoId__c is empty)
+        if (!stagingToDelete.isEmpty()) {
+            FLSCheck.getInstance().deleteDML(stagingToDelete);
+        }
     }
     
     /**
-     * Create EmailMessageRelation records for ALL matched Contacts/Leads
-     * NEW: Handles multiple IDs per email (from new precedence logic)
+     * V2-7889: Match Task staging records using connected account email per workspace user
+     * Tasks are matched to Lead/Contact based on each workspace user's connected email
+     * @param taskRecords List of task staging records to match
+     * @param connectedAccountEmailMap Map of staging ID to connected account email
+     * @return Map of staging record ID to MultiMatchResult
      */
-    private void createEmailMessageRelationsMultiple(
-        Map<Integer, Id> emailIndexToEmailMessageId,
-        Map<Integer, List<Id>> emailIndexToContactIds,
-        Map<Integer, List<Id>> emailIndexToLeadIds
+    private Map<Id, AIStagingMatcherService.MultiMatchResult> matchTaskStagingRecords(
+        List<AI_Workspace_Staging__c> taskRecords, 
+        Map<Id, String> connectedAccountEmailMap
     ) {
-        List<EmailMessageRelation> relations = new List<EmailMessageRelation>();
-        Set<String> createdRelations = new Set<String>(); // Prevent duplicates
+        Map<Id, AIStagingMatcherService.MultiMatchResult> results = new Map<Id, AIStagingMatcherService.MultiMatchResult>();
         
-        for (Integer idx : emailIndexToEmailMessageId.keySet()) {
-            Id emailMessageId = emailIndexToEmailMessageId.get(idx);
-            
-            // Create relations for ALL matched Contacts
-            if (emailIndexToContactIds.containsKey(idx)) {
-                for (Id contactId : emailIndexToContactIds.get(idx)) {
-                    String key = emailMessageId + '-' + contactId;
-                    if (!createdRelations.contains(key)) {
-                        EmailMessageRelation emr = new EmailMessageRelation();
-                        emr.EmailMessageId = emailMessageId;
-                        emr.RelationId = contactId;
-                        emr.RelationType = 'OtherAddress';
-                        relations.add(emr);
-                        createdRelations.add(key);
-                    }
-                }
-            }
-            
-            // Create relations for ALL matched Leads
-            if (emailIndexToLeadIds.containsKey(idx)) {
-                for (Id leadId : emailIndexToLeadIds.get(idx)) {
-                    String key = emailMessageId + '-' + leadId;
-                    if (!createdRelations.contains(key)) {
-                        EmailMessageRelation emr = new EmailMessageRelation();
-                        emr.EmailMessageId = emailMessageId;
-                        emr.RelationId = leadId;
-                        emr.RelationType = 'OtherAddress';
-                        relations.add(emr);
-                        createdRelations.add(key);
-                    }
-                }
+        if (taskRecords == null || taskRecords.isEmpty()) {
+            return results;
+        }
+        
+        // Collect all unique connected account emails
+        Set<String> allConnectedEmails = new Set<String>();
+        for (AI_Workspace_Staging__c staging : taskRecords) {
+            String email = connectedAccountEmailMap.get(staging.Id);
+            if (String.isNotBlank(email)) {
+                allConnectedEmails.add(email.toLowerCase().trim());
             }
         }
         
-        // Insert in batches to avoid DML limits
-        if (!relations.isEmpty()) {
-            Integer batchSize = 50;
-            for (Integer i = 0; i < relations.size(); i += batchSize) {
-                Integer endIdx = Math.min(i + batchSize, relations.size());
-                List<EmailMessageRelation> batch = new List<EmailMessageRelation>();
-                for (Integer j = i; j < endIdx; j++) {
-                    batch.add(relations[j]);
+        // If no connected emails found, return empty results for all records
+        if (allConnectedEmails.isEmpty()) {
+            for (AI_Workspace_Staging__c staging : taskRecords) {
+                results.put(staging.Id, new AIStagingMatcherService.MultiMatchResult());
+            }
+            return results;
+        }
+        
+        // Build cache: email -> matched Lead/Contact IDs
+        Map<String, Set<Id>> emailToMatchedIds = new Map<String, Set<Id>>();
+        
+        // Query Contacts with the connected account emails
+        for (Contact c : [SELECT Id, Email FROM Contact WHERE Email IN :allConnectedEmails LIMIT 20000]) {
+            if (String.isNotBlank(c.Email)) {
+                String normalizedEmail = c.Email.toLowerCase().trim();
+                if (!emailToMatchedIds.containsKey(normalizedEmail)) {
+                    emailToMatchedIds.put(normalizedEmail, new Set<Id>());
+                }
+                emailToMatchedIds.get(normalizedEmail).add(c.Id);
+            }
+        }
+        
+        // Query Leads with the connected account emails
+        for (Lead l : [SELECT Id, Email FROM Lead WHERE Email IN :allConnectedEmails AND IsConverted = false LIMIT 20000]) {
+            if (String.isNotBlank(l.Email)) {
+                String normalizedEmail = l.Email.toLowerCase().trim();
+                if (!emailToMatchedIds.containsKey(normalizedEmail)) {
+                    emailToMatchedIds.put(normalizedEmail, new Set<Id>());
+                }
+                emailToMatchedIds.get(normalizedEmail).add(l.Id);
+            }
+        }
+        
+        // Create match results for each task record using its specific connected email
+        for (AI_Workspace_Staging__c staging : taskRecords) {
+            AIStagingMatcherService.MultiMatchResult multiResult = new AIStagingMatcherService.MultiMatchResult();
+            
+            String connectedEmail = connectedAccountEmailMap.get(staging.Id);
+            if (String.isBlank(connectedEmail)) {
+                // No connected email for this staging record
+                results.put(staging.Id, multiResult);
+                continue;
+            }
+            
+            String normalizedEmail = connectedEmail.toLowerCase().trim();
+            Set<Id> matchedIds = emailToMatchedIds.get(normalizedEmail);
+            
+            if (matchedIds != null && !matchedIds.isEmpty()) {
+                multiResult.hasAnyMatch = true;
+                multiResult.hasPrimaryMatch = true;
+                
+                for (Id matchedId : matchedIds) {
+                    AIStagingMatcherService.MatchResult match = new AIStagingMatcherService.MatchResult();
+                    match.isMatched = true;
+                    
+                    // Determine if Lead or Contact
+                    String sObjectType = matchedId.getSObjectType().getDescribe().getName();
+                    if (sObjectType == 'Lead') {
+                        match.leadId = matchedId;
+                    } else if (sObjectType == 'Contact') {
+                        match.contactId = matchedId;
+                    }
+                    
+                    multiResult.allMatches.add(match);
                 }
                 
-                batch = (List<EmailMessageRelation>)FLSCheck.getInstance().insertCheck(batch);
-                if(batch != null && !batch.isEmpty()){
-                    Database.insert(batch, false);
+                if (!multiResult.allMatches.isEmpty()) {
+                    multiResult.primaryMatch = multiResult.allMatches[0];
                 }
             }
+            
+            results.put(staging.Id, multiResult);
         }
+        
+        return results;
     }
     
     /**
@@ -303,18 +326,15 @@ public with sharing class AIStagingEmailMatcherBatch implements Database.Batchab
     }
     
     /**
-     * Finish method - log summary
+     * Finish method - log summary and trigger Phase 3
+     * V2-7889: Trigger Phase 3 batch after Phase 2 completes
      */
-    public void finish(Database.BatchableContext bc) {
-        System.debug(LoggingLevel.INFO, '=== AIStagingEmailMatcherBatch Complete ===');
-        System.debug(LoggingLevel.INFO, 'Total Processed: ' + totalProcessed);
-        System.debug(LoggingLevel.INFO, 'Total Matched: ' + totalMatched);
-        System.debug(LoggingLevel.INFO, 'Total Unmatched: ' + totalUnmatched);
-        System.debug(LoggingLevel.INFO, 'Total EmailMessages Created: ' + totalEmailsCreated);
-        System.debug(LoggingLevel.INFO, 'Total Errors: ' + totalErrors);
-        
-        if (!errorMessages.isEmpty()) {
-            System.debug(LoggingLevel.ERROR, 'Errors: ' + String.join(errorMessages, '\n'));
+    global void finish(Database.BatchableContext bc) {
+        // V2-7889: Trigger Phase 3 batch to process Ready records
+        try {
+            Id phase3BatchId = AIStagingPolicyMatcherBatch.runBatch();
+        } catch (Exception e) {
+            
         }
     }
     

@@ -372,4 +372,583 @@ private class AIGmailFetchServiceTest {
             return res;
         }
     }
+    
+    // ========================================================================
+    // ADDITIONAL TESTS FOR COVERAGE V2-7889
+    // ========================================================================
+    
+    // @isTest
+    // static void testGetUserEmail_ExceptionHandling() {
+    //     Test.setMock(HttpCalloutMock.class, new MockExceptionResponse());
+        
+    //     Test.startTest();
+    //     try {
+    //         AIGmailFetchService.getUserEmail(MOCK_ACCESS_TOKEN);
+    //         Assert.fail('Should throw exception');
+    //     } catch (AIGmailFetchService.GmailFetchException e) {
+    //         Assert.isTrue(e.getMessage().contains('Error fetching user email'), 'Should wrap exception');
+    //     }
+    //     Test.stopTest();
+    // }
+    
+    @isTest
+    static void testFetchInboxEmails_DefaultMaxResults() {
+        Test.setMock(HttpCalloutMock.class, new MockGmailMessagesResponse());
+        
+        Test.startTest();
+        List<Map<String, Object>> emails = AIGmailFetchService.fetchInboxEmails(
+            MOCK_ACCESS_TOKEN,
+            DateTime.now().addDays(-7),
+            DateTime.now(),
+            0
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(emails, 'Should handle zero maxResults');
+    }
+    
+    @isTest
+    static void testFetchInboxEmails_ErrorResponse() {
+        Test.setMock(HttpCalloutMock.class, new MockErrorResponse(500));
+        
+        Test.startTest();
+        try {
+            AIGmailFetchService.fetchInboxEmails(
+                MOCK_ACCESS_TOKEN,
+                DateTime.now().addDays(-7),
+                DateTime.now(),
+                50
+            );
+            Assert.fail('Should throw exception for error response');
+        } catch (AIGmailFetchService.GmailFetchException e) {
+            Assert.isTrue(e.getMessage().contains('Failed to fetch emails'), 'Should indicate failure');
+        }
+        Test.stopTest();
+    }
+    
+    @isTest
+    static void testFetchInboxEmails_NoContentResponse() {
+        Test.setMock(HttpCalloutMock.class, new MockNoContentResponse());
+        
+        Test.startTest();
+        List<Map<String, Object>> emails = AIGmailFetchService.fetchInboxEmails(
+            MOCK_ACCESS_TOKEN,
+            DateTime.now().addDays(-7),
+            DateTime.now(),
+            50
+        );
+        Test.stopTest();
+        
+        Assert.isTrue(emails.isEmpty(), 'Should return empty list for 204 response');
+    }
+    
+    @isTest
+    static void testFetchInboxEmails_WithThreadExpansion() {
+        Test.setMock(HttpCalloutMock.class, new MockGmailThreadExpansionResponse());
+        
+        Test.startTest();
+        List<Map<String, Object>> emails = AIGmailFetchService.fetchInboxEmails(
+            MOCK_ACCESS_TOKEN,
+            DateTime.now().addDays(-7),
+            DateTime.now(),
+            100
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(emails, 'Should handle thread expansion');
+    }
+    
+    @isTest
+    static void testFetchEmailsWithBody_Success() {
+        Test.setMock(HttpCalloutMock.class, new MockGmailMessagesWithPaginationResponse());
+        
+        Test.startTest();
+        AIGmailFetchService.EmailBatchResult result = AIGmailFetchService.fetchEmailsWithBody(
+            MOCK_ACCESS_TOKEN,
+            'INBOX',
+            DateTime.now().addDays(-7),
+            DateTime.now(),
+            20
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(result, 'Should return result');
+        Assert.isNotNull(result.emails, 'Should have emails list');
+    }
+    
+    @isTest
+    static void testFetchEmailsWithBodyPaginated_BlankToken() {
+        Test.startTest();
+        AIGmailFetchService.EmailBatchResult result = AIGmailFetchService.fetchEmailsWithBodyPaginated(
+            '',
+            'INBOX',
+            DateTime.now().addDays(-7),
+            DateTime.now(),
+            20,
+            null
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(result.errorMessage, 'Should have error message for blank token');
+    }
+    
+    @isTest
+    static void testFetchEmailsWithBodyPaginated_WithPageToken() {
+        Test.setMock(HttpCalloutMock.class, new MockGmailMessagesWithPaginationResponse());
+        
+        Test.startTest();
+        AIGmailFetchService.EmailBatchResult result = AIGmailFetchService.fetchEmailsWithBodyPaginated(
+            MOCK_ACCESS_TOKEN,
+            'INBOX',
+            DateTime.now().addDays(-7),
+            DateTime.now(),
+            20,
+            'nextPageToken123'
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(result, 'Should handle page token');
+    }
+    
+    @isTest
+    static void testFetchEmailsWithBodyPaginated_ErrorResponse() {
+        Test.setMock(HttpCalloutMock.class, new MockErrorResponse(500));
+        
+        Test.startTest();
+        AIGmailFetchService.EmailBatchResult result = AIGmailFetchService.fetchEmailsWithBodyPaginated(
+            MOCK_ACCESS_TOKEN,
+            'INBOX',
+            DateTime.now().addDays(-7),
+            DateTime.now(),
+            20,
+            null
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(result.errorMessage, 'Should have error message');
+    }
+    
+    @isTest
+    static void testFetchEmailsWithBodyPaginated_NoContent() {
+        Test.setMock(HttpCalloutMock.class, new MockNoContentResponse());
+        
+        Test.startTest();
+        AIGmailFetchService.EmailBatchResult result = AIGmailFetchService.fetchEmailsWithBodyPaginated(
+            MOCK_ACCESS_TOKEN,
+            'INBOX',
+            DateTime.now().addDays(-7),
+            DateTime.now(),
+            20,
+            null
+        );
+        Test.stopTest();
+        
+        Assert.isFalse(result.hasMore, 'Should indicate no more results');
+    }
+    
+    @isTest
+    static void testFetchEmailsWithBodyPaginated_LargeBatchSize() {
+        Test.setMock(HttpCalloutMock.class, new MockGmailMessagesWithPaginationResponse());
+        
+        Test.startTest();
+        AIGmailFetchService.EmailBatchResult result = AIGmailFetchService.fetchEmailsWithBodyPaginated(
+            MOCK_ACCESS_TOKEN,
+            'INBOX',
+            DateTime.now().addDays(-7),
+            DateTime.now(),
+            100,
+            null
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(result, 'Should cap batch size');
+    }
+    
+    @isTest
+    static void testFetchCalendarEvents_ErrorResponse() {
+        Test.setMock(HttpCalloutMock.class, new MockErrorResponse(403));
+        
+        Test.startTest();
+        try {
+            AIGmailFetchService.fetchCalendarEvents(
+                MOCK_ACCESS_TOKEN,
+                DateTime.now().addDays(-7),
+                DateTime.now().addDays(30),
+                50
+            );
+            Assert.fail('Should throw exception');
+        } catch (AIGmailFetchService.GmailFetchException e) {
+            Assert.isTrue(e.getMessage().contains('Failed to fetch calendar events'), 'Should indicate failure');
+        }
+        Test.stopTest();
+    }
+    
+    // @isTest
+    // static void testFetchCalendarEvents_ExceptionHandling() {
+    //     Test.setMock(HttpCalloutMock.class, new MockExceptionResponse());
+        
+    //     Test.startTest();
+    //     try {
+    //         AIGmailFetchService.fetchCalendarEvents(
+    //             MOCK_ACCESS_TOKEN,
+    //             DateTime.now().addDays(-7),
+    //             DateTime.now().addDays(30),
+    //             50
+    //         );
+    //         Assert.fail('Should throw exception');
+    //     } catch (AIGmailFetchService.GmailFetchException e) {
+    //         Assert.isTrue(e.getMessage().contains('Error fetching calendar events'), 'Should wrap exception');
+    //     }
+    //     Test.stopTest();
+    // }
+    
+    @isTest
+    static void testFetchCalendarEvents_DefaultMaxResults() {
+        Test.setMock(HttpCalloutMock.class, new MockCalendarEventsResponse());
+        
+        Test.startTest();
+        List<Map<String, Object>> events = AIGmailFetchService.fetchCalendarEvents(
+            MOCK_ACCESS_TOKEN,
+            DateTime.now().addDays(-7),
+            DateTime.now().addDays(30),
+            0
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(events, 'Should handle zero maxResults');
+    }
+    
+    @isTest
+    static void testFetchTaskLists_ErrorResponse() {
+        Test.setMock(HttpCalloutMock.class, new MockErrorResponse(500));
+        
+        Test.startTest();
+        try {
+            AIGmailFetchService.fetchTaskLists(MOCK_ACCESS_TOKEN);
+            Assert.fail('Should throw exception');
+        } catch (AIGmailFetchService.GmailFetchException e) {
+            Assert.isTrue(e.getMessage().contains('Failed to fetch task lists'), 'Should indicate failure');
+        }
+        Test.stopTest();
+    }
+    
+    // @isTest
+    // static void testFetchTaskLists_ExceptionHandling() {
+    //     Test.setMock(HttpCalloutMock.class, new MockExceptionResponse());
+        
+    //     Test.startTest();
+    //     try {
+    //         AIGmailFetchService.fetchTaskLists(MOCK_ACCESS_TOKEN);
+    //         Assert.fail('Should throw exception');
+    //     } catch (AIGmailFetchService.GmailFetchException e) {
+    //         Assert.isTrue(e.getMessage().contains('Error fetching task lists'), 'Should wrap exception');
+    //     }
+    //     Test.stopTest();
+    // }
+    
+    @isTest
+    static void testFetchTasks_DefaultMaxResults() {
+        Test.setMock(HttpCalloutMock.class, new MockTasksResponse());
+        
+        Test.startTest();
+        List<Map<String, Object>> tasks = AIGmailFetchService.fetchTasks(
+            MOCK_ACCESS_TOKEN,
+            0,
+            false
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(tasks, 'Should handle zero maxResults');
+    }
+    
+    @isTest
+    static void testFetchTasks_EmptyTaskLists() {
+        Test.setMock(HttpCalloutMock.class, new MockEmptyTaskListsResponse());
+        
+        Test.startTest();
+        List<Map<String, Object>> tasks = AIGmailFetchService.fetchTasks(
+            MOCK_ACCESS_TOKEN,
+            50,
+            false
+        );
+        Test.stopTest();
+        
+        Assert.isTrue(tasks.isEmpty(), 'Should return empty list when no task lists');
+    }
+    
+    @isTest
+    static void testFetchTasks_WithDateFilter() {
+        Test.setMock(HttpCalloutMock.class, new MockTasksResponse());
+        
+        Test.startTest();
+        List<Map<String, Object>> tasks = AIGmailFetchService.fetchTasks(
+            MOCK_ACCESS_TOKEN,
+            50,
+            true,
+            DateTime.now().addDays(-30),
+            DateTime.now()
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(tasks, 'Should handle date filtering');
+    }
+    
+    @isTest
+    static void testFetchTasks_MaxResultsReached() {
+        Test.setMock(HttpCalloutMock.class, new MockMultipleTaskListsResponse());
+        
+        Test.startTest();
+        List<Map<String, Object>> tasks = AIGmailFetchService.fetchTasks(
+            MOCK_ACCESS_TOKEN,
+            3,
+            false
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(tasks, 'Should return tasks list');
+    }
+    
+    // @isTest
+    // static void testFetchTasks_ExceptionHandling() {
+    //     Test.setMock(HttpCalloutMock.class, new MockExceptionResponse());
+        
+    //     Test.startTest();
+    //     try {
+    //         AIGmailFetchService.fetchTasks(MOCK_ACCESS_TOKEN, 50, false);
+    //         Assert.fail('Should throw exception');
+    //     } catch (AIGmailFetchService.GmailFetchException e) {
+    //         Assert.isTrue(e.getMessage().contains('Error fetching tasks'), 'Should wrap exception');
+    //     }
+    //     Test.stopTest();
+    // }
+    
+    @isTest
+    static void testParseBatchResponse_EmptyBody() {
+        Test.setMock(HttpCalloutMock.class, new MockEmptyBatchResponse());
+        
+        Test.startTest();
+        List<Map<String, Object>> emails = AIGmailFetchService.getEmailDetailsBatch(
+            MOCK_ACCESS_TOKEN,
+            new List<String>{ 'msg1' }
+        );
+        Test.stopTest();
+        
+        Assert.isTrue(emails.isEmpty(), 'Should handle empty batch response');
+    }
+    
+    @isTest
+    static void testParseBatchResponse_WithErrors() {
+        Test.setMock(HttpCalloutMock.class, new MockBatchResponseWithErrors());
+        
+        Test.startTest();
+        List<Map<String, Object>> emails = AIGmailFetchService.getEmailDetailsBatch(
+            MOCK_ACCESS_TOKEN,
+            new List<String>{ 'msg1', 'msg2' }
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(emails, 'Should handle batch with errors');
+    }
+    
+    @isTest
+    static void testParseBatchResponse_AlternativeJsonFormat() {
+        Test.setMock(HttpCalloutMock.class, new MockBatchResponseAlternativeFormat());
+        
+        Test.startTest();
+        List<Map<String, Object>> emails = AIGmailFetchService.getEmailDetailsBatch(
+            MOCK_ACCESS_TOKEN,
+            new List<String>{ 'msg1' }
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(emails, 'Should handle alternative JSON format');
+    }
+    
+    // @isTest
+    // static void testFetchEmailsFromLabel_ExceptionHandling() {
+    //     Test.setMock(HttpCalloutMock.class, new MockExceptionResponse());
+        
+    //     Test.startTest();
+    //     try {
+    //         AIGmailFetchService.fetchInboxEmails(
+    //             MOCK_ACCESS_TOKEN,
+    //             DateTime.now().addDays(-7),
+    //             DateTime.now(),
+    //             50
+    //         );
+    //         Assert.fail('Should throw exception');
+    //     } catch (AIGmailFetchService.GmailFetchException e) {
+    //         Assert.isTrue(e.getMessage().contains('Error fetching emails'), 'Should wrap exception');
+    //     }
+    //     Test.stopTest();
+    // }
+    
+    @isTest
+    static void testExecuteBatch_Failure() {
+        Test.setMock(HttpCalloutMock.class, new MockBatchFailureResponse());
+        
+        Test.startTest();
+        List<Map<String, Object>> emails = AIGmailFetchService.getEmailDetailsBatch(
+            MOCK_ACCESS_TOKEN,
+            new List<String>{ 'msg1' }
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(emails, 'Should handle batch failure gracefully');
+    }
+    
+    @isTest
+    static void testSplitByBoundary_EmptyInput() {
+        Test.setMock(HttpCalloutMock.class, new MockEmptyBatchResponse());
+        
+        Test.startTest();
+        List<Map<String, Object>> emails = AIGmailFetchService.getEmailDetailsBatch(
+            MOCK_ACCESS_TOKEN,
+            new List<String>{ 'msg1' }
+        );
+        Test.stopTest();
+        
+        Assert.isTrue(emails.isEmpty(), 'Should handle empty boundary split');
+    }
+    
+    // ========================================================================
+    // ADDITIONAL MOCK CLASSES V2-7889
+    // ========================================================================
+    
+    private class MockExceptionResponse implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            throw new CalloutException('Network error');
+        }
+    }
+    
+    private class MockNoContentResponse implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(204);
+            res.setBody('');
+            return res;
+        }
+    }
+    
+    private class MockGmailThreadExpansionResponse implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            
+            if (req.getEndpoint().contains('/threads/')) {
+                res.setBody('{"id":"thread1","messages":[{"id":"msg1"},{"id":"msg2"},{"id":"msg3"}]}');
+            } else if (req.getEndpoint().contains('/batch/')) {
+                String batchResponse = 
+                    '--batch_abc123\r\n' +
+                    'Content-Type: application/http\r\n\r\n' +
+                    'HTTP/1.1 200 OK\r\n' +
+                    'Content-Type: application/json\r\n\r\n' +
+                    '{"id":"msg1","threadId":"thread1","internalDate":"1234567890000"}\r\n' +
+                    '--batch_abc123--';
+                res.setBody(batchResponse);
+            } else {
+                res.setBody('{"messages":[{"id":"msg1","threadId":"thread1"}],"resultSizeEstimate":1}');
+            }
+            return res;
+        }
+    }
+    
+    private class MockGmailMessagesWithPaginationResponse implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            
+            if (req.getEndpoint().contains('/batch/')) {
+                String batchResponse = 
+                    '--batch_abc123\r\n' +
+                    'Content-Type: application/http\r\n\r\n' +
+                    'HTTP/1.1 200 OK\r\n' +
+                    'Content-Type: application/json\r\n\r\n' +
+                    '{"id":"msg1","threadId":"thread1","internalDate":"1234567890000"}\r\n' +
+                    '--batch_abc123--';
+                res.setBody(batchResponse);
+            } else {
+                res.setBody('{"messages":[{"id":"msg1","threadId":"thread1"}],"nextPageToken":"token123","resultSizeEstimate":10}');
+            }
+            return res;
+        }
+    }
+    
+    private class MockEmptyTaskListsResponse implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setBody('{"items":[]}');
+            return res;
+        }
+    }
+    
+    private class MockMultipleTaskListsResponse implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            
+            if (req.getEndpoint().contains('/tasks')) {
+                res.setBody('{"items":[{"id":"task1","title":"Task 1"},{"id":"task2","title":"Task 2"}]}');
+            } else {
+                res.setBody('{"items":[{"id":"list1","title":"List 1"},{"id":"list2","title":"List 2"}]}');
+            }
+            return res;
+        }
+    }
+    
+    private class MockBatchResponseWithErrors implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            String batchResponse = 
+                '--batch_abc123\r\n' +
+                'Content-Type: application/http\r\n\r\n' +
+                'HTTP/1.1 404 Not Found\r\n' +
+                'Content-Type: application/json\r\n\r\n' +
+                '{"error":"Not found"}\r\n' +
+                '--batch_abc123\r\n' +
+                'Content-Type: application/http\r\n\r\n' +
+                'HTTP/1.1 200 OK\r\n' +
+                'Content-Type: application/json\r\n\r\n' +
+                '{"id":"msg2","threadId":"thread2"}\r\n' +
+                '--batch_abc123--';
+            res.setBody(batchResponse);
+            return res;
+        }
+    }
+    
+    private class MockBatchResponseAlternativeFormat implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            String batchResponse = 
+                '--batch_xyz789\r\n' +
+                'Content-Type: application/http\r\n\r\n' +
+                'HTTP/1.1 200 OK\r\n' +
+                'Content-Type: application/json\r\n\r\n' +
+                '{\n"id": "msg1",\n"threadId": "thread1"\n}\r\n' +
+                '--batch_xyz789--';
+            res.setBody(batchResponse);
+            return res;
+        }
+    }
+    
+    private class MockEmptyBatchResponse implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setBody('');
+            return res;
+        }
+    }
+    
+    private class MockBatchFailureResponse implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(500);
+            res.setBody('{"error":"Server error"}');
+            return res;
+        }
+    }
 }

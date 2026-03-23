@@ -103,7 +103,6 @@ public with sharing class AIOutlookOAuthController {
             hasError = true;
             isSuccess = false;
             errorMessage = 'Initialization error: ' + e.getMessage();
-            System.debug(LoggingLevel.ERROR, 'Error in initializePage: ' + e.getMessage() + '\n' + e.getStackTraceString());
         }
         isLoading = false;
     }
@@ -164,7 +163,6 @@ public with sharing class AIOutlookOAuthController {
             showConnectButton = false;
             showInfo = false;
             errorMessage = 'Unexpected error: ' + e.getMessage();
-            System.debug(LoggingLevel.ERROR, 'Exception in exchangeCodeForTokens: ' + e.getMessage());
         }
     }
     
@@ -201,19 +199,16 @@ public with sharing class AIOutlookOAuthController {
      */
     public void saveRefreshTokenToWorkspaceUser() {
         if (String.isBlank(refreshToken)) {
-            System.debug(LoggingLevel.WARN, 'Refresh token is blank, cannot save');
             throw new AuraHandledException('Refresh token is blank, cannot save workspace user.');
         }
         
         Id currentUserId = UserInfo.getUserId();
-        System.debug('Attempting to save tokens for user: ' + currentUserId);
         
         // Check CRUD permissions
         if (!Schema.sObjectType.AI_Workspace_User__c.isAccessible() ||
             !Schema.sObjectType.AI_Workspace_User__c.isCreateable() ||
             !Schema.sObjectType.AI_Workspace_User__c.isUpdateable()) {
             String errorMsg = 'User does not have access to AI_Workspace_User__c object';
-            System.debug(LoggingLevel.ERROR, errorMsg);
             throw new AuraHandledException(errorMsg);
         }
         
@@ -226,17 +221,11 @@ public with sharing class AIOutlookOAuthController {
             LIMIT 1
         ];
         
-        System.debug('Found ' + existingUsers.size() + ' existing workspace user records');
-        
         AI_Workspace_User__c workspaceUser;
         
         // Encrypt tokens using user/org-specific key before storing
         String encryptedRefreshToken = encryptRefreshToken(refreshToken);
         String encryptedAccessToken = String.isNotBlank(accessToken) ? encryptRefreshToken(accessToken) : null;
-        
-        System.debug('Refresh token length: ' + refreshToken.length());
-        System.debug('Access token length: ' + (String.isNotBlank(accessToken) ? String.valueOf(accessToken.length()) : 'NULL'));
-        System.debug('Encrypted refresh token length: ' + encryptedRefreshToken.length());
         
         if (!existingUsers.isEmpty()) {
             // Update existing record
@@ -245,12 +234,12 @@ public with sharing class AIOutlookOAuthController {
             workspaceUser.Access_Token__c = encryptedAccessToken;
             workspaceUser.Provider__c = 'Outlook';
             workspaceUser.Auto_Sync_Enabled__c = true; // Enable auto sync on (re)authentication
-            System.debug('About to update workspace user record: ' + workspaceUser.Id);
+            // V2-7889: Store the service user email for matching staging records
+            workspaceUser.Service_User_Email__c = userEmail;
             
             // Use FLSCheck for security enforcement
             List<AI_Workspace_User__c> usersToUpdate = new List<AI_Workspace_User__c>{ workspaceUser };
             FLSCheck.getInstance().updateDML(usersToUpdate);
-            System.debug('Successfully updated AI_Workspace_User__c record: ' + workspaceUser.Id);
         } else {
             // Create new record
             workspaceUser = new AI_Workspace_User__c(
@@ -259,14 +248,13 @@ public with sharing class AIOutlookOAuthController {
                 Provider__c = 'Outlook',
                 Refresh_Token__c = encryptedRefreshToken,
                 Access_Token__c = encryptedAccessToken,
-                Auto_Sync_Enabled__c = true // Enable auto sync by default
+                Auto_Sync_Enabled__c = true, // Enable auto sync by default
+                Service_User_Email__c = userEmail // V2-7889: Store service user email
             );
-            System.debug('About to insert new workspace user record');
             
             // Use FLSCheck for security enforcement
             List<AI_Workspace_User__c> usersToInsert = new List<AI_Workspace_User__c>{ workspaceUser };
             FLSCheck.getInstance().insertDML(usersToInsert);
-            System.debug('Successfully created new AI_Workspace_User__c record: ' + workspaceUser.Id);
         }
     }
     
@@ -412,23 +400,16 @@ public with sharing class AIOutlookOAuthController {
         }
         
         Blob encryptionKey = getEncryptionKey(userId);
-        System.debug('Encrypting refresh token. Token length: ' + refreshToken.length());
-        System.debug('Using encryption algorithm: ' + ALGORITHM);
-        System.debug('Encryption key length: ' + encryptionKey.size());
         
         // Convert the refresh token to a Blob
         Blob dataToEncrypt = Blob.valueOf(refreshToken);
-        System.debug('Data to encrypt blob size: ' + dataToEncrypt.size());
         
         // Encrypt the data using AES256 with managed IV
         Blob encryptedData = Crypto.encryptWithManagedIV(ALGORITHM, encryptionKey, dataToEncrypt);
-        System.debug('Encrypted data blob size: ' + encryptedData.size());
         
         // Convert to Base64 for storage
         String encryptedString = EncodingUtil.base64Encode(encryptedData);
-        System.debug('Base64 encoded string length: ' + encryptedString.length());
         
-        System.debug('Refresh token encrypted successfully');
         return encryptedString;
     }
     
@@ -466,19 +447,14 @@ public with sharing class AIOutlookOAuthController {
                 Blob encryptedData = EncodingUtil.base64Decode(encryptedToken);
                 Blob decryptedData = Crypto.decryptWithManagedIV(ALGORITHM, encryptionKey, encryptedData);
                 String decryptedToken = decryptedData.toString();
-                System.debug('Refresh token decrypted successfully for user: ' + userId);
                 return decryptedToken;
             } else {
                 // Token is not Base64 encoded, likely an old unencrypted token
-                System.debug(LoggingLevel.WARN, 'Token appears to be unencrypted (legacy token). Returning as-is.');
                 return encryptedToken;
             }
             
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error decrypting refresh token for user ' + userId + ': ' + e.getMessage());
-            System.debug(LoggingLevel.ERROR, 'Decryption stack trace: ' + e.getStackTraceString());
             // If decryption fails, might be an old unencrypted token
-            System.debug(LoggingLevel.WARN, 'Decryption failed, returning token as-is for backward compatibility');
             return encryptedToken;
         }
     }
@@ -512,8 +488,8 @@ public with sharing class AIOutlookOAuthController {
     private static String getWorkspaceAuthenticationUrl() {
         String namespace = AIConstants.NAMESPACE;
         if (String.isNotBlank(namespace)) {
-            return '/lightning/n/' + namespace + 'Workspace_Authentication';
+            return '/lightning/n/' + namespace + 'AI_Workspace_Sync';
         }
-        return '/lightning/n/Workspace_Authentication';
+        return '/lightning/n/AI_Workspace_Sync';
     }
 }

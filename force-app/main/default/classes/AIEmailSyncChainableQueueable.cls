@@ -268,7 +268,7 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
         }
         
         Integer batchSize = AISyncSettingsService.getEmailsPerBatch();
-        String providerType = provider == 'Outlook' ? 'MICROSOFT_GRAPH' : 'GMAIL_EMAIL';
+        String providerType = provider == 'Outlook' ? 'MICROSOFT_EMAIL' : 'GMAIL_EMAIL';
         
         try {
             if (isSyncComplete()) {
@@ -314,21 +314,34 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
                 // PHASE A: Forward Sync (new emails)
                 // Only do forward sync if there's a forward cursor and forward sync isn't complete
                 Boolean forwardSyncNeeded = !isGmailForwardSyncComplete();
+                
+                // V2-7889: Save the original forward cursor to use for ALL folders in this execution
+                // This ensures both inbox and sent use the SAME sync window
+                DateTime originalForwardCursor = gmailForwardCursor;
+                
                 if (forwardSyncNeeded && remainingQuota > 0) {
+                    // Collect all emails from both folders before updating the cursor
+                    List<Map<String, Object>> allForwardEmails = new List<Map<String, Object>>();
+                    
                     while (!isGmailForwardSyncComplete() && hasEnoughCallouts() && batchesFetched < MAX_BATCHES_PER_EXECUTION && remainingQuota > 0) {
                         String folderToProcess = getNextGmailForwardFolder();
                         if (folderToProcess == null) break;
                         
                         Integer effectiveBatchSize = Math.min(batchSize, remainingQuota);
-                        FetchedBatch batch = fetchGmailForwardBatch(folderToProcess, effectiveBatchSize, providerType);
+                        FetchedBatch batch = fetchGmailForwardBatch(folderToProcess, effectiveBatchSize, providerType, originalForwardCursor);
                         
                         if (batch != null && !batch.emails.isEmpty()) {
                             fetchedBatches.add(batch);
                             totalFetched += batch.emails.size();
                             remainingQuota -= batch.emails.size();
-                            updateGmailForwardCursor(batch.emails);
+                            allForwardEmails.addAll(batch.emails);
                         }
                         batchesFetched++;
+                    }
+                    
+                    // V2-7889: Update forward cursor ONCE after processing all folders
+                    if (!allForwardEmails.isEmpty()) {
+                        updateGmailForwardCursor(allForwardEmails);
                     }
                 }
                 
@@ -426,9 +439,13 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
                 AI_Workspace_Sync_Log__c log = logs[0];
                 gmailForwardCursor = log.Gmail_Forward_Cursor__c;
                 
-                // If no forward cursor, default to NOW (first sync scenario)
+                // V2-7889: If no forward cursor, use syncWindowStart (lookback boundary) for first sync
+                // This ensures the forward sync fetches ALL emails in the lookback window
+                // Using DateTime.now() would create an empty window and skip all emails
                 if (gmailForwardCursor == null) {
-                    gmailForwardCursor = DateTime.now();
+                    gmailForwardCursor = syncWindowStart;
+                    // On first sync, backfill is not needed since forward sync covers the full window
+                    gmailBackfillComplete = true;
                 }
                 
                 // Backfill complete check:
@@ -440,9 +457,9 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
                 
             }
         } catch (Exception e) {
-            // Default to NOW if we can't load
-            gmailForwardCursor = DateTime.now();
-            gmailBackfillComplete = false;
+            // V2-7889: Default to syncWindowStart if we can't load (first sync scenario)
+            gmailForwardCursor = syncWindowStart;
+            gmailBackfillComplete = true; // No backfill needed on first sync
         }
     }
     
@@ -478,16 +495,21 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
     /**
      * Fetch Gmail forward sync batch (new emails from gmailForwardCursor to NOW)
      * Gmail returns newest first, so we use pageToken pagination within the forward window
+     * 
+     * V2-7889: Added cursorOverride parameter to ensure both folders use the same sync window
      */
-    private FetchedBatch fetchGmailForwardBatch(String folder, Integer batchSize, String providerType) {
+    private FetchedBatch fetchGmailForwardBatch(String folder, Integer batchSize, String providerType, DateTime cursorOverride) {
         String apiFolder = folder == 'inbox' ? 'INBOX' : 'SENT';
         String pageToken = folder == 'inbox' ? gmailForwardInboxPageToken : gmailForwardSentPageToken;
         
         try {
-            // Forward sync: fetch from gmailForwardCursor+1sec to NOW
+            // V2-7889: Use cursorOverride if provided (ensures both folders use same window)
+            DateTime cursorToUse = cursorOverride != null ? cursorOverride : gmailForwardCursor;
+            
+            // Forward sync: fetch from cursor+1sec to NOW
             // We add 1 second to avoid re-fetching the boundary email (Gmail's after: is inclusive)
             // This catches any new emails since the last sync
-            DateTime forwardStart = gmailForwardCursor.addSeconds(1); // +1 second to exclude boundary
+            DateTime forwardStart = cursorToUse.addSeconds(1); // +1 second to exclude boundary
             DateTime forwardEnd = DateTime.now();
             
             AIGmailFetchService.EmailBatchResult result = 
@@ -714,8 +736,10 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
     /**
      * Finalizer execute - Called after queueable completes
      * Uses finalizer to chain, which avoids stack depth issues
+     * V2-7889: Also triggers Phase 2 batch when this chainable completes
      */
     public void execute(FinalizerContext context) {
+        
         if (needsChaining && !disableChaining) {
             
             AIEmailSyncChainableQueueable nextJob = new AIEmailSyncChainableQueueable(
@@ -756,6 +780,8 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
             
             System.enqueueJob(nextJob);
         }
+        // V2-7889: Phase 2 (AIStagingEmailMatcherBatch) is now triggered by scheduler
+        // No automatic call from Phase 1 to allow manual control and better monitoring
     }
     
     /**
@@ -889,16 +915,24 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
     private void processEmails(List<Map<String, Object>> emails, String providerType) {
         if (emails == null || emails.isEmpty()) return;
         
-        // Step 1: Apply exclusion filters based on user settings
-        // Filters out marketing, confidential, internal, and public domain emails
-        AIEmailExclusionService.BatchExclusionResult exclusionResult =
-            AIEmailExclusionService.filterBatch(emails, providerType, userEmail);
+        // Step 1: Apply exclusion filters based on user settings (V2-7889)
+        String excludedDomains = AISyncSettingsService.getExcludedDomains();
+        String excludedLabels = AISyncSettingsService.getExcludedLabelsCategories();
         
-        totalExcluded += exclusionResult.excludedEmails.size();
-        
+        AIWorkspaceFilterService.FilterResult filterResult =
+            AIWorkspaceFilterService.applyAllFilters(
+                emails, 
+                excludedDomains, 
+                excludedLabels, 
+                'Email', 
+                providerType == 'MICROSOFT_EMAIL' ? 'Outlook' : 'Gmail'
+            );
+
+        totalExcluded += filterResult.excludedCount;
+
         // Aggregate exclusion counts for reporting
-        for (String category : exclusionResult.exclusionCounts.keySet()) {
-            Integer count = exclusionResult.exclusionCounts.get(category);
+        for (String category : filterResult.exclusionReasons.keySet()) {
+            Integer count = filterResult.exclusionReasons.get(category);
             if (aggregatedExclusionCounts.containsKey(category)) {
                 aggregatedExclusionCounts.put(category, aggregatedExclusionCounts.get(category) + count);
             } else {
@@ -907,7 +941,7 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
         }
         
         // If all emails were excluded, return early
-        if (exclusionResult.includedEmails.isEmpty()) {
+        if (filterResult.includedRecords.isEmpty()) {
             return;
         }
         
@@ -920,7 +954,7 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
         try {
             AIWorkspaceStagingCreator.StagingResult stagingResult =
                 AIWorkspaceStagingCreator.createEmailStagingRecords(
-                    exclusionResult.includedEmails, // Only pass non-excluded emails
+                    filterResult.includedRecords, // Only pass non-excluded emails
                     providerType,
                     userEmail,
                     syncLogId,
@@ -928,13 +962,16 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
                     false // Don't send notifications for auto-sync
                 );
             
-            // Use the actual counts from staging result
-            // These counts are mutually exclusive: Fetched = Matched + Unmatched + Duplicate
-            totalMatched += stagingResult.matchedCount;      // Matched to Lead/Contact
-            totalUnmatched += stagingResult.unmatchedCount;  // Not matched (includes re-attempt of prior unmatched)
-            totalImported += stagingResult.importedCount;    // Actual EmailMessage records created
+            // V2-7889: Phase 1 tracking - staging record creation only (not Lead/Contact matching)
+            // Matched = Successfully created staging records
+            // Unmatched = Failed to create staging records
+            // Duplicate = Duplicates detected (already exist)
+            // Excluded = Already tracked from filterResult above
+            // Formula: Fetched = Matched + Unmatched + Duplicate + Excluded
+            totalMatched += stagingResult.successCount;      // Successfully created staging records
+            totalUnmatched += stagingResult.failedCount;     // Failed to create staging records
             totalDuplicate += stagingResult.duplicateCount;  // Duplicates found in staging/EmailMessage
-            totalFailed += stagingResult.failedCount;
+            totalImported = 0;  // Always 0 in Phase 1 (Phase 3 handles imports)
             
             // DEBUG: Log if staging creation had errors
             if (!stagingResult.errors.isEmpty()) {
@@ -1093,6 +1130,10 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
      */
     private void updateSyncLog() {
         try {
+            // V2-7889: Phase 1 tracking only - no Lead/Contact matching or imports yet
+            // Matched = Successfully created staging records
+            // Unmatched = Failed to create staging records
+            // Formula: Fetched = Matched + Unmatched + Duplicate + Excluded
             AI_Workspace_Sync_Log__c syncLog = new AI_Workspace_Sync_Log__c(
                 Id = syncLogId,
                 Emails_Fetched__c = totalFetched,
@@ -1100,7 +1141,7 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
                 Emails_Excluded__c = totalExcluded,
                 Emails_Matched__c = totalMatched,
                 Emails_Unmatched__c = totalUnmatched,
-                Emails_Imported__c = totalImported,
+                Emails_Imported__c = 0,  // Always 0 in Phase 1 (Phase 3 handles imports)
                 // Use provider-specific date for Sync_Window_End__c
                 // Gmail (newest first) -> use oldest; Outlook (oldest first) -> use newest
                 Sync_Window_End__c = getSyncWindowEndDate()
@@ -1115,7 +1156,11 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
             
             // Add exclusion summary if there are exclusions
             if (totalExcluded > 0 && !aggregatedExclusionCounts.isEmpty()) {
-                syncLog.Exclusion_Summary__c = AIEmailExclusionService.toExclusionSummaryText(aggregatedExclusionCounts);
+                List<String> summaryParts = new List<String>();
+                for (String category : aggregatedExclusionCounts.keySet()) {
+                    summaryParts.add(category + ': ' + aggregatedExclusionCounts.get(category));
+                }
+                syncLog.Exclusion_Summary__c = String.join(summaryParts, ', ');
             }
             
             // Use FLSCheck for security enforcement
@@ -1138,12 +1183,13 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
                 LIMIT 1
             ];
             
+            // V2-7889: Phase 1 tracking only
             syncLog.Emails_Fetched__c = totalFetched;
             syncLog.Emails_Duplicate__c = totalDuplicate;
             syncLog.Emails_Excluded__c = totalExcluded;
-            syncLog.Emails_Matched__c = totalMatched;
-            syncLog.Emails_Unmatched__c = totalUnmatched;
-            syncLog.Emails_Imported__c = totalImported;
+            syncLog.Emails_Matched__c = totalMatched;  // Successfully created staging records
+            syncLog.Emails_Unmatched__c = totalUnmatched;  // Failed to create staging records
+            syncLog.Emails_Imported__c = 0;  // Always 0 in Phase 1
             // Use provider-specific date for Sync_Window_End__c
             // Gmail (newest first) -> use oldest; Outlook (oldest first) -> use newest
             syncLog.Sync_Window_End__c = getSyncWindowEndDate();
@@ -1159,7 +1205,11 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
             
             // Add exclusion summary if there are exclusions
             if (totalExcluded > 0 && !aggregatedExclusionCounts.isEmpty()) {
-                syncLog.Exclusion_Summary__c = AIEmailExclusionService.toExclusionSummaryText(aggregatedExclusionCounts);
+                List<String> summaryParts = new List<String>();
+                for (String category : aggregatedExclusionCounts.keySet()) {
+                    summaryParts.add(category + ': ' + aggregatedExclusionCounts.get(category));
+                }
+                syncLog.Exclusion_Summary__c = String.join(summaryParts, ', ');
             }
             
             // Determine final status:
@@ -1233,8 +1283,6 @@ public with sharing class AIEmailSyncChainableQueueable implements Queueable, Da
             TokenRefreshResult refreshResult = callTokenEndpoint(refreshToken);
             
             if (!refreshResult.isSuccess) {
-                
-                // If it's an invalid_grant error, the user needs to re-authenticate
                 if (refreshResult.requiresReauth) {
                     sendReAuthNotification(workspaceUser);
                 }

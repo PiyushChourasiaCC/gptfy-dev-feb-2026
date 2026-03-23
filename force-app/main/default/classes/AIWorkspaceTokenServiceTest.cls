@@ -464,15 +464,16 @@ private class AIWorkspaceTokenServiceTest {
         Test.stopTest();
         
         Assert.isNotNull(workspaceUserId, 'Should return workspace user ID');
-        
+
         // Verify record was created
-        AI_Workspace_User__c workspaceUser = [SELECT Name, Provider__c, Access_Token__c, Refresh_Token__c, Auto_Sync_Enabled__c 
+        AI_Workspace_User__c workspaceUser = [SELECT Name, Provider__c, Access_Token__c, Refresh_Token__c, Auto_Sync_Enabled__c, Service_User_Email__c
                                                FROM AI_Workspace_User__c WHERE Id = :workspaceUserId];
         Assert.areEqual('Outlook', workspaceUser.Provider__c, 'Provider should be Outlook');
         Assert.isTrue(workspaceUser.Name.contains('test@example.com'), 'Name should contain email');
         Assert.isNotNull(workspaceUser.Access_Token__c, 'Access token should be saved');
         Assert.isNotNull(workspaceUser.Refresh_Token__c, 'Refresh token should be saved');
         Assert.isTrue(workspaceUser.Auto_Sync_Enabled__c, 'Auto sync should be enabled');
+        Assert.areEqual('test@example.com', workspaceUser.Service_User_Email__c, 'Service user email should be saved');
     }
     
     @isTest
@@ -492,11 +493,12 @@ private class AIWorkspaceTokenServiceTest {
         Test.stopTest();
         
         Assert.areEqual(existingUser.Id, workspaceUserId, 'Should update existing record');
-        
+
         // Verify record was updated
-        AI_Workspace_User__c workspaceUser = [SELECT Access_Token__c, Refresh_Token__c FROM AI_Workspace_User__c WHERE Id = :workspaceUserId];
+        AI_Workspace_User__c workspaceUser = [SELECT Access_Token__c, Refresh_Token__c, Service_User_Email__c FROM AI_Workspace_User__c WHERE Id = :workspaceUserId];
         Assert.isNotNull(workspaceUser.Access_Token__c, 'Access token should be updated');
         Assert.isNotNull(workspaceUser.Refresh_Token__c, 'Refresh token should be updated');
+        Assert.areEqual('updated@example.com', workspaceUser.Service_User_Email__c, 'Service user email should be updated');
     }
     
     @isTest
@@ -506,10 +508,11 @@ private class AIWorkspaceTokenServiceTest {
         Test.stopTest();
         
         Assert.isNotNull(workspaceUserId, 'Should return workspace user ID');
-        
+
         // Verify record was created with user name
-        AI_Workspace_User__c workspaceUser = [SELECT Name FROM AI_Workspace_User__c WHERE Id = :workspaceUserId];
+        AI_Workspace_User__c workspaceUser = [SELECT Name, Service_User_Email__c FROM AI_Workspace_User__c WHERE Id = :workspaceUserId];
         Assert.isTrue(workspaceUser.Name.contains('Outlook'), 'Name should contain provider');
+        Assert.isNull(workspaceUser.Service_User_Email__c, 'Service user email should be null when not provided');
     }
     
     @isTest

@@ -105,7 +105,7 @@ public with sharing class AIEmailAssociationService {
         // Collect EmailMessage IDs to verify they still exist
         Set<Id> emailMessageIds = new Set<Id>();
         for (AI_Workspace_Staging__c staging : stagingRecords) {
-            if (staging.Status__c == 'Matched' && String.isNotBlank(staging.Email_Message__c)) {
+            if (staging.Status__c == 'Imported' && String.isNotBlank(staging.Email_Message__c)) {
                 try {
                     Id emId = Id.valueOf(staging.Email_Message__c);
                     emailMessageIds.add(emId);
@@ -132,7 +132,7 @@ public with sharing class AIEmailAssociationService {
             if (String.isNotBlank(staging.Message_Identifier__c)) {
                 // Check if this was a "Matched" record but EmailMessage was deleted
                 Boolean emailMessageDeleted = false;
-                if (staging.Status__c == 'Matched' && String.isNotBlank(staging.Email_Message__c)) {
+                if (staging.Status__c == 'Imported' && String.isNotBlank(staging.Email_Message__c)) {
                     try {
                         Id emId = Id.valueOf(staging.Email_Message__c);
                         emailMessageDeleted = !existingEmailMessageIds.contains(emId);
@@ -145,7 +145,7 @@ public with sharing class AIEmailAssociationService {
                 if (emailMessageDeleted) {
                     AI_Workspace_Staging__c resetRecord = new AI_Workspace_Staging__c(
                         Id = staging.Id,
-                        Status__c = 'Unmatched',
+                        Status__c = 'Staged',
                         Email_Message__c = null
                     );
                     stagingToReset.add(resetRecord);
@@ -157,7 +157,7 @@ public with sharing class AIEmailAssociationService {
                 
                 // Only mark as imported if status is 'Matched'
                 // Unmatched emails should not show as imported - they should be available for re-selection
-                if (staging.Status__c == 'Matched') {
+                if (staging.Status__c == 'Imported') {
                     // If not already in the map, add an empty association list
                     // This marks the email as imported - associations come from EmailMessage/EmailMessageRelation queries
                     if (!associationMap.containsKey(staging.Message_Identifier__c)) {
@@ -179,12 +179,13 @@ public with sharing class AIEmailAssociationService {
     
     /**
      * Resets staging records when their linked EmailMessage was deleted.
+     * V2-7889: Uses FLSCheck for field-level security validation
      */
     private static void resetStagingRecordsAsync(List<AI_Workspace_Staging__c> stagingToReset) {
         try {
-            Database.update(stagingToReset, false);
+            FLSCheck.getInstance().updateDML(stagingToReset, false);
         } catch (Exception e) {
-            System.debug(LoggingLevel.WARN, 'Failed to reset staging records: ' + e.getMessage());
+            
         }
     }
 

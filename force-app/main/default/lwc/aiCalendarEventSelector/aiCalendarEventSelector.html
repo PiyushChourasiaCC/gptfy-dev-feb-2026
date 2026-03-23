@@ -6,8 +6,7 @@
                 <div class="no-provider-content">
                     <div class="no-provider-icon">⚙️</div>
                     <h2>Calendar Sync Not Configured</h2>
-                    <p>Please enable at least one calendar provider (Outlook or Gmail) from:</p>
-                    <p class="settings-path"><strong>AI Settings → Workspace Sync</strong></p>
+                    <p>Please enable at least one calendar provider (Outlook or Gmail) from Settings</p>
                 </div>
             </div>
         </template>
@@ -205,7 +204,7 @@
                         <button class="retry-connection-btn" onclick={handleRetryConnection} title="Refresh connection without leaving this page">
                             🔄 Refresh Connection
                         </button>
-                        <a href={authenticationSettingsUrl} class="auth-link">🔐 Connect Calendar</a>
+                        <button class="auth-link" onclick={handleConnectClick}>🔐 Connect Calendar</button>
                     </div>
                 </div>
             </template>

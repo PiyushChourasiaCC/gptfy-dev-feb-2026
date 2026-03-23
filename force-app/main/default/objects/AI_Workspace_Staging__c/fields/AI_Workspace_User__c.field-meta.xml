@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Workspace_User__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>Reference to the AI Workspace User record that this staging record belongs to</description>
+    <label>AI Workspace User</label>
+    <referenceTo>AI_Workspace_User__c</referenceTo>
+    <relationshipLabel>Workspace Staging Records</relationshipLabel>
+    <relationshipName>Workspace_Staging_Records</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

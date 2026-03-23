@@ -9,21 +9,6 @@
         <valueSetDefinition>
             <sorted>false</sorted>
             <value>
-                <fullName>MICROSOFT_GRAPH</fullName>
-                <default>false</default>
-                <label>Microsoft Graph</label>
-            </value>
-            <value>
-                <fullName>GOOGLE</fullName>
-                <default>false</default>
-                <label>Google</label>
-            </value>
-            <value>
-                <fullName>GMAIL</fullName>
-                <default>false</default>
-                <label>Gmail</label>
-            </value>
-            <value>
                 <fullName>GOOGLE_CALENDAR</fullName>
                 <default>false</default>
                 <label>Google Calendar</label>
@@ -34,9 +19,24 @@
                 <label>Google Tasks</label>
             </value>
             <value>
-                <fullName>MICROSOFT_TODO</fullName>
+                <fullName>GMAIL_EMAIL</fullName>
                 <default>false</default>
-                <label>Microsoft To-Do</label>
+                <label>Gmail Email</label>
+            </value>
+            <value>
+                <fullName>MICROSOFT_TASKS</fullName>
+                <default>false</default>
+                <label>Microsoft Tasks</label>
+            </value>
+            <value>
+                <fullName>MICROSOFT_EMAIL</fullName>
+                <default>false</default>
+                <label>Microsoft Email</label>
+            </value>
+            <value>
+                <fullName>MICROSOFT_CALENDAR</fullName>
+                <default>false</default>
+                <label>Microsoft Calendar</label>
             </value>
         </valueSetDefinition>
     </valueSet>

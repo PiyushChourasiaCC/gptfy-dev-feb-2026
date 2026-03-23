@@ -13,6 +13,22 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>AIStagingPolicyMatcherBatch</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>AIWorkspaceEncryptionService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>AIWorkspaceFilterService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>AIWorkspaceProcessingPolicyController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>AIEmailAssociationService</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -331,6 +347,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>AI_Workspace_Staging__c.Error_Message__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>AI_Workspace_Staging__c.Subject__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -362,6 +383,16 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>AI_Workspace_Staging__c.User__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>AI_Workspace_Staging__c.WhoId__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>AI_Workspace_Staging__c.AI_Workspace_User__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -501,6 +532,21 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>AI_Workspace_User__c.Service_User_Email__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>AI_Workspace_Sync_Settings__c.Excluded_Domains__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>AI_Workspace_Sync_Settings__c.Excluded_Labels_Categories__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Event.Workspace_Sync_Id__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -561,24 +607,4 @@
         <recordType>AI_Workspace_Staging__c.Task</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
-    <tabSettings>
-        <tab>AI_Calendar_Event_Selector</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>AI_Mail_Sync</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>AI_Task_Selector</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>AI_Workspace_Sync_Scheduler</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>Workspace_Authentication</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
 </PermissionSet>

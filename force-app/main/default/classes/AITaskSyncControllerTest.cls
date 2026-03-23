@@ -44,7 +44,7 @@ public class AITaskSyncControllerTest {
         // Create AI_Workspace_User__c for Google Tasks
         AI_Workspace_User__c googleUser = new AI_Workspace_User__c(
             User__c = UserInfo.getUserId(),
-            Provider__c = 'GMAIL',
+            Provider__c = 'Gmail',
             Access_Token__c = 'test_google_access_token',
             Refresh_Token__c = 'test_google_refresh_token'
         );
@@ -578,11 +578,11 @@ public class AITaskSyncControllerTest {
         Test.setMock(HttpCalloutMock.class, new TaskApiSuccessMock());
 
         Test.startTest();
-        Map<String, Object> result = AITaskSyncController.checkTaskAccess('MICROSOFT_GRAPH');
+        Map<String, Object> result = AITaskSyncController.checkTaskAccess('MICROSOFT_TASKS');
         Test.stopTest();
 
         Assert.areNotEqual(null, result, 'Result should not be null');
-        Assert.areEqual('MICROSOFT_GRAPH', result.get('providerType'), 'Provider type should be set');
+        Assert.areEqual('MICROSOFT_TASKS', result.get('providerType'), 'Provider type should be set');
     }
 
     @isTest
@@ -612,7 +612,7 @@ public class AITaskSyncControllerTest {
         Test.setMock(HttpCalloutMock.class, new AuthFailureMock());
 
         Test.startTest();
-        Map<String, Object> result = AITaskSyncController.checkTaskAccess('MICROSOFT_GRAPH');
+        Map<String, Object> result = AITaskSyncController.checkTaskAccess('MICROSOFT_TASKS');
         Test.stopTest();
 
         Assert.areEqual(false, result.get('isAccessible'), 'Should not be accessible with auth failure');
@@ -1100,7 +1100,7 @@ public class AITaskSyncControllerTest {
         };
 
         Test.startTest();
-        Map<String, Object> result = AITaskSyncController.associateTasksFromModal(selections, 'MICROSOFT_GRAPH');
+        Map<String, Object> result = AITaskSyncController.associateTasksFromModal(selections, 'MICROSOFT_TASKS');
         Test.stopTest();
 
         Assert.areNotEqual(null, result, 'Result should not be null');
@@ -2289,5 +2289,721 @@ public class AITaskSyncControllerTest {
         Test.stopTest();
 
         Assert.areNotEqual(null, response, 'Response should not be null');
+    }
+
+    // ========================================================================
+    // @TestVisible Private Method Tests - V2-7889
+    // ========================================================================
+
+    @isTest
+    static void testExtractEmailsSimple_ValidEmails() {
+        Test.startTest();
+        String text = 'Contact john.doe@example.com and jane.smith@company.org for details';
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(text);
+        Test.stopTest();
+
+        Assert.areEqual(2, emails.size(), 'Should extract 2 emails');
+        Assert.isTrue(emails.contains('john.doe@example.com'), 'Should contain first email');
+        Assert.isTrue(emails.contains('jane.smith@company.org'), 'Should contain second email');
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_NoEmails() {
+        Test.startTest();
+        String text = 'This text has no email addresses';
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(text);
+        Test.stopTest();
+
+        Assert.areEqual(0, emails.size(), 'Should extract 0 emails');
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_BlankText() {
+        Test.startTest();
+        Set<String> emails = AITaskSyncController.extractEmailsSimple('');
+        Test.stopTest();
+
+        Assert.areEqual(0, emails.size(), 'Should extract 0 emails from blank text');
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_NullText() {
+        Test.startTest();
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(null);
+        Test.stopTest();
+
+        Assert.areEqual(0, emails.size(), 'Should extract 0 emails from null text');
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_EmailsWithDelimiters() {
+        Test.startTest();
+        String text = 'Emails: <test@example.com>, [admin@site.org], (user@domain.net)';
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(text);
+        Test.stopTest();
+
+        Assert.areEqual(3, emails.size(), 'Should extract 3 emails');
+        Assert.isTrue(emails.contains('test@example.com'), 'Should extract email from angle brackets');
+        Assert.isTrue(emails.contains('admin@site.org'), 'Should extract email from square brackets');
+        Assert.isTrue(emails.contains('user@domain.net'), 'Should extract email from parentheses');
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_DuplicateEmails() {
+        Test.startTest();
+        String text = 'Contact test@example.com or test@example.com again';
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(text);
+        Test.stopTest();
+
+        Assert.areEqual(1, emails.size(), 'Should deduplicate emails');
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_CaseInsensitive() {
+        Test.startTest();
+        String text = 'Email: Test@Example.COM';
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(text);
+        Test.stopTest();
+
+        Assert.areEqual(1, emails.size(), 'Should extract 1 email');
+        Assert.isTrue(emails.contains('test@example.com'), 'Should be lowercase');
+    }
+
+    @isTest
+    static void testIsValidEmail_ValidEmails() {
+        Test.startTest();
+        Assert.isTrue(AITaskSyncController.isValidEmail('test@example.com'), 'Should be valid');
+        Assert.isTrue(AITaskSyncController.isValidEmail('user.name@company.co.uk'), 'Should be valid');
+        Assert.isTrue(AITaskSyncController.isValidEmail('admin+tag@site.org'), 'Should be valid');
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testIsValidEmail_InvalidEmails() {
+        Test.startTest();
+        Assert.isFalse(AITaskSyncController.isValidEmail(''), 'Empty string should be invalid');
+        Assert.isFalse(AITaskSyncController.isValidEmail(null), 'Null should be invalid');
+        Assert.isFalse(AITaskSyncController.isValidEmail('test'), 'No @ should be invalid');
+        Assert.isFalse(AITaskSyncController.isValidEmail('@example.com'), 'No local part should be invalid');
+        Assert.isFalse(AITaskSyncController.isValidEmail('test@'), 'No domain should be invalid');
+        Assert.isFalse(AITaskSyncController.isValidEmail('test@@example.com'), 'Multiple @ should be invalid');
+        Assert.isFalse(AITaskSyncController.isValidEmail('test@example'), 'No TLD should be invalid');
+        Assert.isFalse(AITaskSyncController.isValidEmail('test@example.c'), 'TLD too short should be invalid');
+        Assert.isFalse(AITaskSyncController.isValidEmail('test @example.com'), 'Space should be invalid');
+        Assert.isFalse(AITaskSyncController.isValidEmail('test<>@example.com'), 'Invalid chars should be invalid');
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testIsValidEmail_EdgeCases() {
+        Test.startTest();
+        Assert.isFalse(AITaskSyncController.isValidEmail('a@b.c'), 'Too short should be invalid');
+        Assert.isFalse(AITaskSyncController.isValidEmail('test@.com'), 'Domain starts with dot should be invalid');
+        Assert.isFalse(AITaskSyncController.isValidEmail('test@example.'), 'Domain ends with dot should be invalid');
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testSplitByDelimiters_BasicText() {
+        Test.startTest();
+        String text = 'Hello world, this is a test';
+        List<String> words = AITaskSyncController.splitByDelimiters(text);
+        Test.stopTest();
+
+        Assert.isTrue(words.size() > 0, 'Should split text into words');
+        Assert.isTrue(words.contains('Hello'), 'Should contain Hello');
+        Assert.isTrue(words.contains('world'), 'Should contain world');
+    }
+
+    @isTest
+    static void testSplitByDelimiters_WithMultipleDelimiters() {
+        Test.startTest();
+        String text = 'email:test@example.com;phone:(123)456-7890';
+        List<String> words = AITaskSyncController.splitByDelimiters(text);
+        Test.stopTest();
+
+        Assert.isTrue(words.size() > 0, 'Should split by multiple delimiters');
+        Assert.isTrue(words.contains('email'), 'Should contain email');
+        Assert.isTrue(words.contains('test@example.com'), 'Should contain email address');
+    }
+
+    @isTest
+    static void testSplitByDelimiters_EmptyString() {
+        Test.startTest();
+        List<String> words = AITaskSyncController.splitByDelimiters('');
+        Test.stopTest();
+
+        Assert.areEqual(0, words.size(), 'Should return empty list for empty string');
+    }
+
+    @isTest
+    static void testSplitByDelimiters_OnlyDelimiters() {
+        Test.startTest();
+        String text = '   ,,,;;;:::   ';
+        List<String> words = AITaskSyncController.splitByDelimiters(text);
+        Test.stopTest();
+
+        Assert.areEqual(0, words.size(), 'Should return empty list for only delimiters');
+    }
+
+    @isTest
+    static void testSplitByDelimiters_WithNewlines() {
+        Test.startTest();
+        String text = 'Line1\nLine2\rLine3\r\nLine4';
+        List<String> words = AITaskSyncController.splitByDelimiters(text);
+        Test.stopTest();
+
+        Assert.isTrue(words.size() >= 4, 'Should split by newlines');
+        Assert.isTrue(words.contains('Line1'), 'Should contain Line1');
+        Assert.isTrue(words.contains('Line2'), 'Should contain Line2');
+    }
+
+    @isTest
+    static void testBuildMatchCache_WithEmailsInTasks() {
+        Contact testContact = [SELECT Id, Email FROM Contact WHERE Email = 'task.contact@tasktest.com' LIMIT 1];
+        Lead testLead = [SELECT Id, Email FROM Lead WHERE Email = 'task.lead@tasktest.com' LIMIT 1];
+
+        Test.startTest();
+        List<AIMicrosoftTaskService.ToDoTask> tasks = new List<AIMicrosoftTaskService.ToDoTask>();
+        
+        AIMicrosoftTaskService.ToDoTask task1 = new AIMicrosoftTaskService.ToDoTask();
+        task1.taskId = 'test-task-1';
+        task1.title = 'Follow up with task.contact@tasktest.com';
+        task1.body = 'Discuss project details';
+        tasks.add(task1);
+
+        AIMicrosoftTaskService.ToDoTask task2 = new AIMicrosoftTaskService.ToDoTask();
+        task2.taskId = 'test-task-2';
+        task2.title = 'Call task.lead@tasktest.com';
+        task2.body = 'Lead follow-up';
+        tasks.add(task2);
+
+        AITaskSyncController.MatchCache cache = AITaskSyncController.buildMatchCache(tasks);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, cache, 'Cache should not be null');
+        Assert.areEqual(1, cache.emailToContact.size(), 'Should have 1 contact in cache');
+        Assert.areEqual(1, cache.emailToLead.size(), 'Should have 1 lead in cache');
+        Assert.isTrue(cache.emailToContact.containsKey('task.contact@tasktest.com'), 'Should contain contact email');
+        Assert.isTrue(cache.emailToLead.containsKey('task.lead@tasktest.com'), 'Should contain lead email');
+    }
+
+    @isTest
+    static void testBuildMatchCache_NoEmails() {
+        Test.startTest();
+        List<AIMicrosoftTaskService.ToDoTask> tasks = new List<AIMicrosoftTaskService.ToDoTask>();
+        
+        AIMicrosoftTaskService.ToDoTask task = new AIMicrosoftTaskService.ToDoTask();
+        task.taskId = 'test-task-1';
+        task.title = 'Simple task without emails';
+        task.body = 'Just a regular task';
+        tasks.add(task);
+
+        AITaskSyncController.MatchCache cache = AITaskSyncController.buildMatchCache(tasks);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, cache, 'Cache should not be null');
+        Assert.areEqual(0, cache.emailToContact.size(), 'Should have 0 contacts in cache');
+        Assert.areEqual(0, cache.emailToLead.size(), 'Should have 0 leads in cache');
+    }
+
+    @isTest
+    static void testBuildMatchCache_EmptyTaskList() {
+        Test.startTest();
+        List<AIMicrosoftTaskService.ToDoTask> tasks = new List<AIMicrosoftTaskService.ToDoTask>();
+        AITaskSyncController.MatchCache cache = AITaskSyncController.buildMatchCache(tasks);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, cache, 'Cache should not be null');
+        Assert.areEqual(0, cache.emailToContact.size(), 'Should have 0 contacts');
+        Assert.areEqual(0, cache.emailToLead.size(), 'Should have 0 leads');
+    }
+
+    @isTest
+    static void testBuildMatchCache_WithNullTitleAndBody() {
+        Test.startTest();
+        List<AIMicrosoftTaskService.ToDoTask> tasks = new List<AIMicrosoftTaskService.ToDoTask>();
+        
+        AIMicrosoftTaskService.ToDoTask task = new AIMicrosoftTaskService.ToDoTask();
+        task.taskId = 'test-task-1';
+        task.title = null;
+        task.body = null;
+        tasks.add(task);
+
+        AITaskSyncController.MatchCache cache = AITaskSyncController.buildMatchCache(tasks);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, cache, 'Cache should not be null');
+    }
+
+    @isTest
+    static void testBuildMatchCache_WithConvertedLead() {
+        Lead convertedLead = new Lead(
+            FirstName = 'Converted',
+            LastName = 'Lead',
+            Email = 'converted.lead@test.com',
+            Company = 'Test Company',
+            Status = 'Qualified'
+        );
+        insert convertedLead;
+
+        Database.LeadConvert lc = new Database.LeadConvert();
+        lc.setLeadId(convertedLead.Id);
+        lc.setDoNotCreateOpportunity(true);
+        LeadStatus convertStatus = [SELECT Id, MasterLabel FROM LeadStatus WHERE IsConverted = true LIMIT 1];
+        lc.setConvertedStatus(convertStatus.MasterLabel);
+        Database.convertLead(lc);
+
+        Test.startTest();
+        List<AIMicrosoftTaskService.ToDoTask> tasks = new List<AIMicrosoftTaskService.ToDoTask>();
+        
+        AIMicrosoftTaskService.ToDoTask task = new AIMicrosoftTaskService.ToDoTask();
+        task.taskId = 'test-task-1';
+        task.title = 'Follow up with converted.lead@test.com';
+        tasks.add(task);
+
+        AITaskSyncController.MatchCache cache = AITaskSyncController.buildMatchCache(tasks);
+        Test.stopTest();
+
+        Assert.areEqual(0, cache.emailToLead.size(), 'Should not include converted leads');
+    }
+
+    @isTest
+    static void testBuildMatchCache_WithMultipleEmailsInOneTask() {
+        Contact testContact = [SELECT Id FROM Contact WHERE Email = 'task.contact@tasktest.com' LIMIT 1];
+        Lead testLead = [SELECT Id FROM Lead WHERE Email = 'task.lead@tasktest.com' LIMIT 1];
+
+        Test.startTest();
+        List<AIMicrosoftTaskService.ToDoTask> tasks = new List<AIMicrosoftTaskService.ToDoTask>();
+        
+        AIMicrosoftTaskService.ToDoTask task = new AIMicrosoftTaskService.ToDoTask();
+        task.taskId = 'test-task-1';
+        task.title = 'Meeting with task.contact@tasktest.com';
+        task.body = 'Also invite task.lead@tasktest.com';
+        tasks.add(task);
+
+        AITaskSyncController.MatchCache cache = AITaskSyncController.buildMatchCache(tasks);
+        Test.stopTest();
+
+        Assert.areEqual(1, cache.emailToContact.size(), 'Should have 1 contact');
+        Assert.areEqual(1, cache.emailToLead.size(), 'Should have 1 lead');
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_ComplexText() {
+        Test.startTest();
+        String text = 'Please contact: user1@test.com, user2@test.org; or call user3@test.net';
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(text);
+        Test.stopTest();
+
+        Assert.areEqual(3, emails.size(), 'Should extract 3 emails from complex text');
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_WithSpecialCharacters() {
+        Test.startTest();
+        String text = 'Email: user+tag@example.com and admin_test@site.org';
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(text);
+        Test.stopTest();
+
+        Assert.isTrue(emails.size() >= 1, 'Should extract valid emails');
+    }
+
+    @isTest
+    static void testIsValidEmail_LongEmail() {
+        Test.startTest();
+        String longEmail = 'very.long.email.address.with.many.dots@subdomain.example.company.com';
+        Boolean isValid = AITaskSyncController.isValidEmail(longEmail);
+        Test.stopTest();
+
+        Assert.isTrue(isValid, 'Long valid email should be valid');
+    }
+
+    @isTest
+    static void testIsValidEmail_MinimumValidEmail() {
+        Test.startTest();
+        Boolean isValid = AITaskSyncController.isValidEmail('a@b.co');
+        Test.stopTest();
+
+        Assert.isTrue(isValid, 'Minimum valid email should be valid');
+    }
+
+    @isTest
+    static void testSplitByDelimiters_WithTabs() {
+        Test.startTest();
+        String text = 'word1\tword2\tword3';
+        List<String> words = AITaskSyncController.splitByDelimiters(text);
+        Test.stopTest();
+
+        Assert.areEqual(3, words.size(), 'Should split by tabs');
+        Assert.isTrue(words.contains('word1'), 'Should contain word1');
+    }
+
+    @isTest
+    static void testSplitByDelimiters_WithQuotes() {
+        Test.startTest();
+        String text = '"quoted text" and \'single quoted\'';
+        List<String> words = AITaskSyncController.splitByDelimiters(text);
+        Test.stopTest();
+
+        Assert.isTrue(words.size() > 0, 'Should split by quotes');
+    }
+
+    @isTest
+    static void testSplitByDelimiters_WithBraces() {
+        Test.startTest();
+        String text = '{key:value}[array](params)|pipe';
+        List<String> words = AITaskSyncController.splitByDelimiters(text);
+        Test.stopTest();
+
+        Assert.isTrue(words.size() > 0, 'Should split by braces and brackets');
+        Assert.isTrue(words.contains('key'), 'Should contain key');
+        Assert.isTrue(words.contains('value'), 'Should contain value');
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_WithInvalidEmailFormats() {
+        Test.startTest();
+        String text = 'Invalid: test@, @example.com, test@@example.com, test@example';
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(text);
+        Test.stopTest();
+
+        Assert.areEqual(0, emails.size(), 'Should not extract invalid emails');
+    }
+
+    @isTest
+    static void testBuildMatchCache_WithContactHavingNoEmail() {
+        Contact noEmailContact = new Contact(
+            FirstName = 'No',
+            LastName = 'Email',
+            Email = null
+        );
+        insert noEmailContact;
+
+        Test.startTest();
+        List<AIMicrosoftTaskService.ToDoTask> tasks = new List<AIMicrosoftTaskService.ToDoTask>();
+        
+        AIMicrosoftTaskService.ToDoTask task = new AIMicrosoftTaskService.ToDoTask();
+        task.taskId = 'test-task-1';
+        task.title = 'Task with no matching email';
+        tasks.add(task);
+
+        AITaskSyncController.MatchCache cache = AITaskSyncController.buildMatchCache(tasks);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, cache, 'Cache should not be null');
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_WithUrlsAndEmails() {
+        Test.startTest();
+        String text = 'Visit http://example.com or email contact@example.com';
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(text);
+        Test.stopTest();
+
+        Assert.areEqual(1, emails.size(), 'Should extract only valid email');
+        Assert.isTrue(emails.contains('contact@example.com'), 'Should contain the email');
+    }
+
+    @isTest
+    static void testSplitByDelimiters_ConsecutiveDelimiters() {
+        Test.startTest();
+        String text = 'word1,,,word2;;;word3   word4';
+        List<String> words = AITaskSyncController.splitByDelimiters(text);
+        Test.stopTest();
+
+        Assert.areEqual(4, words.size(), 'Should handle consecutive delimiters');
+    }
+
+    @isTest
+    static void testIsValidEmail_WithNumbers() {
+        Test.startTest();
+        Assert.isTrue(AITaskSyncController.isValidEmail('user123@example456.com'), 'Email with numbers should be valid');
+        Assert.isTrue(AITaskSyncController.isValidEmail('123@456.com'), 'All numbers should be valid');
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_MixedCaseEmails() {
+        Test.startTest();
+        String text = 'Contact: Test@Example.COM and USER@SITE.ORG';
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(text);
+        Test.stopTest();
+
+        Assert.areEqual(2, emails.size(), 'Should extract 2 emails');
+        Assert.isTrue(emails.contains('test@example.com'), 'Should be lowercase');
+        Assert.isTrue(emails.contains('user@site.org'), 'Should be lowercase');
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_WithVeryLongText() {
+        Test.startTest();
+        String longText = 'This is a very long text with email addresses scattered throughout. ';
+        longText += 'Contact user1@example.com for more information. ';
+        longText += 'Also reach out to user2@test.org for details. ';
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(longText);
+        Test.stopTest();
+
+        Assert.isTrue(emails.size() >= 2, 'Should extract at least 2 emails from long text');
+        Assert.isTrue(emails.contains('user1@example.com'), 'Should contain first email');
+        Assert.isTrue(emails.contains('user2@test.org'), 'Should contain second email');
+    }
+
+    @isTest
+    static void testBuildMatchCache_WithMixedContactsAndLeads() {
+        Contact contact1 = [SELECT Id FROM Contact WHERE Email = 'task.contact@tasktest.com' LIMIT 1];
+        Lead lead1 = [SELECT Id FROM Lead WHERE Email = 'task.lead@tasktest.com' LIMIT 1];
+
+        Contact contact2 = new Contact(
+            FirstName = 'Another',
+            LastName = 'Contact',
+            Email = 'another.contact@test.com'
+        );
+        insert contact2;
+
+        Test.startTest();
+        List<AIMicrosoftTaskService.ToDoTask> tasks = new List<AIMicrosoftTaskService.ToDoTask>();
+        
+        AIMicrosoftTaskService.ToDoTask task1 = new AIMicrosoftTaskService.ToDoTask();
+        task1.taskId = 'task-1';
+        task1.title = 'Email task.contact@tasktest.com';
+        task1.body = 'Also contact another.contact@test.com';
+        tasks.add(task1);
+
+        AIMicrosoftTaskService.ToDoTask task2 = new AIMicrosoftTaskService.ToDoTask();
+        task2.taskId = 'task-2';
+        task2.title = 'Lead follow-up';
+        task2.body = 'Contact task.lead@tasktest.com';
+        tasks.add(task2);
+
+        AITaskSyncController.MatchCache cache = AITaskSyncController.buildMatchCache(tasks);
+        Test.stopTest();
+
+        Assert.areEqual(2, cache.emailToContact.size(), 'Should have 2 contacts in cache');
+        Assert.areEqual(1, cache.emailToLead.size(), 'Should have 1 lead in cache');
+    }
+
+    @isTest
+    static void testIsValidEmail_WithHyphensAndUnderscores() {
+        Test.startTest();
+        Assert.isTrue(AITaskSyncController.isValidEmail('test-user@example.com'), 'Email with hyphen should be valid');
+        Assert.isTrue(AITaskSyncController.isValidEmail('test_user@example.com'), 'Email with underscore should be valid');
+        Assert.isTrue(AITaskSyncController.isValidEmail('test.user@sub-domain.example.com'), 'Complex email should be valid');
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testSplitByDelimiters_WithSlashes() {
+        Test.startTest();
+        String text = 'path/to/file\\with\\backslash|pipe';
+        List<String> words = AITaskSyncController.splitByDelimiters(text);
+        Test.stopTest();
+
+        Assert.isTrue(words.size() > 0, 'Should split by slashes and pipes');
+        Assert.isTrue(words.contains('path'), 'Should contain path');
+        Assert.isTrue(words.contains('to'), 'Should contain to');
+        Assert.isTrue(words.contains('file'), 'Should contain file');
+    }
+
+    @isTest
+    static void testExtractEmailsSimple_WithEmailAtStartAndEnd() {
+        Test.startTest();
+        String text = 'start@example.com is the beginning and end@example.org is the end';
+        Set<String> emails = AITaskSyncController.extractEmailsSimple(text);
+        Test.stopTest();
+
+        Assert.areEqual(2, emails.size(), 'Should extract emails at start and end');
+        Assert.isTrue(emails.contains('start@example.com'), 'Should contain start email');
+        Assert.isTrue(emails.contains('end@example.org'), 'Should contain end email');
+    }
+
+    @isTest
+    static void testBuildMatchCache_WithBlankEmailInContact() {
+        Contact blankEmailContact = new Contact(
+            FirstName = 'Blank',
+            LastName = 'Email',
+            Email = ''
+        );
+        insert blankEmailContact;
+
+        Test.startTest();
+        List<AIMicrosoftTaskService.ToDoTask> tasks = new List<AIMicrosoftTaskService.ToDoTask>();
+        
+        AIMicrosoftTaskService.ToDoTask task = new AIMicrosoftTaskService.ToDoTask();
+        task.taskId = 'test-task-1';
+        task.title = 'Task with blank email contact';
+        tasks.add(task);
+
+        AITaskSyncController.MatchCache cache = AITaskSyncController.buildMatchCache(tasks);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, cache, 'Cache should not be null');
+    }
+
+    @isTest
+    static void testMatchTaskWithCache_WithContactMatch() {
+        Contact testContact = [SELECT Id, Name, Email FROM Contact WHERE Email = 'task.contact@tasktest.com' LIMIT 1];
+
+        Test.startTest();
+        AITaskSyncController.MatchCache cache = new AITaskSyncController.MatchCache();
+        cache.emailToContact.put('task.contact@tasktest.com', testContact);
+
+        AIMicrosoftTaskService.ToDoTask toDoTask = new AIMicrosoftTaskService.ToDoTask();
+        toDoTask.taskId = 'test-task-1';
+        toDoTask.title = 'Follow up with task.contact@tasktest.com';
+        toDoTask.body = 'Discuss project';
+
+        Task sfTask = new Task();
+        AITaskSyncController.TaskMatchInfo matchInfo = AITaskSyncController.matchTaskWithCache(toDoTask, sfTask, cache);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, matchInfo, 'Match info should not be null');
+        Assert.areEqual(testContact.Id, matchInfo.whoId, 'Should match contact');
+        Assert.areEqual('Contact', matchInfo.whoType, 'Should be Contact type');
+        Assert.areEqual(95, matchInfo.confidence, 'Should have 95% confidence');
+        Assert.areEqual(testContact.Id, sfTask.WhoId, 'Task WhoId should be set');
+    }
+
+    @isTest
+    static void testMatchTaskWithCache_WithLeadMatch() {
+        Lead testLead = [SELECT Id, Name, Email FROM Lead WHERE Email = 'task.lead@tasktest.com' LIMIT 1];
+
+        Test.startTest();
+        AITaskSyncController.MatchCache cache = new AITaskSyncController.MatchCache();
+        cache.emailToLead.put('task.lead@tasktest.com', testLead);
+
+        AIMicrosoftTaskService.ToDoTask toDoTask = new AIMicrosoftTaskService.ToDoTask();
+        toDoTask.taskId = 'test-task-2';
+        toDoTask.title = 'Call task.lead@tasktest.com';
+        toDoTask.body = 'Lead follow-up';
+
+        Task sfTask = new Task();
+        AITaskSyncController.TaskMatchInfo matchInfo = AITaskSyncController.matchTaskWithCache(toDoTask, sfTask, cache);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, matchInfo, 'Match info should not be null');
+        Assert.areEqual(testLead.Id, matchInfo.whoId, 'Should match lead');
+        Assert.areEqual('Lead', matchInfo.whoType, 'Should be Lead type');
+        Assert.areEqual(testLead.Id, sfTask.WhoId, 'Task WhoId should be set');
+    }
+
+    @isTest
+    static void testMatchTaskWithCache_NoMatch() {
+        Test.startTest();
+        AITaskSyncController.MatchCache cache = new AITaskSyncController.MatchCache();
+
+        AIMicrosoftTaskService.ToDoTask toDoTask = new AIMicrosoftTaskService.ToDoTask();
+        toDoTask.taskId = 'test-task-3';
+        toDoTask.title = 'Generic task without email';
+        toDoTask.body = 'No matching data';
+
+        Task sfTask = new Task();
+        AITaskSyncController.TaskMatchInfo matchInfo = AITaskSyncController.matchTaskWithCache(toDoTask, sfTask, cache);
+        Test.stopTest();
+
+        Assert.areEqual(null, matchInfo, 'Should return null when no match found');
+        Assert.areEqual(null, sfTask.WhoId, 'Task WhoId should not be set');
+    }
+
+    @isTest
+    static void testMatchTaskWithCache_ContactPreferredOverLead() {
+        Contact testContact = [SELECT Id, Name, Email FROM Contact WHERE Email = 'task.contact@tasktest.com' LIMIT 1];
+        Lead testLead = [SELECT Id, Name, Email FROM Lead WHERE Email = 'task.lead@tasktest.com' LIMIT 1];
+
+        Test.startTest();
+        AITaskSyncController.MatchCache cache = new AITaskSyncController.MatchCache();
+        cache.emailToContact.put('task.contact@tasktest.com', testContact);
+        cache.emailToLead.put('task.lead@tasktest.com', testLead);
+
+        AIMicrosoftTaskService.ToDoTask toDoTask = new AIMicrosoftTaskService.ToDoTask();
+        toDoTask.taskId = 'test-task-4';
+        toDoTask.title = 'Meeting with task.contact@tasktest.com and task.lead@tasktest.com';
+        toDoTask.body = 'Both contact and lead';
+
+        Task sfTask = new Task();
+        AITaskSyncController.TaskMatchInfo matchInfo = AITaskSyncController.matchTaskWithCache(toDoTask, sfTask, cache);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, matchInfo, 'Match info should not be null');
+        Assert.areEqual(testContact.Id, matchInfo.whoId, 'Should prefer contact over lead');
+        Assert.areEqual('Contact', matchInfo.whoType, 'Should be Contact type');
+    }
+
+    @isTest
+    static void testMatchTaskWithCache_MultipleContactsInTask() {
+        Contact testContact1 = [SELECT Id, Name, Email FROM Contact WHERE Email = 'task.contact@tasktest.com' LIMIT 1];
+        
+        Contact testContact2 = new Contact(
+            FirstName = 'Second',
+            LastName = 'Contact',
+            Email = 'second.contact@test.com'
+        );
+        insert testContact2;
+
+        Test.startTest();
+        AITaskSyncController.MatchCache cache = new AITaskSyncController.MatchCache();
+        cache.emailToContact.put('task.contact@tasktest.com', testContact1);
+        cache.emailToContact.put('second.contact@test.com', testContact2);
+
+        AIMicrosoftTaskService.ToDoTask toDoTask = new AIMicrosoftTaskService.ToDoTask();
+        toDoTask.taskId = 'test-task-5';
+        toDoTask.title = 'Meeting with task.contact@tasktest.com';
+        toDoTask.body = 'Also invite second.contact@test.com';
+
+        Task sfTask = new Task();
+        AITaskSyncController.TaskMatchInfo matchInfo = AITaskSyncController.matchTaskWithCache(toDoTask, sfTask, cache);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, matchInfo, 'Match info should not be null');
+        Assert.areEqual(2, matchInfo.allMatchedContactIds.size(), 'Should have 2 matched contacts');
+        Assert.areEqual(testContact1.Id, matchInfo.whoId, 'Primary should be first contact');
+    }
+
+    @isTest
+    static void testMatchTaskWithCache_WithNullTitleAndBody() {
+        Test.startTest();
+        AITaskSyncController.MatchCache cache = new AITaskSyncController.MatchCache();
+
+        AIMicrosoftTaskService.ToDoTask toDoTask = new AIMicrosoftTaskService.ToDoTask();
+        toDoTask.taskId = 'test-task-6';
+        toDoTask.title = null;
+        toDoTask.body = null;
+
+        Task sfTask = new Task();
+        AITaskSyncController.TaskMatchInfo matchInfo = AITaskSyncController.matchTaskWithCache(toDoTask, sfTask, cache);
+        Test.stopTest();
+
+        Assert.areEqual(null, matchInfo, 'Should return null with no content');
+    }
+
+    @isTest
+    static void testMatchTaskWithCache_MultipleLeadsInTask() {
+        Lead testLead1 = [SELECT Id, Name, Email FROM Lead WHERE Email = 'task.lead@tasktest.com' LIMIT 1];
+        
+        Lead testLead2 = new Lead(
+            FirstName = 'Second',
+            LastName = 'Lead',
+            Email = 'second.lead@test.com',
+            Company = 'Second Company'
+        );
+        insert testLead2;
+
+        Test.startTest();
+        AITaskSyncController.MatchCache cache = new AITaskSyncController.MatchCache();
+        cache.emailToLead.put('task.lead@tasktest.com', testLead1);
+        cache.emailToLead.put('second.lead@test.com', testLead2);
+
+        AIMicrosoftTaskService.ToDoTask toDoTask = new AIMicrosoftTaskService.ToDoTask();
+        toDoTask.taskId = 'test-task-7';
+        toDoTask.title = 'Follow up with task.lead@tasktest.com';
+        toDoTask.body = 'Also contact second.lead@test.com';
+
+        Task sfTask = new Task();
+        AITaskSyncController.TaskMatchInfo matchInfo = AITaskSyncController.matchTaskWithCache(toDoTask, sfTask, cache);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, matchInfo, 'Match info should not be null');
+        Assert.areEqual(2, matchInfo.allMatchedContactIds.size(), 'Should have 2 matched leads');
+        Assert.areEqual('Lead', matchInfo.whoType, 'Should be Lead type');
     }
 }

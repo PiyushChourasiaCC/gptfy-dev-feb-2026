@@ -13,7 +13,7 @@ public class AIGoogleCalendarServiceTest {
             User__c = UserInfo.getUserId(),
             Access_Token__c = 'test_access_token_12345',
             Refresh_Token__c = 'test_refresh_token_12345',
-            Provider__c = 'GMAIL'
+            Provider__c = 'Gmail'
         );
         insert workspaceUser;
     }

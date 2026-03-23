@@ -4,7 +4,7 @@
  */
 public virtual class AIEmailProviderService {
 
-    public enum ProviderType { MICROSOFT_GRAPH, GMAIL }
+    public enum ProviderType { MICROSOFT_EMAIL, GMAIL_EMAIL }
 
     /**
      * Request object for fetching emails from provider

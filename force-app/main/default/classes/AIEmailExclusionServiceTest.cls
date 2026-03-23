@@ -66,7 +66,7 @@ private class AIEmailExclusionServiceTest {
         email.put('categories', new List<String>{'Promotions'});
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -82,7 +82,7 @@ private class AIEmailExclusionServiceTest {
         email.put('categories', new List<String>{'Work', 'Marketing', 'Important'});
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -130,7 +130,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'sender@mailchimp.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -146,7 +146,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'noreply@example.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -162,7 +162,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'newsletter@example.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -178,7 +178,7 @@ private class AIEmailExclusionServiceTest {
         email.put('sensitivity', 'private');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -194,7 +194,7 @@ private class AIEmailExclusionServiceTest {
         email.put('isEncrypted', true);
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -232,7 +232,7 @@ private class AIEmailExclusionServiceTest {
         email.put('bodyPreview', 'Classified as Confidential - This is a test email');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -247,7 +247,7 @@ private class AIEmailExclusionServiceTest {
         email.put('subject', '[CONFIDENTIAL] Test Email');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -266,7 +266,7 @@ private class AIEmailExclusionServiceTest {
         List<Map<String, Object>> emails = new List<Map<String, Object>>{email};
         AIEmailExclusionService.BatchExclusionResult batchResult = AIEmailExclusionService.filterBatch(
             emails,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'test@mycompany.com'
         );
         Test.stopTest();
@@ -293,7 +293,7 @@ private class AIEmailExclusionServiceTest {
         List<Map<String, Object>> emails = new List<Map<String, Object>>{email};
         AIEmailExclusionService.BatchExclusionResult batchResult = AIEmailExclusionService.filterBatch(
             emails,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'test@internal.org'
         );
         Test.stopTest();
@@ -312,7 +312,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'user@external.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(false, result.excluded, 'Should not be excluded');
@@ -336,7 +336,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'noreply@example.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(false, result.excluded, 'Should not be excluded when marketing filter is disabled');
@@ -359,7 +359,7 @@ private class AIEmailExclusionServiceTest {
         email.put('sensitivity', 'private');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(false, result.excluded, 'Should not be excluded when confidential filter is disabled');
@@ -382,7 +382,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'user@mycompany.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(false, result.excluded, 'Should not be excluded when internal filter is disabled');
@@ -420,7 +420,7 @@ private class AIEmailExclusionServiceTest {
         Test.startTest();
         AIEmailExclusionService.BatchExclusionResult result = AIEmailExclusionService.filterBatch(
             emails,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'test@mycompany.com'
         );
         Test.stopTest();
@@ -448,7 +448,7 @@ private class AIEmailExclusionServiceTest {
         Test.startTest();
         AIEmailExclusionService.BatchExclusionResult result = AIEmailExclusionService.filterBatch(
             emails,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'test@mycompany.com'
         );
         Test.stopTest();
@@ -473,7 +473,7 @@ private class AIEmailExclusionServiceTest {
         Test.startTest();
         AIEmailExclusionService.BatchExclusionResult result = AIEmailExclusionService.filterBatch(
             emails,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'test@mycompany.com'
         );
         Test.stopTest();
@@ -560,7 +560,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'sender@sendgrid.net');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -576,7 +576,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'sender@hubspot.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -592,7 +592,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'user@testdomain.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         // Should not be excluded because testdomain.com is not in internal domains
@@ -609,7 +609,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'newsletter@example.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         // Marketing check comes first, so it should be excluded as Marketing
@@ -628,7 +628,7 @@ private class AIEmailExclusionServiceTest {
         email.put('sensitivity', 'private');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         // Confidential check comes before Internal, so it should be excluded as Confidential
@@ -668,7 +668,7 @@ private class AIEmailExclusionServiceTest {
             email.put('subject', 'Test Email');
             email.put('bodyPreview', bodyPreview);
 
-            AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+            AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
             Assert.areEqual(true, result.excluded, 'Should be excluded for: ' + bodyPreview);
             Assert.areEqual('Confidential', result.category, 'Should be Confidential category');
         }
@@ -689,7 +689,7 @@ private class AIEmailExclusionServiceTest {
             Map<String, Object> email = new Map<String, Object>();
             email.put('subject', subject);
 
-            AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+            AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
             Assert.areEqual(true, result.excluded, 'Should be excluded for: ' + subject);
             Assert.areEqual('Confidential', result.category, 'Should be Confidential category');
         }
@@ -712,7 +712,7 @@ private class AIEmailExclusionServiceTest {
             email.put('subject', 'Test Email');
             email.put('fromAddress', fromAddress);
 
-            AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+            AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
             Assert.areEqual(true, result.excluded, 'Should be excluded for: ' + fromAddress);
             Assert.areEqual('Marketing', result.category, 'Should be Marketing category');
         }
@@ -739,7 +739,7 @@ private class AIEmailExclusionServiceTest {
             email.put('subject', 'Test Email');
             email.put('categories', new List<String>{category});
 
-            AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+            AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
             Assert.areEqual(true, result.excluded, 'Should be excluded for: ' + category);
             Assert.areEqual('Marketing', result.category, 'Should be Marketing category');
         }
@@ -764,7 +764,7 @@ private class AIEmailExclusionServiceTest {
             email.put('subject', 'Test Email');
             email.put('sensitivity', sensitivity);
 
-            AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+            AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
             Assert.areEqual(true, result.excluded, 'Should be excluded for: ' + sensitivity);
             Assert.areEqual('Confidential', result.category, 'Should be Confidential category');
         }
@@ -779,7 +779,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'user@EXAMPLE.COM');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         // Domain should be extracted and lowercased
@@ -795,7 +795,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'invalid-email');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(false, result.excluded, 'Should not be excluded for invalid email');
@@ -813,7 +813,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'noreply@example.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         // Should use default settings (all exclusions enabled)
@@ -841,7 +841,7 @@ private class AIEmailExclusionServiceTest {
         Test.startTest();
         AIEmailExclusionService.BatchExclusionResult result = AIEmailExclusionService.filterBatch(
             emails,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'test@mycompany.com'
         );
         Test.stopTest();
@@ -860,7 +860,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'user@gmail.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -877,7 +877,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'user@yahoo.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -893,7 +893,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'user@outlook.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -909,7 +909,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'user@hotmail.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -925,7 +925,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'user@icloud.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(true, result.excluded, 'Should be excluded');
@@ -950,7 +950,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'user@gmail.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(false, result.excluded, 'Should not be excluded when public domain filter is disabled');
@@ -965,7 +965,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'user@company.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual(false, result.excluded, 'Should not be excluded for non-public domain');
@@ -998,7 +998,7 @@ private class AIEmailExclusionServiceTest {
         Test.startTest();
         AIEmailExclusionService.BatchExclusionResult result = AIEmailExclusionService.filterBatch(
             emails,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'test@company.com'
         );
         Test.stopTest();
@@ -1017,7 +1017,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'newsletter@gmail.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         // Marketing check comes first, so it should be excluded as Marketing
@@ -1058,7 +1058,7 @@ private class AIEmailExclusionServiceTest {
         Test.startTest();
         AIEmailExclusionService.BatchExclusionResult result = AIEmailExclusionService.filterBatch(
             emails,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'test@mycompany.com'
         );
         Test.stopTest();
@@ -1082,7 +1082,7 @@ private class AIEmailExclusionServiceTest {
         email.put('fromAddress', 'user@gmail.com');
 
         Test.startTest();
-        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_GRAPH');
+        AIEmailExclusionService.ExclusionResult result = AIEmailExclusionService.checkExclusion(email, 'MICROSOFT_EMAIL');
         Test.stopTest();
 
         // Should use default settings (public domain exclusion enabled by default)

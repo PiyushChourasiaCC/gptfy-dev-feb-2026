@@ -6,11 +6,11 @@ public with sharing class AIExchangeEmailController {
     public static final String NAMESAPCE = AIConstants.NAMESPACE;
 
     /**
-     * Retrieves emails from configured email provider (Microsoft Graph by default)
+     * Retrieves emails from configured email provider (Microsoft Email by default)
      * @param recordLimit - Number of emails to retrieve (max 100)
      * @param offset - Pagination offset (for offset-based pagination)
      * @param filterCriteria - OData filter string
-     * @param providerType - Optional provider type (defaults to MICROSOFT_GRAPH)
+     * @param providerType - Optional provider type (defaults to MICROSOFT_EMAIL)
      * @param pageToken - Optional page token for cursor-based pagination (Gmail)
      * @return Map containing emails array, total count, hasMore flag, and nextPageToken
      */
@@ -76,7 +76,7 @@ public with sharing class AIExchangeEmailController {
      * Imports selected emails into Salesforce as EmailMessage records
      * @param messageIds - List of provider message IDs
      * @param parentRecordId - ID of parent Salesforce record
-     * @param providerType - Optional provider type (defaults to MICROSOFT_GRAPH)
+     * @param providerType - Optional provider type (defaults to MICROSOFT_EMAIL)
      * @return Map with success/failed counts and error messages
      */
     @AuraEnabled
@@ -100,33 +100,62 @@ public with sharing class AIExchangeEmailController {
                 AIEmailProviderFactory.getProvider(providerType) :
                 AIEmailProviderFactory.getDefaultProvider();
 
+            // Get user email for staging records
+            String userEmail = provider.getUserEmail();
+
             // Fetch full email data from provider using BATCH API
             // This reduces callouts from N to ceil(N/batch_size), respecting governor limits
             List<Map<String, Object>> emailDataList = provider.getEmailsBatch(messageIds);
 
             // Filter out nulls (failed fetches)
             List<Map<String, Object>> validEmailDataList = new List<Map<String, Object>>();
+            Integer failedFetchCount = 0;
             for (Map<String, Object> emailData : emailDataList) {
                 if (emailData != null) {
                     validEmailDataList.add(emailData);
+                } else {
+                    failedFetchCount++;
                 }
             }
 
-            // Apply exclusion filters (marketing, confidential, internal)
-            String userEmail = provider.getUserEmail();
-            AIEmailExclusionService.BatchExclusionResult exclusionResult =
-                AIEmailExclusionService.filterBatch(validEmailDataList, providerType, userEmail);
+            // V2-7889: If all emails failed to fetch from provider API, return error
+            if (validEmailDataList.isEmpty() && failedFetchCount > 0) {
+                return new Map<String, Object>{
+                    'success' => false,
+                    'successCount' => 0,
+                    'failedCount' => failedFetchCount,
+                    'duplicateCount' => 0,
+                    'excludedCount' => 0,
+                    'error' => failedFetchCount + ' email(s) could not be fetched from ' + providerType + '. The email(s) may have been deleted or are no longer accessible.',
+                    'errors' => new List<String>{ 
+                        failedFetchCount + ' email(s) failed to fetch from provider API'
+                    }
+                };
+            }
+
+            // Apply exclusion filters (V2-7889: New filtering service)
+            String excludedDomains = AISyncSettingsService.getExcludedDomains();
+            String excludedLabels = AISyncSettingsService.getExcludedLabelsCategories();
+            
+            AIWorkspaceFilterService.FilterResult filterResult =
+                AIWorkspaceFilterService.applyAllFilters(
+                    validEmailDataList, 
+                    excludedDomains, 
+                    excludedLabels, 
+                    'Email', 
+                    providerType
+                );
 
             // Use only non-excluded emails
-            validEmailDataList = exclusionResult.includedEmails;
-            Integer excludedCount = exclusionResult.excludedEmails.size();
+            validEmailDataList = filterResult.includedRecords;
+            Integer excludedCount = filterResult.excludedCount;
 
             // If all emails were excluded, return early with exclusion info
             if (validEmailDataList.isEmpty() && excludedCount > 0) {
                 List<String> exclusionErrors = new List<String>();
-                Map<String, Integer> exclusionCounts = exclusionResult.exclusionCounts;
-                for (String category : exclusionCounts.keySet()) {
-                    Integer count = exclusionCounts.get(category);
+                Map<String, Integer> exclusionReasons = filterResult.exclusionReasons;
+                for (String category : exclusionReasons.keySet()) {
+                    Integer count = exclusionReasons.get(category);
                     if (count > 0) {
                         exclusionErrors.add(count + ' ' + category.toLowerCase() + ' email(s) excluded by filter settings');
                     }
@@ -157,9 +186,9 @@ public with sharing class AIExchangeEmailController {
 
             // Add exclusion info to errors for UI visibility
             if (excludedCount > 0) {
-                Map<String, Integer> exclusionCounts = exclusionResult.exclusionCounts;
-                for (String category : exclusionCounts.keySet()) {
-                    Integer count = exclusionCounts.get(category);
+                Map<String, Integer> exclusionReasons = filterResult.exclusionReasons;
+                for (String category : exclusionReasons.keySet()) {
+                    Integer count = exclusionReasons.get(category);
                     if (count > 0) {
                         errors.add(count + ' ' + category.toLowerCase() + ' email(s) excluded by filter settings');
                     }
@@ -192,7 +221,7 @@ public with sharing class AIExchangeEmailController {
     
     /**
      * Checks if user is authenticated with the configured email provider
-     * @param providerType - Optional provider type (defaults to MICROSOFT_GRAPH)
+     * @param providerType - Optional provider type (defaults to MICROSOFT_EMAIL)
      * @return Boolean indicating authentication status
      */
     @AuraEnabled
@@ -253,7 +282,7 @@ public with sharing class AIExchangeEmailController {
                 // If still no provider found, fallback to default
                 if (provider == null) {
                     provider = AIEmailProviderFactory.getDefaultProvider();
-                    detectedProviderType = 'MICROSOFT_GRAPH';
+                    detectedProviderType = 'MICROSOFT_EMAIL';
                 }
             } else {
                 provider = AIEmailProviderFactory.getProvider(providerType);
@@ -286,16 +315,16 @@ public with sharing class AIExchangeEmailController {
      * Call this method when the page loads to ensure a fresh token before any API calls.
      * This handles token refresh (DML) BEFORE any callouts happen.
      * 
-     * @param providerType - Provider type: 'MICROSOFT_GRAPH', 'MICROSOFT_EMAIL', 'GMAIL', or 'GMAIL_EMAIL'
+     * @param providerType - Provider type: 'MICROSOFT_EMAIL', 'GMAIL_EMAIL', 'MICROSOFT_CALENDAR', 'GOOGLE_CALENDAR', 'MICROSOFT_TASKS', or 'GOOGLE_TASKS'
      * @return Map with isAuthenticated, userEmail, providerType, and any errors
      */
     @AuraEnabled
     public static Map<String, Object> refreshTokenAndGetDetails(String providerType) {
         try {
             // Convert provider type to AIWorkspaceTokenService format
-            // Handle all provider type formats: GMAIL, GMAIL_EMAIL -> Gmail; MICROSOFT_GRAPH, MICROSOFT_EMAIL -> Outlook
+            // Handle all provider type formats: GMAIL_EMAIL -> Gmail; MICROSOFT_EMAIL, MICROSOFT_CALENDAR, MICROSOFT_TASKS -> Outlook
             String normalizedType = String.isNotBlank(providerType) ? providerType.toUpperCase() : '';
-            String provider = (normalizedType == 'GMAIL' || normalizedType == 'GMAIL_EMAIL') ? 'Gmail' : 'Outlook';
+            String provider = (normalizedType == 'GMAIL_EMAIL' || normalizedType.startsWith('GOOGLE')) ? 'Gmail' : 'Outlook';
             
             // Check if user has a connection
             if (!AIWorkspaceTokenService.hasConnection(provider)) {
@@ -398,7 +427,7 @@ public with sharing class AIExchangeEmailController {
      *
      * @param messageIds - List of provider message IDs to sync
      * @param contextRecordId - Current record context for fallback matching
-     * @param providerType - Email provider type (MICROSOFT_GRAPH, GMAIL, etc.)
+     * @param providerType - Email provider type (MICROSOFT_EMAIL, GMAIL_EMAIL, etc.)
      * @return Map with match results and sync status
      */
     @AuraEnabled
@@ -426,6 +455,9 @@ public with sharing class AIExchangeEmailController {
                 AIEmailProviderFactory.getProvider(providerType) :
                 AIEmailProviderFactory.getDefaultProvider();
 
+            // Get user email for staging records
+            String userEmail = provider.getUserEmail();
+
             // Fetch full email data from provider using BATCH API
             // This reduces callouts from N to ceil(N/batch_size), respecting governor limits
             List<Map<String, Object>> batchResults = provider.getEmailsBatch(messageIds);
@@ -442,21 +474,29 @@ public with sharing class AIExchangeEmailController {
                 throw new IllegalArgumentException('Could not fetch any emails from provider');
             }
 
-            // Apply exclusion filters (marketing, confidential, internal)
-            String userEmail = provider.getUserEmail();
-            AIEmailExclusionService.BatchExclusionResult exclusionResult =
-                AIEmailExclusionService.filterBatch(emailDataList, providerType, userEmail);
+            // Apply exclusion filters (V2-7889: New filtering service)
+            String excludedDomains = AISyncSettingsService.getExcludedDomains();
+            String excludedLabels = AISyncSettingsService.getExcludedLabelsCategories();
+            
+            AIWorkspaceFilterService.FilterResult filterResult =
+                AIWorkspaceFilterService.applyAllFilters(
+                    emailDataList, 
+                    excludedDomains, 
+                    excludedLabels, 
+                    'Email', 
+                    providerType
+                );
 
             // Use only non-excluded emails
-            emailDataList = exclusionResult.includedEmails;
-            Integer excludedByFilterCount = exclusionResult.excludedEmails.size();
+            emailDataList = filterResult.includedRecords;
+            Integer excludedByFilterCount = filterResult.excludedCount;
 
             // If all emails were excluded, return early with exclusion info
             if (emailDataList.isEmpty() && excludedByFilterCount > 0) {
                 List<String> exclusionErrors = new List<String>();
-                Map<String, Integer> exclusionCounts = exclusionResult.exclusionCounts;
-                for (String category : exclusionCounts.keySet()) {
-                    Integer count = exclusionCounts.get(category);
+                Map<String, Integer> exclusionReasons = filterResult.exclusionReasons;
+                for (String category : exclusionReasons.keySet()) {
+                    Integer count = exclusionReasons.get(category);
                     if (count > 0) {
                         exclusionErrors.add(count + ' ' + category.toLowerCase() + ' email(s) excluded by filter settings');
                     }
@@ -495,9 +535,9 @@ public with sharing class AIExchangeEmailController {
 
             // Add exclusion info to errors for UI visibility
             if (excludedByFilterCount > 0) {
-                Map<String, Integer> exclusionCounts = exclusionResult.exclusionCounts;
-                for (String category : exclusionCounts.keySet()) {
-                    Integer count = exclusionCounts.get(category);
+                Map<String, Integer> exclusionReasons = filterResult.exclusionReasons;
+                for (String category : exclusionReasons.keySet()) {
+                    Integer count = exclusionReasons.get(category);
                     if (count > 0) {
                         allErrors.add(count + ' ' + category.toLowerCase() + ' email(s) excluded by filter settings');
                     }
@@ -815,6 +855,9 @@ public with sharing class AIExchangeEmailController {
                 AIEmailProviderFactory.getProvider(providerType) :
                 AIEmailProviderFactory.getDefaultProvider();
             
+            // Get user email for staging records
+            String userEmail = provider.getUserEmail();
+            
             // Fetch full email data from provider
             List<Map<String, Object>> emailDataList = provider.getEmailsBatch(messageIds);
             
@@ -830,13 +873,21 @@ public with sharing class AIExchangeEmailController {
                 throw new IllegalArgumentException('Could not fetch emails from provider');
             }
             
-            // Apply exclusion filters
-            String userEmail = provider.getUserEmail();
-            AIEmailExclusionService.BatchExclusionResult exclusionResult =
-                AIEmailExclusionService.filterBatch(validEmailDataList, providerType, userEmail);
+            // Apply exclusion filters (V2-7889: New filtering service)
+            String excludedDomains = AISyncSettingsService.getExcludedDomains();
+            String excludedLabels = AISyncSettingsService.getExcludedLabelsCategories();
             
-            validEmailDataList = exclusionResult.includedEmails;
-            Integer excludedCount = exclusionResult.excludedEmails.size();
+            AIWorkspaceFilterService.FilterResult filterResult =
+                AIWorkspaceFilterService.applyAllFilters(
+                    validEmailDataList, 
+                    excludedDomains, 
+                    excludedLabels, 
+                    'Email', 
+                    providerType
+                );
+
+            validEmailDataList = filterResult.includedRecords;
+            Integer excludedCount = filterResult.excludedCount;
             
             // Map email data by message ID for lookup (use provider ID, not internetMessageId)
             Map<String, Map<String, Object>> messageIdToEmailData = new Map<String, Map<String, Object>>();
@@ -888,19 +939,19 @@ public with sharing class AIExchangeEmailController {
                     return result;
                 }
                 
-                // Strip inaccessible fields for FLS enforcement
-                SObjectAccessDecision securityDecision = Security.stripInaccessible(AccessType.CREATABLE, stagingRecords);
-                List<AI_Workspace_Staging__c> accessibleRecords = securityDecision.getRecords();
                 
-                Database.SaveResult[] stagingResults = Database.insert(accessibleRecords, false);
-                for (Integer i = 0; i < stagingResults.size(); i++) {
-                    if (stagingResults[i].isSuccess()) {
-                        indexToStagingId.put(i, stagingResults[i].getId());
-                    } else {
-                        // Capture staging insert errors
-                        result.put('failedCount', (Integer) result.get('failedCount') + 1);
-                        for (Database.Error err : stagingResults[i].getErrors()) {
-                            ((List<String>) result.get('errors')).add('Staging record creation failed: ' + err.getMessage());
+                stagingRecords = (List<AI_Workspace_Staging__c>)FLSCheck.getInstance().insertCheck(stagingRecords);
+                if(stagingRecords != null && !stagingRecords.isEmpty()){
+                    Database.SaveResult[] stagingResults = Database.insert(stagingRecords, false);
+                    for (Integer i = 0; i < stagingResults.size(); i++) {
+                        if (stagingResults[i].isSuccess()) {
+                            indexToStagingId.put(i, stagingResults[i].getId());
+                        } else {
+                            // Capture staging insert errors
+                            result.put('failedCount', (Integer) result.get('failedCount') + 1);
+                            for (Database.Error err : stagingResults[i].getErrors()) {
+                                ((List<String>) result.get('errors')).add('Staging record creation failed: ' + err.getMessage());
+                            }
                         }
                     }
                 }
@@ -932,21 +983,21 @@ public with sharing class AIExchangeEmailController {
                     return result;
                 }
                 
-                // Strip inaccessible fields for FLS enforcement
-                SObjectAccessDecision securityDecision = Security.stripInaccessible(AccessType.CREATABLE, emailMessagesToInsert);
-                List<EmailMessage> accessibleEmails = securityDecision.getRecords();
+                emailMessagesToInsert = (List<EmailMessage>)FLSCheck.getInstance().insertCheck(emailMessagesToInsert);
                 
-                Database.SaveResult[] insertResults = Database.insert(accessibleEmails, false);
-                
-                for (Integer i = 0; i < insertResults.size(); i++) {
-                    if (insertResults[i].isSuccess()) {
-                        emailIndexToEmailMessageId.put(i, insertResults[i].getId());
-                        result.put('successCount', (Integer) result.get('successCount') + 1);
-                    } else {
-                        result.put('failedCount', (Integer) result.get('failedCount') + 1);
-                        for (Database.Error err : insertResults[i].getErrors()) {
-                            String errorMsg = 'EmailMessage insert failed: ' + err.getMessage() + ' | Fields: ' + err.getFields();
-                            ((List<String>) result.get('errors')).add(errorMsg);
+                if(emailMessagesToInsert != null && !emailMessagesToInsert.isEmpty()){
+                    Database.SaveResult[] insertResults = Database.insert(emailMessagesToInsert, false);
+                    
+                    for (Integer i = 0; i < insertResults.size(); i++) {
+                        if (insertResults[i].isSuccess()) {
+                            emailIndexToEmailMessageId.put(i, insertResults[i].getId());
+                            result.put('successCount', (Integer) result.get('successCount') + 1);
+                        } else {
+                            result.put('failedCount', (Integer) result.get('failedCount') + 1);
+                            for (Database.Error err : insertResults[i].getErrors()) {
+                                String errorMsg = 'EmailMessage insert failed: ' + err.getMessage() + ' | Fields: ' + err.getFields();
+                                ((List<String>) result.get('errors')).add(errorMsg);
+                            }
                         }
                     }
                 }
@@ -986,13 +1037,13 @@ public with sharing class AIExchangeEmailController {
             
             // Insert relations with FLS enforcement
             if (!relations.isEmpty()) {
+
                 // Check object-level create permission
                 if (Schema.sObjectType.EmailMessageRelation.isCreateable()) {
-                    // Strip inaccessible fields for FLS enforcement
-                    SObjectAccessDecision securityDecision = Security.stripInaccessible(AccessType.CREATABLE, relations);
-                    List<EmailMessageRelation> accessibleRelations = securityDecision.getRecords();
-                    
-                    Database.insert(accessibleRelations, false);
+                    relations = (List<EmailMessageRelation>)FLSCheck.getInstance().insertCheck(relations);
+                    if(relations != null && !relations.isEmpty()){
+                        Database.insert(relations, false);
+                    }
                 }
             }
             
@@ -1005,7 +1056,7 @@ public with sharing class AIExchangeEmailController {
                 
                 if (stagingId != null && emailMessageId != null) {
                     AI_Workspace_Staging__c updateRecord = new AI_Workspace_Staging__c(Id = stagingId);
-                    updateRecord.Status__c = 'Matched';
+                    updateRecord.Status__c = 'Imported';
                     updateRecord.Email_Message__c = String.valueOf(emailMessageId);
                     stagingToUpdate.add(updateRecord);
                 }
@@ -1018,7 +1069,7 @@ public with sharing class AIExchangeEmailController {
                     SObjectAccessDecision securityDecision = Security.stripInaccessible(AccessType.UPDATABLE, stagingToUpdate);
                     List<AI_Workspace_Staging__c> accessibleRecords = securityDecision.getRecords();
                     
-                    Database.update(accessibleRecords, false);
+                    FLSCheck.getInstance().updateDML(stagingToUpdate, false);
                 }
             }
             
@@ -1054,21 +1105,27 @@ public with sharing class AIExchangeEmailController {
         staging.Message_Identifier__c = (String) emailData.get('internetMessageId');
         staging.User__c = UserInfo.getUserId();
         staging.Import_Date__c = DateTime.now();
-        staging.Status__c = 'Pending'; // Will be updated to 'Matched' after processing
-        
-        // Subject
-        staging.Subject__c = truncateString((String) emailData.get('subject'), 4000);
-        
-        // Body content
+        staging.Status__c = 'Staged'; // Will be updated to 'Matched' after processing
+        // V2-7889: Link to workspace user for matching
+        staging.AI_Workspace_User__c = AIWorkspaceStagingCreator.getWorkspaceUserIdPublic(staging.User__c, providerType);
+
+        // Subject (V2-7889: Encrypt for security)
+        Id userId = staging.User__c;
+        String subject = truncateString((String) emailData.get('subject'), 4000);
+        staging.Subject__c = AIWorkspaceEncryptionService.encryptEmailBody(subject, userId);
+
+        // Body content (V2-7889: Encrypt for security)
         Map<String, Object> body = (Map<String, Object>) emailData.get('body');
         if (body != null) {
             String bodyContent = (String) body.get('content');
             String contentType = (String) body.get('contentType');
-            
+
             if (contentType == 'html') {
-                staging.Html_Body__c = truncateString(bodyContent, 32000);
+                String htmlBody = truncateString(bodyContent, 32000);
+                staging.Html_Body__c = AIWorkspaceEncryptionService.encryptEmailBody(htmlBody, userId);
             } else {
-                staging.Text_Body__c = truncateString(bodyContent, 32000);
+                String textBody = truncateString(bodyContent, 32000);
+                staging.Text_Body__c = AIWorkspaceEncryptionService.encryptEmailBody(textBody, userId);
             }
         }
         

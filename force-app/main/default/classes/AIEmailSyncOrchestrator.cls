@@ -26,7 +26,6 @@ public with sharing class AIEmailSyncOrchestrator {
         Boolean taskEnabled = settings != null && settings.Task_Sync_Enabled__c;
 
         if (!emailEnabled && !calendarEnabled && !taskEnabled) {
-            System.debug('Email, calendar, and task sync are all disabled');
             createSystemSyncLog('Skipped', 'Email, calendar, and task sync are all disabled in settings');
             return;
         }
@@ -35,17 +34,9 @@ public with sharing class AIEmailSyncOrchestrator {
         List<Id> userIds = getEligibleUserIds();
 
         if (userIds.isEmpty()) {
-            System.debug('No eligible users for sync');
             createSystemSyncLog('Skipped', 'No eligible users found. Ensure users have AI_Exchange_Email_Access, Exchange_Email_Access_Credential, or Gmail_Integration_Access_Credential permission set assigned.');
             return;
         }
-
-        String syncTypes = '';
-        if (emailEnabled) syncTypes += 'email';
-        if (calendarEnabled) syncTypes += (syncTypes.length() > 0 ? ' + calendar' : 'calendar');
-        if (taskEnabled) syncTypes += (syncTypes.length() > 0 ? ' + task' : 'task');
-
-        System.debug('Starting ' + syncTypes + ' sync for ' + userIds.size() + ' users');
 
         // Start combined queueable chain with first user
         System.enqueueJob(new AIUserSyncQueueable(userIds, 0));
@@ -198,9 +189,8 @@ public with sharing class AIEmailSyncOrchestrator {
                 Error_Message__c = message
             );
             FLSCheck.getInstance().insertDML(new List<AI_Workspace_Sync_Log__c>{log});
-            System.debug('Created system sync log: ' + status + ' - ' + message);
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Failed to create system sync log: ' + e.getMessage());
+            // Ignore
         }
     }
 

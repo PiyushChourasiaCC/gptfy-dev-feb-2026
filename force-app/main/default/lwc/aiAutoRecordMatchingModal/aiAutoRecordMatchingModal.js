@@ -13,7 +13,7 @@ import associateTasksFromModal from '@salesforce/apex/AITaskSyncController.assoc
 export default class AiAutoRecordMatchingModal extends LightningElement {
     // Public API properties
     @api sourceType = 'EMAIL'; // 'EMAIL', 'CALENDAR', or 'TASK'
-    @api providerType; // e.g., 'MICROSOFT_GRAPH', 'GMAIL'
+    @api providerType; // e.g., 'MICROSOFT_EMAIL', 'GMAIL_EMAIL', 'MICROSOFT_TASKS', 'GOOGLE_TASKS', 'MICROSOFT_CALENDAR', 'GOOGLE_CALENDAR'
     @api connectedAccountEmail = ''; // Connected provider account email to exclude from matching
     
     // Private properties
@@ -586,14 +586,9 @@ export default class AiAutoRecordMatchingModal extends LightningElement {
     async updateAccountOptionsForItem(modalItem) {
         const previouslySelectedAccountId = modalItem.selectedAccountId;
         
-        console.log('updateAccountOptionsForItem called - selectedContactIds:', modalItem.selectedContactIds);
-        console.log('smartMatchAccounts:', modalItem.smartMatchAccounts);
-        
         if (modalItem.selectedContactIds.length > 0) {
             try {
-                console.log('Fetching accounts for contacts:', modalItem.selectedContactIds);
                 const accountOptionsFromContacts = await getAccountsForContacts({ contactIds: modalItem.selectedContactIds });
-                console.log('Account options from contacts:', accountOptionsFromContacts);
                 
                 // Create a new array to avoid proxy issues
                 let allAccountOptions = [...accountOptionsFromContacts];
@@ -603,7 +598,6 @@ export default class AiAutoRecordMatchingModal extends LightningElement {
                 
                 // Add domain-matched Accounts from smartMatchAccounts (independent feature)
                 if (modalItem.smartMatchAccounts && modalItem.smartMatchAccounts.length > 0) {
-                    console.log('Adding domain-matched accounts:', modalItem.smartMatchAccounts);
                     modalItem.smartMatchAccounts.forEach(smartAccount => {
                         // Only add if not already in the list (avoid duplicates)
                         const exists = allAccountOptions.some(opt => opt.value === smartAccount.recordId);
@@ -616,8 +610,6 @@ export default class AiAutoRecordMatchingModal extends LightningElement {
                         }
                     });
                 }
-                
-                console.log('Final account options:', allAccountOptions);
                 
                 // Add "None" option at the beginning if there are any accounts
                 if (allAccountOptions.length > 0) {
@@ -645,7 +637,6 @@ export default class AiAutoRecordMatchingModal extends LightningElement {
                     } else {
                         // Previously selected Account is no longer available (Contact was removed)
                         // Reset Account and Opportunity to "-- None --"
-                        console.log('Previously selected Account no longer available, resetting to None');
                         modalItem.selectedAccountId = null;
                         modalItem.selectedAccountName = null;
                         modalItem.selectedOpportunityId = null;
@@ -690,9 +681,7 @@ export default class AiAutoRecordMatchingModal extends LightningElement {
             }
         } else {
             // No selected contacts, but check for domain-matched Accounts
-            console.log('No selected contacts - checking for domain matches');
             if (modalItem.smartMatchAccounts && modalItem.smartMatchAccounts.length > 0) {
-                console.log('Found domain-matched accounts:', modalItem.smartMatchAccounts);
                 // Add domain-matched Accounts
                 const domainMatchedAccounts = modalItem.smartMatchAccounts.map(smartAccount => ({
                     value: smartAccount.recordId,
@@ -704,14 +693,12 @@ export default class AiAutoRecordMatchingModal extends LightningElement {
                     { value: 'none', label: '-- None --', isNone: true },
                     ...domainMatchedAccounts
                 ];
-                console.log('Set accountOptions to:', modalItem.accountOptions);
                 
                 // Check if previously selected Account was a domain match and still available
                 if (previouslySelectedAccountId) {
                     const stillAvailable = domainMatchedAccounts.find(opt => opt.value === previouslySelectedAccountId);
                     if (!stillAvailable) {
                         // Previously selected Account is no longer available, reset
-                        console.log('Previously selected Account not in domain matches, resetting');
                         modalItem.selectedAccountId = null;
                         modalItem.selectedAccountName = null;
                         modalItem.selectedOpportunityId = null;

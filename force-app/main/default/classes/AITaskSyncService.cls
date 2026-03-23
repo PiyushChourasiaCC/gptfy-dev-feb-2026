@@ -156,14 +156,15 @@ public with sharing class AITaskSyncService {
             }
             
             // Import new tasks to staging
-            // Use MICROSOFT_GRAPH for Outlook, GOOGLE for Gmail (matches picklist values)
-            String stagingProviderType = provider == 'Outlook' ? 'MICROSOFT_GRAPH' : 'GOOGLE';
-            AIWorkspaceStagingCreator.StagingResult stagingResult = 
+            // Use MICROSOFT_TASKS for Outlook, GOOGLE_TASKS for Gmail (matches picklist values)
+            String stagingProviderType = provider == 'Outlook' ? 'MICROSOFT_TASKS' : 'GOOGLE_TASKS';
+            // V2-7889: Phase 1 tracking - staging record creation only
+            AIWorkspaceStagingCreator.StagingResult stagingResult =
                 AIWorkspaceStagingCreator.createTaskStagingRecords(dedupeResult.newTasks, stagingProviderType, null, userId, false);
-            result.tasksImported = stagingResult.importedCount;
-            result.tasksMatched = stagingResult.matchedCount;
-            result.tasksUnmatched = stagingResult.unmatchedCount;
-            result.tasksFailed = stagingResult.failedCount;
+            result.tasksMatched = stagingResult.successCount;      // Successfully created staging records
+            result.tasksUnmatched = stagingResult.failedCount;     // Failed to create staging records
+            result.tasksImported = 0;  // Always 0 in Phase 1
+            result.tasksFailed = 0;  // No failures in Phase 1
             result.errors.addAll(stagingResult.errors);
             result.taskIds = stagingResult.stagingRecordIds;
             
@@ -389,12 +390,13 @@ public with sharing class AITaskSyncService {
             syncLog.Processing_Time_Seconds__c =
                 (syncLog.End_Time__c.getTime() - syncLog.Start_Time__c.getTime()) / 1000.0;
 
-            // Use email fields for task counts (repurposing fields)
+            // V2-7889: Phase 1 tracking - use email fields for task counts
             syncLog.Emails_Fetched__c = result.tasksFetched;
-            syncLog.Emails_Imported__c = result.tasksImported;
+            syncLog.Emails_Matched__c = result.tasksMatched;      // Successfully created staging records
             syncLog.Emails_Duplicate__c = result.tasksDuplicate;
-            syncLog.Emails_Matched__c = result.tasksMatched;
-            syncLog.Emails_Unmatched__c = result.tasksUnmatched;
+            syncLog.Emails_Unmatched__c = result.tasksUnmatched;  // Failed to create staging records
+            syncLog.Emails_Excluded__c = 0;  // TODO: Add exclusion tracking for tasks
+            syncLog.Emails_Imported__c = 0;  // Always 0 in Phase 1
 
             // Error handling
             if (String.isNotBlank(errorMessage)) {
@@ -467,10 +469,11 @@ public with sharing class AITaskSyncService {
             // Import new tasks to staging
             AIWorkspaceStagingCreator.StagingResult stagingResult = 
                 AIWorkspaceStagingCreator.createGoogleTaskStagingRecords(dedupeResult.newTasks, userId, 'GOOGLE_TASKS', false);
-            result.tasksImported = stagingResult.importedCount;
-            result.tasksMatched = stagingResult.matchedCount;
-            result.tasksUnmatched = stagingResult.unmatchedCount;
-            result.tasksFailed = stagingResult.failedCount;
+            // V2-7889: Phase 1 tracking
+            result.tasksMatched = stagingResult.successCount;      // Successfully created staging records
+            result.tasksUnmatched = stagingResult.failedCount;     // Failed to create staging records
+            result.tasksImported = 0;  // Always 0 in Phase 1
+            result.tasksFailed = 0;  // No failures in Phase 1
             result.errors.addAll(stagingResult.errors);
             result.taskIds = stagingResult.stagingRecordIds;
 
@@ -589,13 +592,14 @@ public with sharing class AITaskSyncService {
                 return result;
             }
 
-            // Import new tasks to staging (use MICROSOFT_GRAPH to match picklist)
+            // Import new tasks to staging (use MICROSOFT_TASKS to match picklist)
             AIWorkspaceStagingCreator.StagingResult stagingResult = 
-                AIWorkspaceStagingCreator.createTaskStagingRecords(dedupeResult.newTasks, 'MICROSOFT_GRAPH', null, userId, false);
-            result.tasksImported = stagingResult.importedCount;
-            result.tasksMatched = stagingResult.matchedCount;
-            result.tasksUnmatched = stagingResult.unmatchedCount;
-            result.tasksFailed = stagingResult.failedCount;
+                AIWorkspaceStagingCreator.createTaskStagingRecords(dedupeResult.newTasks, 'MICROSOFT_TASKS', null, userId, false);
+            // V2-7889: Phase 1 tracking
+            result.tasksMatched = stagingResult.successCount;      // Successfully created staging records
+            result.tasksUnmatched = stagingResult.failedCount;     // Failed to create staging records
+            result.tasksImported = 0;  // Always 0 in Phase 1
+            result.tasksFailed = 0;  // No failures in Phase 1
             result.errors.addAll(stagingResult.errors);
             result.taskIds = stagingResult.stagingRecordIds;
 
@@ -739,13 +743,13 @@ public with sharing class AITaskSyncService {
 
         // Bulk insert with FLS/OLS enforcement
         if (!tasksToInsert.isEmpty()) {
-            List<Task> accessibleTasks = FLSCheck.getInstance().insertCheck(tasksToInsert);
+            tasksToInsert = (List<Task>)FLSCheck.getInstance().insertCheck(tasksToInsert);
             
-            if (accessibleTasks == null || accessibleTasks.isEmpty()) {
+            if (tasksToInsert == null || tasksToInsert.isEmpty()) {
                 return;
             }
             
-            Database.SaveResult[] saveResults = Database.insert(accessibleTasks, false);
+            Database.SaveResult[] saveResults = Database.insert(tasksToInsert, false);
 
             for (Integer i = 0; i < saveResults.size(); i++) {
                 if (saveResults[i].isSuccess()) {
@@ -927,12 +931,13 @@ public with sharing class AITaskSyncService {
             syncLog.Processing_Time_Seconds__c =
                 (syncLog.End_Time__c.getTime() - syncLog.Start_Time__c.getTime()) / 1000.0;
 
-            // Use email fields for task counts (repurposing fields)
+            // V2-7889: Phase 1 tracking - use email fields for task counts
             syncLog.Emails_Fetched__c = result.tasksFetched;
-            syncLog.Emails_Imported__c = result.tasksImported;
+            syncLog.Emails_Matched__c = result.tasksMatched;      // Successfully created staging records
             syncLog.Emails_Duplicate__c = result.tasksDuplicate;
-            syncLog.Emails_Matched__c = result.tasksMatched;
-            syncLog.Emails_Unmatched__c = result.tasksUnmatched;
+            syncLog.Emails_Unmatched__c = result.tasksUnmatched;  // Failed to create staging records
+            syncLog.Emails_Excluded__c = 0;  // TODO: Add exclusion tracking for tasks
+            syncLog.Emails_Imported__c = 0;  // Always 0 in Phase 1
 
             // Error handling
             if (String.isNotBlank(errorMessage)) {

@@ -42,7 +42,7 @@ private class AIEmailProviderFactoryTest {
     @isTest
     static void testGetProvider_MicrosoftGraph() {
         Test.startTest();
-        AIEmailProviderService provider = AIEmailProviderFactory.getProvider('MICROSOFT_GRAPH');
+        AIEmailProviderService provider = AIEmailProviderFactory.getProvider('MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areNotEqual(null, provider, 'Provider should not be null');
@@ -72,7 +72,7 @@ private class AIEmailProviderFactoryTest {
     @isTest
     static void testGetProvider_Gmail() {
         Test.startTest();
-        AIEmailProviderService provider = AIEmailProviderFactory.getProvider('GMAIL');
+        AIEmailProviderService provider = AIEmailProviderFactory.getProvider('GMAIL_EMAIL');
         Test.stopTest();
 
         Assert.areNotEqual(null, provider, 'Provider should not be null');
@@ -100,10 +100,10 @@ private class AIEmailProviderFactoryTest {
     }
 
     @isTest
-    static void testGetProvider_OutlookWithSpaces() {
+    static void testGetProvider_MicrosoftEmailWithSpaces() {
         // Test normalization of spaces to underscores
         Test.startTest();
-        AIEmailProviderService provider = AIEmailProviderFactory.getProvider('MICROSOFT GRAPH');
+        AIEmailProviderService provider = AIEmailProviderFactory.getProvider('MICROSOFT EMAIL');
         Test.stopTest();
 
         Assert.areNotEqual(null, provider, 'Provider should not be null');
@@ -431,7 +431,7 @@ private class AIEmailProviderFactoryTest {
     @isTest
     static void testNormalizeToWorkspaceUserProvider_MicrosoftGraph() {
         Test.startTest();
-        String normalized = AIEmailProviderFactory.normalizeToWorkspaceUserProvider('MICROSOFT_GRAPH');
+        String normalized = AIEmailProviderFactory.normalizeToWorkspaceUserProvider('MICROSOFT_EMAIL');
         Test.stopTest();
 
         Assert.areEqual('Outlook', normalized, 'Should normalize to Outlook');
@@ -458,7 +458,7 @@ private class AIEmailProviderFactoryTest {
     @isTest
     static void testNormalizeToWorkspaceUserProvider_Gmail() {
         Test.startTest();
-        String normalized = AIEmailProviderFactory.normalizeToWorkspaceUserProvider('GMAIL');
+        String normalized = AIEmailProviderFactory.normalizeToWorkspaceUserProvider('GMAIL_EMAIL');
         Test.stopTest();
 
         Assert.areEqual('Gmail', normalized, 'Should normalize to Gmail');
@@ -476,7 +476,7 @@ private class AIEmailProviderFactoryTest {
     @isTest
     static void testNormalizeToWorkspaceUserProvider_WithSpaces() {
         Test.startTest();
-        String normalized = AIEmailProviderFactory.normalizeToWorkspaceUserProvider('MICROSOFT GRAPH');
+        String normalized = AIEmailProviderFactory.normalizeToWorkspaceUserProvider('MICROSOFT EMAIL');
         Test.stopTest();
 
         Assert.areEqual('Outlook', normalized, 'Should normalize spaces and return Outlook');

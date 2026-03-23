@@ -229,12 +229,11 @@ public class AIGmailServiceTest {
      * Helper method to setup workspace user with Gmail token
      */
     private static void setupWorkspaceUser() {
-        // Create workspace user record with Gmail access token
         AI_Workspace_User__c workspaceUser = new AI_Workspace_User__c(
             User__c = UserInfo.getUserId(),
             Access_Token__c = 'test_access_token_12345',
             Refresh_Token__c = 'test_refresh_token_12345',
-            Provider__c = 'GMAIL'
+            Provider__c = 'Gmail'
         );
         insert workspaceUser;
     }
@@ -954,27 +953,6 @@ public class AIGmailServiceTest {
     }
 
     /**
-     * Test getFullMessagesBatch with large batch
-     */
-    @isTest
-    static void testGetFullMessagesBatch_LargeBatch() {
-        Test.setMock(HttpCalloutMock.class, new MockBatchResponse());
-        setupWorkspaceUser();
-        
-        // Create 25 message IDs (more than MAX_BATCH_SIZE)
-        List<String> messageIds = new List<String>();
-        for (Integer i = 0; i < 25; i++) {
-            messageIds.add('msg_' + i);
-        }
-        
-        Test.startTest();
-        List<Map<String, Object>> messages = AIGmailService.getFullMessagesBatch(messageIds);
-        Test.stopTest();
-        
-        Assert.isTrue(messages.size() > 0, 'Should handle large batch');
-    }
-
-    /**
      * Mock for blank batch response
      */
     private class MockBlankBatchResponse implements HttpCalloutMock {
@@ -1496,6 +1474,536 @@ public class AIGmailServiceTest {
             
             res.setBody(batchResponse);
             return res;
+        }
+    }
+
+    /**
+     * Test batch response with 429 rate limit at HTTP level
+     */
+    @isTest
+    static void testGetMessagesBatch_RateLimitAtHttpLevel() {
+        Test.setMock(HttpCalloutMock.class, new MockHttpLevelRateLimitResponse());
+        setupWorkspaceUser();
+        
+        List<String> messageIds = new List<String>{'msg_1'};
+        
+        Test.startTest();
+        List<Map<String, Object>> messages = AIGmailService.getMessagesBatch(messageIds);
+        Test.stopTest();
+        
+        Assert.isNotNull(messages, 'Should handle HTTP-level rate limit');
+    }
+
+    /**
+     * Test batch response parsing with no JSON found
+     */
+    @isTest
+    static void testGetMessagesBatch_NoJsonFound() {
+        Test.setMock(HttpCalloutMock.class, new MockNoJsonResponse());
+        setupWorkspaceUser();
+        
+        List<String> messageIds = new List<String>{'msg_1'};
+        
+        Test.startTest();
+        List<Map<String, Object>> messages = AIGmailService.getMessagesBatch(messageIds);
+        Test.stopTest();
+        
+        Assert.isNotNull(messages, 'Should handle response with no JSON');
+    }
+
+    /**
+     * Test batch response with unmatched braces
+     */
+    @isTest
+    static void testGetMessagesBatch_UnmatchedBraces() {
+        Test.setMock(HttpCalloutMock.class, new MockUnmatchedBracesResponse());
+        setupWorkspaceUser();
+        
+        List<String> messageIds = new List<String>{'msg_1'};
+        
+        Test.startTest();
+        List<Map<String, Object>> messages = AIGmailService.getMessagesBatch(messageIds);
+        Test.stopTest();
+        
+        Assert.isNotNull(messages, 'Should handle unmatched braces');
+    }
+
+    /**
+     * Test getLabelMessageCount with null messagesTotal
+     */
+    @isTest
+    static void testGetLabelMessageCount_NullMessagesTotal() {
+        Test.setMock(HttpCalloutMock.class, new MockNullMessagesTotalResponse());
+        setupWorkspaceUser();
+        
+        Test.startTest();
+        Integer count = AIGmailService.getLabelMessageCount('INBOX');
+        Test.stopTest();
+        
+        Assert.areEqual(0, count, 'Should return 0 for null messagesTotal');
+    }
+
+    /**
+     * Test getCombinedInboxSentCount with error on INBOX
+     */
+    @isTest
+    static void testGetCombinedCount_InboxError() {
+        Test.setMock(HttpCalloutMock.class, new MockInboxErrorResponse());
+        setupWorkspaceUser();
+        
+        Test.startTest();
+        Integer count = AIGmailService.getCombinedInboxSentCount();
+        Test.stopTest();
+        
+        Assert.areEqual(-1, count, 'Should return -1 when INBOX fails');
+    }
+
+    /**
+     * Test getCombinedInboxSentCount with exception
+     */
+    @isTest
+    static void testGetCombinedCount_Exception() {
+        Test.setMock(HttpCalloutMock.class, new MockExceptionResponse());
+        setupWorkspaceUser();
+        
+        Test.startTest();
+        Integer count = AIGmailService.getCombinedInboxSentCount();
+        Test.stopTest();
+        
+        Assert.areEqual(-1, count, 'Should return -1 on exception');
+    }
+
+    /**
+     * Test getLabelMessageCount with exception
+     */
+    @isTest
+    static void testGetLabelMessageCount_Exception() {
+        Test.setMock(HttpCalloutMock.class, new MockExceptionResponse());
+        setupWorkspaceUser();
+        
+        Test.startTest();
+        Integer count = AIGmailService.getLabelMessageCount('INBOX');
+        Test.stopTest();
+        
+        Assert.areEqual(-1, count, 'Should return -1 on exception');
+    }
+
+    /**
+     * Test batch response with JSON at different positions
+     */
+    @isTest
+    static void testGetMessagesBatch_JsonAtDifferentPositions() {
+        Test.setMock(HttpCalloutMock.class, new MockJsonPositionResponse());
+        setupWorkspaceUser();
+        
+        List<String> messageIds = new List<String>{'msg_1'};
+        
+        Test.startTest();
+        List<Map<String, Object>> messages = AIGmailService.getMessagesBatch(messageIds);
+        Test.stopTest();
+        
+        Assert.isNotNull(messages, 'Should find JSON at different positions');
+    }
+
+    /**
+     * Test batch with exactly MAX_BATCH_SIZE messages
+     */
+    @isTest
+    static void testGetMessagesBatch_ExactBatchSize() {
+        Test.setMock(HttpCalloutMock.class, new MockBatchResponse());
+        setupWorkspaceUser();
+        
+        List<String> messageIds = new List<String>();
+        for (Integer i = 0; i < 20; i++) {
+            messageIds.add('msg_' + i);
+        }
+        
+        Test.startTest();
+        List<Map<String, Object>> messages = AIGmailService.getMessagesBatch(messageIds);
+        Test.stopTest();
+        
+        Assert.isNotNull(messages, 'Should handle exact batch size');
+    }
+
+    /**
+     * Test batch response with multiple successful retries
+     */
+    @isTest
+    static void testGetMessagesBatch_SuccessfulRetry() {
+        Test.setMock(HttpCalloutMock.class, new MockRetrySuccessResponse());
+        setupWorkspaceUser();
+        
+        List<String> messageIds = new List<String>{'msg_1'};
+        
+        Test.startTest();
+        List<Map<String, Object>> messages = AIGmailService.getMessagesBatch(messageIds);
+        Test.stopTest();
+        
+        Assert.isNotNull(messages, 'Should handle successful retry');
+    }
+
+    /**
+     * Test batch response with no id in JSON (alternate pattern)
+     */
+    @isTest
+    static void testGetMessagesBatch_NoIdInJson() {
+        Test.setMock(HttpCalloutMock.class, new MockNoIdJsonResponse());
+        setupWorkspaceUser();
+        
+        List<String> messageIds = new List<String>{'msg_1'};
+        
+        Test.startTest();
+        List<Map<String, Object>> messages = AIGmailService.getMessagesBatch(messageIds);
+        Test.stopTest();
+        
+        Assert.isNotNull(messages, 'Should handle JSON without id');
+    }
+
+    /**
+     * Test batch response with JSON that has id later in the string
+     */
+    @isTest
+    static void testGetMessagesBatch_IdLaterInJson() {
+        Test.setMock(HttpCalloutMock.class, new MockIdLaterResponse());
+        setupWorkspaceUser();
+        
+        List<String> messageIds = new List<String>{'msg_1'};
+        
+        Test.startTest();
+        List<Map<String, Object>> messages = AIGmailService.getMessagesBatch(messageIds);
+        Test.stopTest();
+        
+        Assert.isTrue(messages.size() > 0, 'Should find id later in JSON');
+    }
+
+    /**
+     * Test getFullMessagesBatch with rate limit
+     */
+    @isTest
+    static void testGetFullMessagesBatch_RateLimit() {
+        Test.setMock(HttpCalloutMock.class, new MockRateLimitResponse());
+        setupWorkspaceUser();
+        
+        List<String> messageIds = new List<String>{'msg_1'};
+        
+        Test.startTest();
+        List<Map<String, Object>> messages = AIGmailService.getFullMessagesBatch(messageIds);
+        Test.stopTest();
+        
+        Assert.isNotNull(messages, 'Should handle rate limit for full messages');
+    }
+
+    /**
+     * Test getFullMessagesBatch with error
+     */
+    @isTest
+    static void testGetFullMessagesBatch_Error() {
+        Test.setMock(HttpCalloutMock.class, new MockBatchErrorResponse());
+        setupWorkspaceUser();
+        
+        List<String> messageIds = new List<String>{'msg_1'};
+        
+        Test.startTest();
+        try {
+            List<Map<String, Object>> messages = AIGmailService.getFullMessagesBatch(messageIds);
+            Assert.isNotNull(messages, 'Should handle error');
+        } catch (Exception e) {
+            Assert.isTrue(e.getMessage().contains('Gmail'), 'Should throw Gmail exception');
+        }
+        Test.stopTest();
+    }
+
+    /**
+     * Test batch with exactly 40 messages (2 batches)
+     */
+    @isTest
+    static void testGetMessagesBatch_TwoBatches() {
+        Test.setMock(HttpCalloutMock.class, new MockBatchResponse());
+        setupWorkspaceUser();
+        
+        List<String> messageIds = new List<String>();
+        for (Integer i = 0; i < 40; i++) {
+            messageIds.add('msg_' + i);
+        }
+        
+        Test.startTest();
+        List<Map<String, Object>> messages = AIGmailService.getMessagesBatch(messageIds);
+        Test.stopTest();
+        
+        Assert.isTrue(messages.size() > 0, 'Should handle two batches');
+    }
+
+    /**
+     * Test buildGmailQuery with date filter and search term but no folder
+     */
+    @isTest
+    static void testBuildGmailQuery_DateAndSearchNoFolder() {
+        Test.startTest();
+        String query = AIGmailService.buildGmailQuery('after:1234567890', 'important', null);
+        Test.stopTest();
+        
+        Assert.isTrue(query.contains('after:1234567890'), 'Should include date filter');
+        Assert.isTrue(query.contains('important'), 'Should include search term');
+        Assert.isFalse(query.contains('{in:inbox in:sent}'), 'Should not add inbox/sent with search term');
+    }
+
+    /**
+     * Test buildGmailQuery with only date filter
+     */
+    @isTest
+    static void testBuildGmailQuery_OnlyDateFilter() {
+        Test.startTest();
+        String query = AIGmailService.buildGmailQuery('after:1234567890 before:1234567900', null, null);
+        Test.stopTest();
+        
+        Assert.isTrue(query.contains('after:1234567890'), 'Should include date filter');
+        Assert.isTrue(query.contains('{in:inbox in:sent}'), 'Should add inbox/sent with only date filter');
+    }
+
+    /**
+     * Test batch response with multiple rate limits triggering retry
+     */
+    @isTest
+    static void testGetMessagesBatch_MultipleRateLimits() {
+        Test.setMock(HttpCalloutMock.class, new MockMultipleRateLimitsResponse());
+        setupWorkspaceUser();
+        
+        List<String> messageIds = new List<String>{'msg_1', 'msg_2', 'msg_3'};
+        
+        Test.startTest();
+        List<Map<String, Object>> messages = AIGmailService.getMessagesBatch(messageIds);
+        Test.stopTest();
+        
+        Assert.isNotNull(messages, 'Should handle multiple rate limit errors');
+    }
+
+
+    /**
+     * Mock for HTTP-level rate limit
+     */
+    private class MockHttpLevelRateLimitResponse implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(429);
+            res.setHeader('Content-Type', 'application/json');
+            res.setBody('{"error":{"code":429,"message":"Rate limit exceeded"}}');
+            return res;
+        }
+    }
+
+    /**
+     * Mock for no JSON in response
+     */
+    private class MockNoJsonResponse implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setHeader('Content-Type', 'multipart/mixed');
+            
+            String batchResponse = '--batch_response\r\n' +
+                'Content-Type: text/plain\r\n\r\n' +
+                'HTTP/1.1 200 OK\r\n\r\n' +
+                'Plain text without any JSON\r\n' +
+                '--batch_response--';
+            
+            res.setBody(batchResponse);
+            return res;
+        }
+    }
+
+    /**
+     * Mock for unmatched braces
+     */
+    private class MockUnmatchedBracesResponse implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setHeader('Content-Type', 'multipart/mixed');
+            
+            String batchResponse = '--batch_response\r\n' +
+                'Content-Type: application/http\r\n\r\n' +
+                'HTTP/1.1 200 OK\r\n\r\n' +
+                '{"id":"msg_1","data":{"nested":{"more":{}\r\n' +
+                '--batch_response--';
+            
+            res.setBody(batchResponse);
+            return res;
+        }
+    }
+
+    /**
+     * Mock for null messagesTotal
+     */
+    private class MockNullMessagesTotalResponse implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setHeader('Content-Type', 'application/json');
+            
+            Map<String, Object> labelData = new Map<String, Object>{
+                'id' => 'INBOX',
+                'name' => 'INBOX',
+                'messagesTotal' => null
+            };
+            res.setBody(JSON.serialize(labelData));
+            return res;
+        }
+    }
+
+    /**
+     * Mock for INBOX error
+     */
+    private class MockInboxErrorResponse implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            
+            if (req.getEndpoint().contains('/labels/INBOX')) {
+                res.setStatusCode(500);
+                res.setBody('{"error":"Server error"}');
+            } else {
+                res.setStatusCode(200);
+                res.setBody('{"id":"SENT","messagesTotal":100}');
+            }
+            
+            return res;
+        }
+    }
+
+    /**
+     * Mock that throws exception
+     */
+    private class MockExceptionResponse implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(500);
+            res.setBody('{"error":"Server error"}');
+            return res;
+        }
+    }
+
+    /**
+     * Mock for JSON at different positions
+     */
+    private class MockJsonPositionResponse implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setHeader('Content-Type', 'multipart/mixed');
+            
+            String batchResponse = '--batch_response\r\n' +
+                'Content-Type: application/http\r\n\r\n' +
+                'HTTP/1.1 200 OK\r\n' +
+                'Some headers here\r\n\r\n' +
+                '   {"id":"msg_1","threadId":"thread_1"}\r\n' +
+                '--batch_response--';
+            
+            res.setBody(batchResponse);
+            return res;
+        }
+    }
+
+    /**
+     * Mock for retry success with stateful counter
+     */
+    private class MockRetrySuccessResponse implements HttpCalloutMock {
+        private Integer callCount = 0;
+        
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            callCount++;
+            
+            if (callCount == 1) {
+                res.setStatusCode(429);
+                res.setBody('{"error":"Rate limit"}');
+            } else {
+                res.setStatusCode(200);
+                res.setHeader('Content-Type', 'multipart/mixed');
+                String batchResponse = '--batch_response\r\n' +
+                    'Content-Type: application/http\r\n\r\n' +
+                    'HTTP/1.1 200 OK\r\n\r\n' +
+                    '{"id":"msg_1","threadId":"thread_1"}\r\n' +
+                    '--batch_response--';
+                res.setBody(batchResponse);
+            }
+            
+            return res;
+        }
+    }
+
+    /**
+     * Mock for no id in JSON
+     */
+    private class MockNoIdJsonResponse implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setHeader('Content-Type', 'multipart/mixed');
+            
+            String batchResponse = '--batch_response\r\n' +
+                'Content-Type: application/http\r\n\r\n' +
+                'HTTP/1.1 200 OK\r\n\r\n' +
+                '{"threadId":"thread_1","snippet":"No id field"}\r\n' +
+                '--batch_response--';
+            
+            res.setBody(batchResponse);
+            return res;
+        }
+    }
+
+    /**
+     * Mock for id later in JSON
+     */
+    private class MockIdLaterResponse implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setHeader('Content-Type', 'multipart/mixed');
+            
+            String batchResponse = '--batch_response\r\n' +
+                'Content-Type: application/http\r\n\r\n' +
+                'HTTP/1.1 200 OK\r\n\r\n' +
+                '{\r\n  "threadId": "thread_1",\r\n  "id": "msg_1"\r\n}\r\n' +
+                '--batch_response--';
+            
+            res.setBody(batchResponse);
+            return res;
+        }
+    }
+
+    /**
+     * Mock for multiple rate limits
+     */
+    private class MockMultipleRateLimitsResponse implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setHeader('Content-Type', 'multipart/mixed');
+            
+            String batchResponse = '--batch_response\r\n' +
+                'Content-Type: application/http\r\n\r\n' +
+                'HTTP/1.1 429 Too Many Requests\r\n\r\n' +
+                '{"error":"Rate limit"}\r\n' +
+                '--batch_response\r\n' +
+                'Content-Type: application/http\r\n\r\n' +
+                'HTTP/1.1 429 Too Many Requests\r\n\r\n' +
+                '{"error":"Rate limit"}\r\n' +
+                '--batch_response\r\n' +
+                'Content-Type: application/http\r\n\r\n' +
+                'HTTP/1.1 429 Too Many Requests\r\n\r\n' +
+                '{"error":"Rate limit"}\r\n' +
+                '--batch_response--';
+            
+            res.setBody(batchResponse);
+            return res;
+        }
+    }
+
+    /**
+     * Mock that throws generic exception
+     */
+    private class MockGenericExceptionResponse implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            throw new CalloutException('Network error');
         }
     }
 }

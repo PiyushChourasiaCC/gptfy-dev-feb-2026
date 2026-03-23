@@ -57,7 +57,7 @@ public with sharing class AIMicrosoftCalendarService {
         public CalendarEvent() {
             this.attendees = new List<Attendee>();
             this.linkedRecords = new List<LinkedRecord>();
-            this.provider = 'MICROSOFT_GRAPH';
+            this.provider = 'MICROSOFT_CALENDAR';
             this.isImported = false;
         }
     }
@@ -478,6 +478,29 @@ public with sharing class AIMicrosoftCalendarService {
                 if (att != null) {
                     evt.attendees.add(att);
                 }
+            }
+        }
+        
+        // V2-7889: Fix for cross-platform meetings (Gmail → Outlook)
+        // When viewing a meeting invitation where the organizer is external (e.g., Gmail),
+        // Microsoft Graph may incorrectly show the calendar owner as organizer
+        // Check if the API organizer is in the attendees list - if so, swap them
+        if (String.isNotBlank(evt.organizerEmail) && evt.attendees != null && evt.attendees.size() == 1) {
+            // Single attendee scenario: if organizer is calendar owner and there's one attendee,
+            // the attendee is likely the real organizer (cross-platform invite)
+            Attendee singleAttendee = evt.attendees[0];
+            if (String.isNotBlank(singleAttendee.email) && 
+                !singleAttendee.email.equalsIgnoreCase(evt.organizerEmail)) {
+                // Swap: attendee becomes organizer, organizer becomes attendee
+                String tempEmail = evt.organizerEmail;
+                String tempName = evt.organizerName;
+                
+                evt.organizerEmail = singleAttendee.email;
+                evt.organizerName = singleAttendee.name;
+                
+                singleAttendee.email = tempEmail;
+                singleAttendee.name = tempName;
+                singleAttendee.isOrganizer = false;
             }
         }
 

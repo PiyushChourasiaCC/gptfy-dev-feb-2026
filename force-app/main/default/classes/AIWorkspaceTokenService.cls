@@ -531,6 +531,8 @@ public with sharing class AIWorkspaceTokenService {
         workspaceUser.Access_Token__c = encryptToken(accessToken, userId);
         workspaceUser.Refresh_Token__c = encryptToken(refreshToken, userId);
         workspaceUser.Auto_Sync_Enabled__c = true; // Enable auto sync on (re)authentication
+        // V2-7889: Store the service user email for matching staging records
+        workspaceUser.Service_User_Email__c = userEmail;
         
         // Use FLSCheck for security enforcement
         List<AI_Workspace_User__c> usersToUpsert = new List<AI_Workspace_User__c>{ workspaceUser };

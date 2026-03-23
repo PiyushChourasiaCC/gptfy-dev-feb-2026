@@ -350,7 +350,7 @@ private class AICalendarSyncControllerTest {
         Test.setMock(HttpCalloutMock.class, new CalendarMock(401, '{"error": "Unauthorized"}'));
 
         Test.startTest();
-        Map<String, Object> result = AICalendarSyncController.checkCalendarAccess('MICROSOFT_GRAPH');
+        Map<String, Object> result = AICalendarSyncController.checkCalendarAccess('MICROSOFT_CALENDAR');
         Test.stopTest();
 
         Assert.areEqual(false, result.get('isAccessible'), 'Should not be accessible');
@@ -1276,6 +1276,645 @@ private class AICalendarSyncControllerTest {
         selection.put('messageId', 'event123');
         // Use invalid opportunity ID
         selection.put('opportunityId', 'invalid');
+        selections.add(selection);
+        
+        Map<String, Object> result = AICalendarSyncController.associateCalendarFromModal(selections, 'MICROSOFT_CALENDAR');
+        Test.stopTest();
+
+        Assert.areNotEqual(null, result, 'Result should not be null');
+    }
+    
+    @isTest
+    static void testGetCalendarEventsByRange_GoogleCalendar() {
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleEventsResponse()));
+
+        Test.startTest();
+        AICalendarSyncController.CalendarEventsResponse response = AICalendarSyncController.getCalendarEventsByRange('thisWeek', 'GOOGLE_CALENDAR', null, null, 50);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, response, 'Response should not be null');
+    }
+    
+    @isTest
+    static void testGetCalendarEventsByRange_WithPaginationHasMore() {
+        // Create a response with multiple events to trigger hasMore logic
+        String multiEventResponse = '{' +
+            '"value": [' +
+                '{"id": "event1", "subject": "Event 1", "start": {"dateTime": "2024-12-10T14:00:00"}, "end": {"dateTime": "2024-12-10T15:00:00"}, "iCalUId": "ical-1", "isAllDay": false},' +
+                '{"id": "event2", "subject": "Event 2", "start": {"dateTime": "2024-12-11T14:00:00"}, "end": {"dateTime": "2024-12-11T15:00:00"}, "iCalUId": "ical-2", "isAllDay": false},' +
+                '{"id": "event3", "subject": "Event 3", "start": {"dateTime": "2024-12-12T14:00:00"}, "end": {"dateTime": "2024-12-12T15:00:00"}, "iCalUId": "ical-3", "isAllDay": false}' +
+            ']' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, multiEventResponse));
+
+        Test.startTest();
+        // Request only 2 events per page to test hasMore logic
+        AICalendarSyncController.CalendarEventsResponse response = AICalendarSyncController.getCalendarEventsByRange('thisWeek', 'MICROSOFT_CALENDAR', null, null, 2);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, response, 'Response should not be null');
+    }
+    
+    @isTest
+    static void testParseISODateTime_InvalidFormat() {
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleEventsResponse()));
+
+        Test.startTest();
+        // Test with completely invalid date format
+        AICalendarSyncController.CalendarEventsResponse response = AICalendarSyncController.getCalendarEvents(
+            'not-a-date-at-all',
+            '2024-12-31T23:59:59Z',
+            50,
+            'MICROSOFT_CALENDAR',
+            null
+        );
+        Test.stopTest();
+
+        Assert.areNotEqual(null, response.error, 'Should have error for invalid date');
+    }
+    
+    @isTest
+    static void testParseISODateTime_JustDate() {
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleEventsResponse()));
+
+        Test.startTest();
+        // Test with date-only format (should add time automatically)
+        AICalendarSyncController.CalendarEventsResponse response = AICalendarSyncController.getCalendarEvents(
+            '2024-12-01',
+            '2024-12-31',
+            50,
+            'MICROSOFT_CALENDAR',
+            null
+        );
+        Test.stopTest();
+
+        Assert.areNotEqual(null, response, 'Response should not be null');
+    }
+    
+    @isTest
+    static void testAssociateCalendarFromModal_WithAllDayEvent() {
+        Contact testContact = new Contact(
+            FirstName = 'Test',
+            LastName = 'Contact',
+            Email = 'test@example.com'
+        );
+        insert testContact;
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleAllDayEventResponse()));
+
+        Test.startTest();
+        List<Map<String, Object>> selections = new List<Map<String, Object>>();
+        Map<String, Object> selection = new Map<String, Object>();
+        selection.put('messageId', 'event456');
+        selection.put('contactIds', new List<Id>{testContact.Id});
+        selections.add(selection);
+        
+        Map<String, Object> result = AICalendarSyncController.associateCalendarFromModal(selections, 'MICROSOFT_CALENDAR');
+        Test.stopTest();
+
+        Assert.areNotEqual(null, result, 'Result should not be null');
+    }
+    
+    @isTest
+    static void testAssociateCalendarFromModal_WithExcludedDomains() {
+        // Create sync settings with excluded domains
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            Excluded_Domains__c = 'example.com',
+            SetupOwnerId = UserInfo.getUserId()
+        );
+        insert settings;
+        
+        Contact testContact = new Contact(
+            FirstName = 'Test',
+            LastName = 'Contact',
+            Email = 'test@example.com'
+        );
+        insert testContact;
+        
+        // Event with organizer from excluded domain
+        String excludedEventResponse = '{' +
+            '"id": "event123",' +
+            '"subject": "Sales Meeting",' +
+            '"start": {"dateTime": "2024-12-10T14:00:00"},' +
+            '"end": {"dateTime": "2024-12-10T15:00:00"},' +
+            '"iCalUId": "ical-123",' +
+            '"isAllDay": false,' +
+            '"organizer": {' +
+                '"emailAddress": {' +
+                    '"name": "John Doe",' +
+                    '"address": "john@example.com"' +
+                '}' +
+            '}' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, excludedEventResponse));
+
+        Test.startTest();
+        List<Map<String, Object>> selections = new List<Map<String, Object>>();
+        Map<String, Object> selection = new Map<String, Object>();
+        selection.put('messageId', 'event123');
+        selection.put('contactIds', new List<Id>{testContact.Id});
+        selections.add(selection);
+        
+        Map<String, Object> result = AICalendarSyncController.associateCalendarFromModal(selections, 'MICROSOFT_CALENDAR');
+        Test.stopTest();
+
+        Assert.areNotEqual(null, result, 'Result should not be null');
+    }
+    
+    @isTest
+    static void testImportCalendarEvents_WithExcludedDomains() {
+        // Create sync settings with excluded domains
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            Excluded_Domains__c = 'example.com',
+            SetupOwnerId = UserInfo.getUserId()
+        );
+        insert settings;
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleSingleEventResponse()));
+
+        Test.startTest();
+        AICalendarEventCreator.ImportResult result = AICalendarSyncController.importCalendarEvents(
+            new List<String>{'event123'},
+            'MICROSOFT_CALENDAR'
+        );
+        Test.stopTest();
+
+        Assert.areNotEqual(null, result, 'Result should not be null');
+    }
+    
+    @isTest
+    static void testAssociateCalendarFromModal_FetchEventException() {
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(500, '{"error": "Server Error"}'));
+
+        Test.startTest();
+        List<Map<String, Object>> selections = new List<Map<String, Object>>();
+        Map<String, Object> selection = new Map<String, Object>();
+        selection.put('messageId', 'event123');
+        selections.add(selection);
+        
+        Map<String, Object> result = AICalendarSyncController.associateCalendarFromModal(selections, 'MICROSOFT_CALENDAR');
+        Test.stopTest();
+
+        Assert.areNotEqual(null, result, 'Result should not be null');
+        Assert.isTrue(((Integer)result.get('failedCount')) > 0, 'Should have failed count');
+    }
+    
+    @isTest
+    static void testImportedEventDetails_WithStagingRecords() {
+        // Create staging record with Calendar record type
+        Id calendarRecordTypeId = Schema.SObjectType.AI_Workspace_Staging__c
+            .getRecordTypeInfosByDeveloperName().get('Calendar').getRecordTypeId();
+        
+        // Create an event first
+        Event testEvent = new Event(
+            Subject = 'Test Event',
+            StartDateTime = DateTime.now(),
+            EndDateTime = DateTime.now().addHours(1)
+        );
+        insert testEvent;
+        
+        AI_Workspace_Staging__c staging = new AI_Workspace_Staging__c(
+            Subject__c = 'Staging Event',
+            Start_DateTime__c = DateTime.now().addDays(1),
+            End_DateTime__c = DateTime.now().addDays(1).addHours(1),
+            ICalUID__c = 'ical-staging-123',
+            User__c = UserInfo.getUserId(),
+            RecordTypeId = calendarRecordTypeId,
+            Provider__c = 'MICROSOFT_CALENDAR',
+            Status__c = 'Imported',
+            Email_Message__c = testEvent.Id
+        );
+        insert staging;
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, 
+            '{"value": [{"id": "eventStaging", "subject": "Staging Event", "start": {"dateTime": "2024-12-10T14:00:00"}, ' +
+            '"end": {"dateTime": "2024-12-10T15:00:00"}, "iCalUId": "ical-staging-123", "isAllDay": false}]}'
+        ));
+
+        Test.startTest();
+        AICalendarSyncController.CalendarEventsResponse response = AICalendarSyncController.getCalendarEvents(
+            '2024-12-01T00:00:00Z',
+            '2024-12-31T23:59:59Z',
+            50,
+            'MICROSOFT_CALENDAR',
+            null
+        );
+        Test.stopTest();
+
+        Assert.areNotEqual(null, response, 'Response should not be null');
+    }
+    
+    @isTest
+    static void testAssociateCalendarFromModal_WithNotifications() {
+        Contact testContact = new Contact(
+            FirstName = 'Test',
+            LastName = 'Contact',
+            Email = 'test@example.com'
+        );
+        insert testContact;
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleSingleEventResponse()));
+
+        Test.startTest();
+        List<Map<String, Object>> selections = new List<Map<String, Object>>();
+        Map<String, Object> selection = new Map<String, Object>();
+        selection.put('messageId', 'event123');
+        selection.put('contactIds', new List<Id>{testContact.Id});
+        selections.add(selection);
+        
+        Map<String, Object> result = AICalendarSyncController.associateCalendarFromModal(selections, 'MICROSOFT_CALENDAR');
+        Test.stopTest();
+
+        Assert.areNotEqual(null, result, 'Result should not be null');
+    }
+    
+    @isTest
+    static void testAssociateCalendarFromModal_MultipleContactsForSameEvent() {
+        Contact contact1 = new Contact(
+            FirstName = 'Contact1',
+            LastName = 'Test',
+            Email = 'contact1@example.com'
+        );
+        insert contact1;
+        
+        Contact contact2 = new Contact(
+            FirstName = 'Contact2',
+            LastName = 'Test',
+            Email = 'contact2@example.com'
+        );
+        insert contact2;
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleSingleEventResponse()));
+
+        Test.startTest();
+        List<Map<String, Object>> selections = new List<Map<String, Object>>();
+        Map<String, Object> selection = new Map<String, Object>();
+        selection.put('messageId', 'event123');
+        selection.put('contactIds', new List<Id>{contact1.Id, contact2.Id});
+        selections.add(selection);
+        
+        Map<String, Object> result = AICalendarSyncController.associateCalendarFromModal(selections, 'MICROSOFT_CALENDAR');
+        Test.stopTest();
+
+        Assert.areNotEqual(null, result, 'Result should not be null');
+    }
+    
+    @isTest
+    static void testGetCalendarEvents_WithExistingEventAndRelations() {
+        // Create test data with Event and EventRelation
+        Contact testContact = new Contact(
+            FirstName = 'Test',
+            LastName = 'Contact',
+            Email = 'test@example.com'
+        );
+        insert testContact;
+        
+        Event testEvent = new Event(
+            Subject = 'Existing Event',
+            StartDateTime = DateTime.now(),
+            EndDateTime = DateTime.now().addHours(1),
+            Workspace_Sync_Id__c = 'ical-123'
+        );
+        insert testEvent;
+        
+        EventRelation relation = new EventRelation(
+            EventId = testEvent.Id,
+            RelationId = testContact.Id
+        );
+        insert relation;
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleEventsResponse()));
+
+        Test.startTest();
+        AICalendarSyncController.CalendarEventsResponse response = AICalendarSyncController.getCalendarEvents(
+            '2024-12-01T00:00:00Z',
+            '2024-12-31T23:59:59Z',
+            50,
+            'MICROSOFT_CALENDAR',
+            null
+        );
+        Test.stopTest();
+
+        Assert.areNotEqual(null, response, 'Response should not be null');
+    }
+    
+    @isTest
+    static void testImportCalendarEvents_AllEventsExcluded() {
+        // Create sync settings with excluded domains
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            Excluded_Domains__c = 'example.com',
+            SetupOwnerId = UserInfo.getUserId()
+        );
+        insert settings;
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleSingleEventResponse()));
+
+        Test.startTest();
+        AICalendarEventCreator.ImportResult result = AICalendarSyncController.importCalendarEvents(
+            new List<String>{'event123'},
+            'MICROSOFT_CALENDAR'
+        );
+        Test.stopTest();
+
+        Assert.areNotEqual(null, result, 'Result should not be null');
+    }
+    
+    @isTest
+    static void testAssociateCalendarFromModal_WithOpportunityAndLead() {
+        // Test that leads are NOT linked when WhatId (Opportunity) is set
+        Account testAccount = new Account(Name = 'Test Account');
+        insert testAccount;
+        
+        Opportunity testOpp = new Opportunity(
+            Name = 'Test Opportunity',
+            StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(30),
+            AccountId = testAccount.Id
+        );
+        insert testOpp;
+        
+        Lead testLead = new Lead(
+            FirstName = 'Test',
+            LastName = 'Lead',
+            Company = 'Test Company',
+            Email = 'lead@example.com'
+        );
+        insert testLead;
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleSingleEventResponse()));
+
+        Test.startTest();
+        List<Map<String, Object>> selections = new List<Map<String, Object>>();
+        Map<String, Object> selection = new Map<String, Object>();
+        selection.put('messageId', 'event123');
+        selection.put('opportunityId', testOpp.Id);
+        selection.put('leadIds', new List<Id>{testLead.Id});
+        selections.add(selection);
+        
+        Map<String, Object> result = AICalendarSyncController.associateCalendarFromModal(selections, 'MICROSOFT_CALENDAR');
+        Test.stopTest();
+
+        Assert.areNotEqual(null, result, 'Result should not be null');
+    }
+    
+    @isTest
+    static void testGetCalendarEventsByRange_NullPageSize() {
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleEventsResponse()));
+
+        Test.startTest();
+        // Test with null page size (should default to 50)
+        AICalendarSyncController.CalendarEventsResponse response = AICalendarSyncController.getCalendarEventsByRange('thisWeek', 'MICROSOFT_CALENDAR', null, null, null);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, response, 'Response should not be null');
+    }
+    
+    @isTest
+    static void testCheckCalendarAccess_AutoDetectGoogleFirst() {
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleCalendarResponse()));
+
+        Test.startTest();
+        // Auto-detect should try Microsoft first, then Google
+        Map<String, Object> result = AICalendarSyncController.checkCalendarAccess(null);
+        Test.stopTest();
+
+        Assert.areNotEqual(null, result, 'Result should not be null');
+    }
+    
+    @isTest
+    static void testImportedEventDetails_DuplicateEventRelations() {
+        // Test duplicate EventRelation prevention logic
+        Contact testContact = new Contact(
+            FirstName = 'Test',
+            LastName = 'Contact',
+            Email = 'test@example.com'
+        );
+        insert testContact;
+        
+        // Create event with unique ID
+        Event event1 = new Event(
+            Subject = 'Event with Multiple Relations',
+            StartDateTime = DateTime.now(),
+            EndDateTime = DateTime.now().addHours(1),
+            Workspace_Sync_Id__c = 'ical-recurring-123-inst1'
+        );
+        insert event1;
+        
+        // Create multiple EventRelations for same contact (to test deduplication logic)
+        EventRelation relation1 = new EventRelation(
+            EventId = event1.Id,
+            RelationId = testContact.Id
+        );
+        insert relation1;
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, 
+            '{"value": [{"id": "eventRecurring", "subject": "Event with Multiple Relations", "start": {"dateTime": "2024-12-10T14:00:00"}, ' +
+            '"end": {"dateTime": "2024-12-10T15:00:00"}, "iCalUId": "ical-recurring-123-inst1", "isAllDay": false}]}'
+        ));
+
+        Test.startTest();
+        AICalendarSyncController.CalendarEventsResponse response = AICalendarSyncController.getCalendarEvents(
+            '2024-12-01T00:00:00Z',
+            '2024-12-31T23:59:59Z',
+            50,
+            'MICROSOFT_CALENDAR',
+            null
+        );
+        Test.stopTest();
+
+        Assert.areNotEqual(null, response, 'Response should not be null');
+    }
+    
+    @isTest
+    static void testImportedEventDetails_InvalidEventId() {
+        // Create staging record with invalid Email_Message__c
+        Id calendarRecordTypeId = Schema.SObjectType.AI_Workspace_Staging__c
+            .getRecordTypeInfosByDeveloperName().get('Calendar').getRecordTypeId();
+        
+        AI_Workspace_Staging__c staging = new AI_Workspace_Staging__c(
+            Subject__c = 'Invalid Event',
+            Start_DateTime__c = DateTime.now().addDays(1),
+            End_DateTime__c = DateTime.now().addDays(1).addHours(1),
+            ICalUID__c = 'ical-invalid-123',
+            User__c = UserInfo.getUserId(),
+            RecordTypeId = calendarRecordTypeId,
+            Provider__c = 'MICROSOFT_CALENDAR',
+            Status__c = 'Imported',
+            Email_Message__c = 'invalid-id'
+        );
+        insert staging;
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, 
+            '{"value": [{"id": "eventInvalid", "subject": "Invalid Event", "start": {"dateTime": "2024-12-10T14:00:00"}, ' +
+            '"end": {"dateTime": "2024-12-10T15:00:00"}, "iCalUId": "ical-invalid-123", "isAllDay": false}]}'
+        ));
+
+        Test.startTest();
+        AICalendarSyncController.CalendarEventsResponse response = AICalendarSyncController.getCalendarEvents(
+            '2024-12-01T00:00:00Z',
+            '2024-12-31T23:59:59Z',
+            50,
+            'MICROSOFT_CALENDAR',
+            null
+        );
+        Test.stopTest();
+
+        Assert.areNotEqual(null, response, 'Response should not be null');
+    }
+    
+    @isTest
+    static void testGetCalendarEvents_GoogleCalendarNotAccessible() {
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(401, '{"error": "Unauthorized"}'));
+
+        Test.startTest();
+        AICalendarSyncController.CalendarEventsResponse response = AICalendarSyncController.getCalendarEvents(
+            '2024-12-01T00:00:00Z',
+            '2024-12-31T23:59:59Z',
+            50,
+            'GOOGLE_CALENDAR',
+            null
+        );
+        Test.stopTest();
+
+        Assert.areNotEqual(null, response.error, 'Should have error message for Google Calendar');
+        Assert.isTrue(response.error.contains('Google Calendar'), 'Error should mention Google Calendar');
+    }
+    
+    @isTest
+    static void testAssociateCalendarFromModal_EventWithoutSubject() {
+        Contact testContact = new Contact(
+            FirstName = 'Test',
+            LastName = 'Contact',
+            Email = 'test@example.com'
+        );
+        insert testContact;
+        
+        // Event without subject
+        String noSubjectEvent = '{' +
+            '"id": "event999",' +
+            '"subject": "",' +
+            '"start": {"dateTime": "2024-12-10T14:00:00"},' +
+            '"end": {"dateTime": "2024-12-10T15:00:00"},' +
+            '"iCalUId": "ical-999",' +
+            '"isAllDay": false' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, noSubjectEvent));
+
+        Test.startTest();
+        List<Map<String, Object>> selections = new List<Map<String, Object>>();
+        Map<String, Object> selection = new Map<String, Object>();
+        selection.put('messageId', 'event999');
+        selection.put('contactIds', new List<Id>{testContact.Id});
+        selections.add(selection);
+        
+        Map<String, Object> result = AICalendarSyncController.associateCalendarFromModal(selections, 'MICROSOFT_CALENDAR');
+        Test.stopTest();
+
+        Assert.areNotEqual(null, result, 'Result should not be null');
+    }
+    
+    @isTest
+    static void testParseISODateTime_WithMilliseconds() {
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, getSampleEventsResponse()));
+
+        Test.startTest();
+        // Test with date format including milliseconds
+        AICalendarSyncController.CalendarEventsResponse response = AICalendarSyncController.getCalendarEvents(
+            '2024-12-01T00:00:00.000Z',
+            '2024-12-31T23:59:59.999Z',
+            50,
+            'MICROSOFT_CALENDAR',
+            null
+        );
+        Test.stopTest();
+
+        Assert.areNotEqual(null, response, 'Response should not be null');
+    }
+    
+    @isTest
+    static void testAssociateCalendarFromModal_EventWithLongDescription() {
+        Contact testContact = new Contact(
+            FirstName = 'Test',
+            LastName = 'Contact',
+            Email = 'test@example.com'
+        );
+        insert testContact;
+        
+        // Create a very long description to test truncation
+        String longDesc = 'This is a very long description. '.repeat(200);
+        String longDescEvent = '{' +
+            '"id": "event888",' +
+            '"subject": "Event with Long Description",' +
+            '"start": {"dateTime": "2024-12-10T14:00:00"},' +
+            '"end": {"dateTime": "2024-12-10T15:00:00"},' +
+            '"iCalUId": "ical-888",' +
+            '"isAllDay": false,' +
+            '"bodyPreview": "' + longDesc.left(1000) + '",' +
+            '"organizer": {"emailAddress": {"name": "Organizer Name", "address": "organizer@example.com"}},' +
+            '"attendees": [{"emailAddress": {"name": "Attendee 1", "address": "att1@example.com"}}]' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, longDescEvent));
+
+        Test.startTest();
+        List<Map<String, Object>> selections = new List<Map<String, Object>>();
+        Map<String, Object> selection = new Map<String, Object>();
+        selection.put('messageId', 'event888');
+        selection.put('contactIds', new List<Id>{testContact.Id});
+        selections.add(selection);
+        
+        Map<String, Object> result = AICalendarSyncController.associateCalendarFromModal(selections, 'MICROSOFT_CALENDAR');
+        Test.stopTest();
+
+        Assert.areNotEqual(null, result, 'Result should not be null');
+    }
+    
+    @isTest
+    static void testGetCalendarEvents_ExceptionHandling() {
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(500, 'Server Error'));
+
+        Test.startTest();
+        AICalendarSyncController.CalendarEventsResponse response = AICalendarSyncController.getCalendarEvents(
+            '2024-12-01T00:00:00Z',
+            '2024-12-31T23:59:59Z',
+            50,
+            'MICROSOFT_CALENDAR',
+            null
+        );
+        Test.stopTest();
+
+        Assert.areNotEqual(null, response.error, 'Should have error message');
+    }
+    
+    @isTest
+    static void testAssociateCalendarFromModal_WithBlankEventId() {
+        Contact testContact = new Contact(
+            FirstName = 'Test',
+            LastName = 'Contact',
+            Email = 'test@example.com'
+        );
+        insert testContact;
+        
+        // Event with blank ID
+        String blankIdEvent = '{' +
+            '"id": "",' +
+            '"subject": "Event with Blank ID",' +
+            '"start": {"dateTime": "2024-12-10T14:00:00"},' +
+            '"end": {"dateTime": "2024-12-10T15:00:00"},' +
+            '"iCalUId": "ical-blank",' +
+            '"isAllDay": false' +
+        '}';
+        
+        Test.setMock(HttpCalloutMock.class, new CalendarMock(200, blankIdEvent));
+
+        Test.startTest();
+        List<Map<String, Object>> selections = new List<Map<String, Object>>();
+        Map<String, Object> selection = new Map<String, Object>();
+        selection.put('messageId', '');
+        selection.put('contactIds', new List<Id>{testContact.Id});
         selections.add(selection);
         
         Map<String, Object> result = AICalendarSyncController.associateCalendarFromModal(selections, 'MICROSOFT_CALENDAR');

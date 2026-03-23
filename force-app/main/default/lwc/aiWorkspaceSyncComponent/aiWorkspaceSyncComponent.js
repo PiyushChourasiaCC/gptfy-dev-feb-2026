@@ -1,16 +1,70 @@
 import { LightningElement, track } from 'lwc';
 import gptfyLogo from '@salesforce/resourceUrl/gptfylogo';
+import getProviderSettings from '@salesforce/apex/AISyncSettingsService.getProviderSettings';
+import checkConnectionStatus from '@salesforce/apex/AIWorkspaceAuthController.checkConnectionStatus';
 
 export default class AiWorkspaceSyncComponent extends LightningElement {
     @track activeView = 'email';
     @track showSettingsModal = false;
-    @track emailProvider = 'MICROSOFT_GRAPH';
-    @track taskProvider = 'MICROSOFT_GRAPH';
-    @track calendarProvider = 'MICROSOFT_CALENDAR';
+    @track emailProvider = null;
+    @track taskProvider = null;
+    @track calendarProvider = null;
+    @track isInitializing = true;
 
     connectedCallback() {
         // Default to email view on load
         this.activeView = 'email';
+        // Initialize with the authenticated provider
+        this.initializeProviders();
+    }
+
+    /**
+     * Initialize providers based on which one is actually authenticated
+     */
+    async initializeProviders() {
+        try {
+            // Check connection status for both providers
+            const outlookStatus = await checkConnectionStatus({ provider: 'Outlook' });
+            const gmailStatus = await checkConnectionStatus({ provider: 'Gmail' });
+
+            // Determine default provider based on what's connected
+            let defaultToGmail = false;
+            
+            // If Gmail is connected but Outlook is not, default to Gmail
+            if (gmailStatus.isConnected && !outlookStatus.isConnected) {
+                defaultToGmail = true;
+            } 
+            // If Outlook is connected but Gmail is not, default to Outlook
+            else if (outlookStatus.isConnected && !gmailStatus.isConnected) {
+                defaultToGmail = false;
+            }
+            // If both or neither are connected, try to get provider settings
+            else {
+                const settings = await getProviderSettings();
+                if (settings.singleProvider === 'GMAIL_EMAIL') {
+                    defaultToGmail = true;
+                }
+            }
+
+            // Set providers based on determination
+            if (defaultToGmail) {
+                this.emailProvider = 'GMAIL_EMAIL';
+                this.taskProvider = 'GOOGLE_TASKS';
+                this.calendarProvider = 'GOOGLE_CALENDAR';
+            } else {
+                this.emailProvider = 'MICROSOFT_EMAIL';
+                this.taskProvider = 'MICROSOFT_TASKS';
+                this.calendarProvider = 'MICROSOFT_CALENDAR';
+            }
+        } catch (error) {
+            console.error('Error initializing providers:', error);
+            // Default to Microsoft providers on error
+            this.emailProvider = 'MICROSOFT_EMAIL';
+            this.taskProvider = 'MICROSOFT_TASKS';
+            this.calendarProvider = 'MICROSOFT_CALENDAR';
+        } finally {
+            this.isInitializing = false;
+        }
     }
     
     handleProviderChange(event) {
@@ -110,5 +164,9 @@ export default class AiWorkspaceSyncComponent extends LightningElement {
 
     get logoUrl() {
         return gptfyLogo;
+    }
+
+    get showContent() {
+        return !this.isInitializing && this.emailProvider && this.taskProvider && this.calendarProvider;
     }
 }

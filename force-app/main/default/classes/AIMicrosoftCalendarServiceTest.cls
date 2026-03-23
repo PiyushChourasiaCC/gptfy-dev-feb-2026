@@ -192,7 +192,7 @@ private class AIMicrosoftCalendarServiceTest {
         Assert.areEqual('Sales Meeting with Acme', evt1.subject, 'Subject should match');
         Assert.areEqual('040000008200E00074C5B7101A82E123', evt1.iCalUID, 'iCalUID should match');
         Assert.areEqual(false, evt1.isAllDay, 'Should not be all-day');
-        Assert.areEqual('MICROSOFT_GRAPH', evt1.provider, 'Provider should be Microsoft Graph');
+        Assert.areEqual('MICROSOFT_CALENDAR', evt1.provider, 'Provider should be Microsoft Calendar');
         Assert.areEqual(2, evt1.attendees.size(), 'Should have 2 attendees');
 
         // Check meeting link extraction

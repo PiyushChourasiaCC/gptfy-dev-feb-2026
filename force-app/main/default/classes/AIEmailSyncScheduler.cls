@@ -22,6 +22,7 @@ public with sharing class AIEmailSyncScheduler implements Schedulable {
     /**
      * Execute the scheduled job.
      * After running, reschedules itself based on Sync_Frequency_Minutes__c.
+     * V2-7889: Updated to check if ANY sync type is enabled (Email, Calendar, or Task)
      */
     public void execute(SchedulableContext ctx) {
         // Load settings
@@ -32,15 +33,19 @@ public with sharing class AIEmailSyncScheduler implements Schedulable {
             return;
         }
 
-        // Check if sync is enabled
-        if (!settings.Sync_Enabled__c) {
-            System.debug('Email sync is disabled. Skipping this run but will reschedule.');
+        // V2-7889: Check if ANY sync type is enabled (Email, Calendar, or Task)
+        Boolean emailEnabled = settings.Sync_Enabled__c == true;
+        Boolean calendarEnabled = settings.Calendar_Sync_Enabled__c == true;
+        Boolean taskEnabled = settings.Task_Sync_Enabled__c == true;
+        
+        if (!emailEnabled && !calendarEnabled && !taskEnabled) {
+            System.debug('All sync types are disabled. Skipping this run but will reschedule.');
             // Still reschedule so it can pick up when enabled again
             rescheduleFromSettings(settings);
             return;
         }
 
-        System.debug('Starting scheduled email sync at ' + DateTime.now());
+        System.debug('Starting scheduled workspace sync at ' + DateTime.now());
 
         try {
             // Use workspace-based sync (processes all AI_Workspace_User__c records)

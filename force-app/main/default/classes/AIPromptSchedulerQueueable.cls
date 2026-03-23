@@ -4,9 +4,10 @@
  *                      eliminates CPU timeout issues from busy-wait loops.
  * @author            : Sohit Sharma
  * @jira              : Jira v2/7712 Issue: AI Mass Processing with more than 7 Prompts
+ *                      V2-7889 Added skipBatchExecution flag for improved test coverage
  * @group             : Plumcloud Labs
- * @last modified on  : 02-15-2026
- * @last modified by  : Sohit Sharma
+ * @last modified on  : 03-20-2026
+ * @last modified by  : Piyush Chourasia
  **/
 public class AIPromptSchedulerQueueable implements Queueable, Finalizer {
     
@@ -20,6 +21,9 @@ public class AIPromptSchedulerQueueable implements Queueable, Finalizer {
     // Test support
     @TestVisible
     private static Boolean disableChaining = false;
+    
+    @TestVisible
+    private static Boolean skipBatchExecution = false;
     
     /**
      * Constructor for initial execution with list of schedulers
@@ -62,7 +66,9 @@ public class AIPromptSchedulerQueueable implements Queueable, Finalizer {
             
             // Get current scheduler and execute its batch
             AI_Prompt_Scheduler__c currentScheduler = schedulers[currentIndex];
-            Database.executeBatch(new AIPromptCountRequestBatch(currentScheduler, scheduledRun), 2000);
+            if (!skipBatchExecution) {
+                Database.executeBatch(new AIPromptCountRequestBatch(currentScheduler, scheduledRun), 2000);
+            }
             
             // Move to next index
             currentIndex++;

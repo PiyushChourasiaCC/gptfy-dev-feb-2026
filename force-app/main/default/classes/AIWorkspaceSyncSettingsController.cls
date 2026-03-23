@@ -69,12 +69,9 @@ public with sharing class AIWorkspaceSyncSettingsController {
         // Matching Precedence
         @AuraEnabled public String syncPrecedence { get; set; }
         
-        // Exclusion Rules
-        @AuraEnabled public Boolean excludeInternal { get; set; }
-        @AuraEnabled public Boolean excludeMarketing { get; set; }
-        @AuraEnabled public Boolean excludeConfidential { get; set; }
-        @AuraEnabled public Boolean excludePublicDomains { get; set; }
-        @AuraEnabled public String internalDomains { get; set; }
+        // Exclusion Rules (V2-7889: Removed old fields)
+        @AuraEnabled public String excludedDomains { get; set; }
+        @AuraEnabled public String excludedLabelsCategories { get; set; }
         
         // Email Sync Additional Settings (moved from Additional Settings section)
         @AuraEnabled public Decimal maxUsersPerBatch { get; set; }
@@ -144,12 +141,9 @@ public with sharing class AIWorkspaceSyncSettingsController {
             // Matching Precedence - use defaults if no record exists
             result.syncPrecedence = hasExistingRecord ? settings.Sync_Precedence__c : '{"1": ["Lead","Contact","User"], "2": ["Lead","Contact"], "3": ["Lead"], "4": ["Contact"], "5": ["User"]}';
             
-            // Exclusion Rules - use defaults if no record exists
-            result.excludeInternal = hasExistingRecord ? settings.Exclude_Internal__c == true : true;
-            result.excludeMarketing = hasExistingRecord ? settings.Exclude_Marketing__c == true : true;
-            result.excludeConfidential = hasExistingRecord ? settings.Exclude_Confidential__c == true : true;
-            result.excludePublicDomains = hasExistingRecord ? settings.Exclude_Public_Domains__c == true : true;
-            result.internalDomains = settings.Internal_Domains__c;
+            // Exclusion Rules (V2-7889: New fields only)
+            result.excludedDomains = settings.Excluded_Domains__c;
+            result.excludedLabelsCategories = settings.Excluded_Labels_Categories__c;
             
             // Email Sync Additional Settings - use defaults if no record exists
             result.maxUsersPerBatch = hasExistingRecord ? settings.Max_Users_Per_Batch__c : 10;
@@ -237,11 +231,8 @@ public with sharing class AIWorkspaceSyncSettingsController {
                 'syncPrecedence' => NAMESPACE + 'Sync_Precedence__c',
                 
                 // Exclusion Rules
-                'excludeInternal' => NAMESPACE + 'Exclude_Internal__c',
-                'excludeMarketing' => NAMESPACE + 'Exclude_Marketing__c',
-                'excludeConfidential' => NAMESPACE + 'Exclude_Confidential__c',
-                'excludePublicDomains' => NAMESPACE + 'Exclude_Public_Domains__c',
-                'internalDomains' => NAMESPACE + 'Internal_Domains__c',
+                'excludedDomains' => NAMESPACE + 'Excluded_Domains__c',
+                'excludedLabelsCategories' => NAMESPACE + 'Excluded_Labels_Categories__c',
                 
                 // Email Sync Additional Settings
                 'maxUsersPerBatch' => NAMESPACE + 'Max_Users_Per_Batch__c',
@@ -361,11 +352,8 @@ public with sharing class AIWorkspaceSyncSettingsController {
         settings.Sync_Precedence__c = '{"1": ["Lead","Contact"], "2": ["Lead"], "3": ["Contact"]}';
         
         // Exclusion Rules - All exclusions enabled by default
-        settings.Exclude_Internal__c = true;
-        settings.Exclude_Marketing__c = true;
-        settings.Exclude_Confidential__c = true;
-        settings.Exclude_Public_Domains__c = true;
-        settings.Internal_Domains__c = ''; // Empty by default - admin should configure this
+        settings.Excluded_Domains__c = '';
+        settings.Excluded_Labels_Categories__c = '';
         
         // Use FLSCheck for security enforcement
         List<AI_Workspace_Sync_Settings__c> settingsToInsert = new List<AI_Workspace_Sync_Settings__c>{ settings };

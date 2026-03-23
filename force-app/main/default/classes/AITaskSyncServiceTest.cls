@@ -266,7 +266,7 @@ private class AITaskSyncServiceTest {
 
         Test.startTest();
         AIWorkspaceStagingCreator.StagingResult result = 
-            AIWorkspaceStagingCreator.createTaskStagingRecords(testTasks, 'MICROSOFT_GRAPH', null);
+            AIWorkspaceStagingCreator.createTaskStagingRecords(testTasks, 'MICROSOFT_TASKS', null);
         Test.stopTest();
 
         // Verify results
@@ -291,12 +291,16 @@ private class AITaskSyncServiceTest {
         }
 
         Assert.areNotEqual(null, s1, 'Staging 1 should exist');
-        Assert.areEqual('Test Task 1', s1.Subject__c, 'Subject should match');
+        // V2-7889: Decrypt subject for assertion
+        String decryptedSubject1 = AIWorkspaceEncryptionService.decryptEmailBody(s1.Subject__c, UserInfo.getUserId());
+        Assert.areEqual('Test Task 1', decryptedSubject1, 'Subject should match');
         Assert.areEqual('Not Started', s1.Task_Status__c, 'Status should be mapped');
         Assert.areEqual('High', s1.Task_Priority__c, 'Priority should be High');
 
         Assert.areNotEqual(null, s2, 'Staging 2 should exist');
-        Assert.areEqual('Test Task 2', s2.Subject__c, 'Subject should match');
+        // V2-7889: Decrypt subject for assertion
+        String decryptedSubject2 = AIWorkspaceEncryptionService.decryptEmailBody(s2.Subject__c, UserInfo.getUserId());
+        Assert.areEqual('Test Task 2', decryptedSubject2, 'Subject should match');
         Assert.areEqual('In Progress', s2.Task_Status__c, 'Status should be In Progress');
         Assert.areEqual('Normal', s2.Task_Priority__c, 'Priority should be Normal');
     }
@@ -311,7 +315,7 @@ private class AITaskSyncServiceTest {
             RecordTypeId = taskRecordTypeId,
             Subject__c = 'Existing Task',
             Provider_Id__c = 'task1',
-            Provider__c = 'MICROSOFT_GRAPH'
+            Provider__c = 'MICROSOFT_TASKS'
         );
         insert existingStaging;
 
@@ -330,7 +334,7 @@ private class AITaskSyncServiceTest {
 
         Test.startTest();
         AIWorkspaceStagingCreator.StagingResult result = 
-            AIWorkspaceStagingCreator.createTaskStagingRecords(testTasks, 'MICROSOFT_GRAPH', null);
+            AIWorkspaceStagingCreator.createTaskStagingRecords(testTasks, 'MICROSOFT_TASKS', null);
         Test.stopTest();
 
         // task1 should be deduplicated (already exists), only task2 imported
@@ -363,7 +367,7 @@ private class AITaskSyncServiceTest {
 
         Test.startTest();
         AIWorkspaceStagingCreator.StagingResult result = 
-            AIWorkspaceStagingCreator.createTaskStagingRecords(testTasks, 'MICROSOFT_GRAPH', syncLog.Id);
+            AIWorkspaceStagingCreator.createTaskStagingRecords(testTasks, 'MICROSOFT_TASKS', syncLog.Id);
         Test.stopTest();
 
         // Verify sync result is successful
@@ -1324,6 +1328,34 @@ private class AITaskSyncServiceTest {
     }
 
     /**
+     * Test syncUserGoogleTasks - Full flow with Gmail workspace user
+     */
+    @IsTest
+    static void testSyncUserGoogleTasks_FullFlow() {
+        // Create Gmail workspace user
+        AI_Workspace_User__c gmailUser = new AI_Workspace_User__c(
+            Name = 'Test Gmail Connection',
+            User__c = UserInfo.getUserId(),
+            Provider__c = 'Gmail',
+            Access_Token__c = 'test_gmail_access_token',
+            Refresh_Token__c = 'test_gmail_refresh_token'
+        );
+        insert gmailUser;
+
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        settings.Task_Lookback_Days__c = 7;
+        AISyncSettingsService.setCachedSettings(settings);
+        
+        Test.setMock(HttpCalloutMock.class, new GoogleTasksFullFlowMock());
+        
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserGoogleTasks(UserInfo.getUserId());
+        Test.stopTest();
+        
+        Assert.isNotNull(result, 'Result should not be null');
+    }
+
+    /**
      * Test syncUserTasks - With tasks
      */
     @IsTest
@@ -1561,7 +1593,7 @@ private class AITaskSyncServiceTest {
             RecordTypeId = taskRecordTypeId,
             Subject__c = 'Existing Task',
             Provider_Id__c = 'task1',
-            Provider__c = 'MICROSOFT_GRAPH'
+            Provider__c = 'MICROSOFT_TASKS'
         );
         insert existingStaging;
         
@@ -1593,7 +1625,7 @@ private class AITaskSyncServiceTest {
             RecordTypeId = taskRecordTypeId,
             Subject__c = 'Existing Task',
             Provider_Id__c = 'task1',
-            Provider__c = 'MICROSOFT_GRAPH'
+            Provider__c = 'MICROSOFT_TASKS'
         );
         insert existingStaging;
         
@@ -1746,6 +1778,129 @@ private class AITaskSyncServiceTest {
     }
 
     /**
+     * Test syncUserTasksWithToken - Null tasks response
+     */
+    @IsTest
+    static void testSyncUserTasksWithToken_NullTasks() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        AISyncSettingsService.setCachedSettings(settings);
+        
+        Test.setMock(HttpCalloutMock.class, new NullTasksMock());
+        
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserTasksWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test_token'
+        );
+        Test.stopTest();
+        
+        Assert.areEqual(0, result.tasksFetched, 'Should fetch 0 tasks');
+        Assert.areEqual(0, result.tasksImported, 'Should import 0 tasks');
+    }
+
+    /**
+     * Test syncUserTasksWithToken - Gmail with actual task data
+     */
+    @IsTest
+    static void testSyncUserTasksWithToken_Gmail_WithTaskData() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        settings.Task_Lookback_Days__c = 7;
+        AISyncSettingsService.setCachedSettings(settings);
+        
+        Test.setMock(HttpCalloutMock.class, new GmailTaskDataMock());
+        
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserTasksWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test_token'
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(result, 'Result should not be null');
+        // Gmail fetch may return empty if no tasks in date range
+        Assert.isTrue(result.tasksFetched >= 0, 'Should handle fetch result');
+    }
+
+    /**
+     * Test syncUserTasksWithToken - Gmail with multiple tasks
+     */
+    @IsTest
+    static void testSyncUserTasksWithToken_Gmail_MultipleTasks() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        AISyncSettingsService.setCachedSettings(settings);
+        
+        Test.setMock(HttpCalloutMock.class, new GmailMultipleTasksMock());
+        
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserTasksWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test_token'
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(result, 'Result should not be null');
+        // Gmail fetch may return empty if no tasks in date range
+        Assert.isTrue(result.tasksFetched >= 0, 'Should handle fetch result');
+    }
+
+    /**
+     * Mock for null tasks response
+     */
+    private class NullTasksMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+            res.setBody('null');
+            return res;
+        }
+    }
+
+    /**
+     * Mock for Gmail with task data
+     */
+    private class GmailTaskDataMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+            
+            String body = '[' +
+                '{"id": "gmail-task-1", "listId": "list1", "listTitle": "My Tasks", ' +
+                '"title": "Gmail Task 1", "status": "needsAction", "notes": "Task notes", ' +
+                '"due": "2024-01-20T17:00:00Z", "updated": "2024-01-16T10:00:00Z"}' +
+            ']';
+            res.setBody(body);
+            return res;
+        }
+    }
+
+    /**
+     * Mock for Gmail with multiple tasks
+     */
+    private class GmailMultipleTasksMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+            
+            String body = '[' +
+                '{"id": "gmail-multi-1", "listId": "list1", "listTitle": "Work Tasks", ' +
+                '"title": "Gmail Task 1", "status": "needsAction", "notes": "First task", ' +
+                '"due": "2024-01-20T17:00:00Z", "updated": "2024-01-16T10:00:00Z"},' +
+                '{"id": "gmail-multi-2", "listId": "list1", "listTitle": "Work Tasks", ' +
+                '"title": "Gmail Task 2", "status": "completed", "notes": "Second task", ' +
+                '"completed": "2024-01-18T10:00:00Z", "updated": "2024-01-18T10:00:00Z"}' +
+            ']';
+            res.setBody(body);
+            return res;
+        }
+    }
+
+    /**
      * Mock for Microsoft duplicate task
      */
     private class MicrosoftDuplicateTaskMock implements HttpCalloutMock {
@@ -1789,6 +1944,94 @@ private class AITaskSyncServiceTest {
         Test.stopTest();
         
         Assert.isNotNull(result, 'Result should not be null');
+    }
+
+    /**
+     * Test syncUserTasksWithToken - Outlook with malformed task data
+     */
+    @IsTest
+    static void testSyncUserTasksWithToken_Outlook_MalformedData() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        AISyncSettingsService.setCachedSettings(settings);
+        
+        Test.setMock(HttpCalloutMock.class, new OutlookMalformedDataMock());
+        
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserTasksWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test_token'
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(result, 'Result should not be null');
+    }
+
+    /**
+     * Test syncUserTasksWithToken - Gmail with malformed task data
+     */
+    @IsTest
+    static void testSyncUserTasksWithToken_Gmail_MalformedData() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        AISyncSettingsService.setCachedSettings(settings);
+        
+        Test.setMock(HttpCalloutMock.class, new GmailMalformedDataMock());
+        
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserTasksWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test_token'
+        );
+        Test.stopTest();
+        
+        Assert.isNotNull(result, 'Result should not be null');
+    }
+
+    /**
+     * Mock for Outlook with malformed data
+     */
+    private class OutlookMalformedDataMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+            
+            String endpoint = req.getEndpoint();
+            
+            if (endpoint.contains('/todo/lists') && !endpoint.contains('/tasks')) {
+                res.setBody('{"value": [{"id": "list1", "displayName": "Tasks"}]}');
+            } else if (endpoint.contains('/tasks')) {
+                // Malformed task data - missing required fields
+                String body = '{"value": [' +
+                    '{"id": "malformed-1"},' + // Missing most fields
+                    '{"title": "No ID Task"}' + // Missing ID
+                ']}';
+                res.setBody(body);
+            } else {
+                res.setBody('{}');
+            }
+            return res;
+        }
+    }
+
+    /**
+     * Mock for Gmail with malformed data
+     */
+    private class GmailMalformedDataMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+            
+            // Malformed task data - missing required fields
+            String body = '[' +
+                '{"id": "malformed-g1"},' + // Missing most fields
+                '{"title": "No ID Gmail Task"}' + // Missing ID
+            ']';
+            res.setBody(body);
+            return res;
+        }
     }
 
     /**
@@ -2366,6 +2609,464 @@ private class AITaskSyncServiceTest {
                 String body = '{"value": [' +
                     '{"id": "null-dates-task", "title": "Null Dates Task", "status": "notStarted", ' +
                     '"importance": "normal", "isReminderOn": false}' +
+                ']}';
+                res.setBody(body);
+            } else {
+                res.setBody('{}');
+            }
+            return res;
+        }
+    }
+
+    /**
+     * Test parseRfc3339DateTime with various formats
+     */
+    @IsTest
+    static void testSyncUserTasksWithToken_Gmail_Rfc3339DateFormats() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        AISyncSettingsService.setCachedSettings(settings);
+
+        Test.setMock(HttpCalloutMock.class, new GmailRfc3339DateFormatsMock());
+
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserTasksWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test_token'
+        );
+        Test.stopTest();
+
+        Assert.isNotNull(result, 'Result should not be null');
+        Assert.isTrue(result.tasksFetched > 0, 'Should fetch tasks');
+    }
+
+    /**
+     * Test Gmail with blank dates to cover parseRfc3339DateTime null handling
+     */
+    @IsTest
+    static void testSyncUserTasksWithToken_Gmail_BlankDates() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        AISyncSettingsService.setCachedSettings(settings);
+
+        Test.setMock(HttpCalloutMock.class, new GmailBlankDatesMock());
+
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserTasksWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test_token'
+        );
+        Test.stopTest();
+
+        Assert.isNotNull(result, 'Result should not be null');
+    }
+
+    /**
+     * Test Gmail with all date variations to cover parseRfc3339DateTime branches
+     */
+    @IsTest
+    static void testSyncUserTasksWithToken_Gmail_AllDateVariations() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        AISyncSettingsService.setCachedSettings(settings);
+
+        Test.setMock(HttpCalloutMock.class, new GmailAllDateVariationsMock());
+
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserTasksWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test_token'
+        );
+        Test.stopTest();
+
+        Assert.isNotNull(result, 'Result should not be null');
+        Assert.isTrue(result.tasksFetched > 0, 'Should fetch tasks with various date formats');
+    }
+
+    /**
+     * Test syncUserGoogleTasks with deduplication
+     */
+    @IsTest
+    static void testSyncUserGoogleTasks_Deduplication() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        AISyncSettingsService.setCachedSettings(settings);
+
+        // Create Gmail workspace user
+        AI_Workspace_User__c gmailUser = new AI_Workspace_User__c(
+            Name = 'Test Gmail Connection',
+            User__c = UserInfo.getUserId(),
+            Provider__c = 'Gmail',
+            Access_Token__c = 'test_gmail_access_token',
+            Refresh_Token__c = 'test_gmail_refresh_token'
+        );
+        insert gmailUser;
+
+        // Create existing staging record
+        Id taskRecordTypeId = Schema.SObjectType.AI_Workspace_Staging__c.getRecordTypeInfosByDeveloperName().get('Task').getRecordTypeId();
+        AI_Workspace_Staging__c existingStaging = new AI_Workspace_Staging__c(
+            RecordTypeId = taskRecordTypeId,
+            Provider__c = 'GOOGLE_TASKS',
+            Provider_Id__c = 'duplicate-task-id',
+            User__c = UserInfo.getUserId(),
+            Subject__c = 'Existing Task',
+            Status__c = 'Staged'
+        );
+        insert existingStaging;
+
+        Test.setMock(HttpCalloutMock.class, new GoogleTasksWithDuplicateMock());
+
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserGoogleTasks(UserInfo.getUserId());
+        Test.stopTest();
+
+        Assert.isTrue(result.tasksDuplicate > 0, 'Should detect duplicate tasks');
+    }
+
+    /**
+     * Test parseGraphDateTime exception handling
+     */
+    @IsTest
+    static void testSyncUserTasksWithToken_Outlook_InvalidDateFormat() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        AISyncSettingsService.setCachedSettings(settings);
+
+        Test.setMock(HttpCalloutMock.class, new OutlookInvalidDateFormatMock());
+
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserTasksWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test_token'
+        );
+        Test.stopTest();
+
+        Assert.isNotNull(result, 'Result should handle invalid dates gracefully');
+    }
+
+    /**
+     * Test parseSimpleDateTime exception handling
+     */
+    @IsTest
+    static void testSyncUserTasksWithToken_Outlook_InvalidSimpleDate() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        AISyncSettingsService.setCachedSettings(settings);
+
+        Test.setMock(HttpCalloutMock.class, new OutlookInvalidSimpleDateMock());
+
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserTasksWithToken(
+            UserInfo.getUserId(),
+            'Outlook',
+            'test_token'
+        );
+        Test.stopTest();
+
+        Assert.isNotNull(result, 'Result should handle invalid simple dates gracefully');
+    }
+
+    /**
+     * Test parseRfc3339DateTime exception handling with invalid formats
+     */
+    @IsTest
+    static void testSyncUserTasksWithToken_Gmail_InvalidRfc3339() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        AISyncSettingsService.setCachedSettings(settings);
+
+        Test.setMock(HttpCalloutMock.class, new GmailInvalidRfc3339Mock());
+
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserTasksWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test_token'
+        );
+        Test.stopTest();
+
+        Assert.isNotNull(result, 'Result should handle invalid RFC3339 dates gracefully');
+    }
+
+    /**
+     * Test convertToTaskObjects exception handling with malformed task causing exception
+     */
+    @IsTest
+    static void testSyncUserTasksWithToken_Gmail_ConversionException() {
+        AI_Workspace_Sync_Settings__c settings = createMockSettings(true);
+        AISyncSettingsService.setCachedSettings(settings);
+
+        Test.setMock(HttpCalloutMock.class, new GmailConversionExceptionMock());
+
+        Test.startTest();
+        AITaskSyncService.TaskSyncResult result = AITaskSyncService.syncUserTasksWithToken(
+            UserInfo.getUserId(),
+            'Gmail',
+            'test_token'
+        );
+        Test.stopTest();
+
+        Assert.isNotNull(result, 'Result should handle conversion exceptions gracefully');
+    }
+
+    /**
+     * Mock for Gmail with RFC 3339 date formats
+     */
+    private class GmailRfc3339DateFormatsMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+
+            String endpoint = req.getEndpoint();
+
+            if (endpoint.contains('/lists') && !endpoint.contains('/tasks')) {
+                res.setBody('{"items":[{"id":"list1","title":"My Tasks"}]}');
+            } else if (endpoint.contains('/tasks')) {
+                String body = '{"items":[' +
+                    '{"id": "rfc1", "title": "Task with +offset", ' +
+                    '"status": "needsAction", "notes": "Test", ' +
+                    '"due": "2024-01-20T17:00:00+05:30", ' +
+                    '"updated": "2024-01-16T10:00:00.123+05:30"},' +
+                    '{"id": "rfc2", "title": "Task with Z", ' +
+                    '"status": "completed", "notes": "Test", ' +
+                    '"due": "2024-01-21T10:00:00Z", ' +
+                    '"completed": "2024-01-21T12:00:00.456Z", ' +
+                    '"updated": "2024-01-21T12:00:00Z"},' +
+                    '{"id": "rfc3", "title": "Task with milliseconds", ' +
+                    '"status": "needsAction", "notes": "Test", ' +
+                    '"due": "2024-01-22T08:00:00.999999Z", ' +
+                    '"updated": "2024-01-22T08:00:00.999999+00:00"}' +
+                ']}';
+                res.setBody(body);
+            } else {
+                res.setBody('{}');
+            }
+            return res;
+        }
+    }
+
+    /**
+     * Mock for Gmail with blank dates
+     */
+    private class GmailBlankDatesMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+
+            String endpoint = req.getEndpoint();
+
+            if (endpoint.contains('/lists') && !endpoint.contains('/tasks')) {
+                res.setBody('{"items":[{"id":"list1","title":"My Tasks"}]}');
+            } else if (endpoint.contains('/tasks')) {
+                String body = '{"items":[' +
+                    '{"id": "blank1", "title": "Task with no dates", ' +
+                    '"status": "needsAction", "notes": "No dates"}' +
+                ']}';
+                res.setBody(body);
+            } else {
+                res.setBody('{}');
+            }
+            return res;
+        }
+    }
+
+    /**
+     * Mock for Gmail with all date variations
+     */
+    private class GmailAllDateVariationsMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+
+            String endpoint = req.getEndpoint();
+
+            if (endpoint.contains('/lists') && !endpoint.contains('/tasks')) {
+                res.setBody('{"items":[{"id":"list1","title":"My Tasks"}]}');
+            } else if (endpoint.contains('/tasks')) {
+                String body = '{"items":[' +
+                    '{"id": "var1", "title": "Only due date", ' +
+                    '"status": "needsAction", "due": "2024-01-20T10:00:00Z"},' +
+                    '{"id": "var2", "title": "Only completed", ' +
+                    '"status": "completed", "completed": "2024-01-21T10:00:00Z"},' +
+                    '{"id": "var3", "title": "Only updated", ' +
+                    '"status": "needsAction", "updated": "2024-01-22T10:00:00Z"},' +
+                    '{"id": "var4", "title": "All dates", ' +
+                    '"status": "completed", ' +
+                    '"due": "2024-01-23T10:00:00+05:30", ' +
+                    '"completed": "2024-01-24T10:00:00.123Z", ' +
+                    '"updated": "2024-01-24T10:00:00.456+00:00"}' +
+                ']}';
+                res.setBody(body);
+            } else {
+                res.setBody('{}');
+            }
+            return res;
+        }
+    }
+
+    /**
+     * Mock for Google Tasks with duplicate
+     */
+    private class GoogleTasksWithDuplicateMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+
+            String endpoint = req.getEndpoint();
+
+            if (endpoint.contains('tasklists') || (endpoint.contains('/lists') && !endpoint.contains('/tasks'))) {
+                res.setBody('{"items":[{"id":"list1","title":"My Tasks"}]}');
+            } else if (endpoint.contains('/tasks')) {
+                String body = '{"items":[' +
+                    '{"id": "duplicate-task-id", "title": "Duplicate Task", ' +
+                    '"status": "needsAction", "notes": "This is a duplicate"},' +
+                    '{"id": "new-task-id", "title": "New Task", ' +
+                    '"status": "needsAction", "notes": "This is new"}' +
+                ']}';
+                res.setBody(body);
+            } else {
+                res.setBody('{}');
+            }
+            return res;
+        }
+    }
+
+    /**
+     * Mock for Google Tasks full flow (isTaskAccessible + getAllTasks)
+     */
+    private class GoogleTasksFullFlowMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+
+            String endpoint = req.getEndpoint();
+
+            if (endpoint.contains('tasklists')) {
+                res.setBody('{"items": [{"id": "list1", "title": "My Tasks"}, {"id": "list2", "title": "Work Tasks"}]}');
+            } else if (endpoint.contains('tasks')) {
+                res.setBody('{"items": [' +
+                    '{"id": "gtask1", "title": "Google Task 1", "status": "needsAction", ' +
+                    '"notes": "Task notes", "due": "2024-01-20T10:00:00Z", ' +
+                    '"updated": "2024-01-16T10:00:00.123Z"},' +
+                    '{"id": "gtask2", "title": "Google Task 2", "status": "completed", ' +
+                    '"notes": "Completed task", "completed": "2024-01-18T10:00:00.456+05:30", ' +
+                    '"updated": "2024-01-18T10:00:00Z"}' +
+                ']}');
+            } else {
+                res.setBody('{}');
+            }
+            return res;
+        }
+    }
+
+    /**
+     * Mock for Outlook with invalid date format to trigger parseGraphDateTime exception
+     */
+    private class OutlookInvalidDateFormatMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+
+            String endpoint = req.getEndpoint();
+
+            if (endpoint.contains('/todo/lists') && !endpoint.contains('/tasks')) {
+                res.setBody('{"value": [{"id": "list1", "displayName": "Tasks"}]}');
+            } else if (endpoint.contains('/tasks')) {
+                String body = '{"value": [' +
+                    '{"id": "invalid-graph-date", "title": "Invalid Graph Date Task", ' +
+                    '"status": "notStarted", "importance": "normal", "isReminderOn": false, ' +
+                    '"dueDateTime": {"dateTime": "not-a-valid-date-format", "timeZone": "UTC"}, ' +
+                    '"body": {"contentType": "text", "content": "Test"}}' +
+                ']}';
+                res.setBody(body);
+            } else {
+                res.setBody('{}');
+            }
+            return res;
+        }
+    }
+
+    /**
+     * Mock for Outlook with invalid simple date to trigger parseSimpleDateTime exception
+     */
+    private class OutlookInvalidSimpleDateMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+
+            String endpoint = req.getEndpoint();
+
+            if (endpoint.contains('/todo/lists') && !endpoint.contains('/tasks')) {
+                res.setBody('{"value": [{"id": "list1", "displayName": "Tasks"}]}');
+            } else if (endpoint.contains('/tasks')) {
+                String body = '{"value": [' +
+                    '{"id": "invalid-simple-date", "title": "Invalid Simple Date Task", ' +
+                    '"status": "notStarted", "importance": "normal", "isReminderOn": false, ' +
+                    '"createdDateTime": "invalid-created-date", ' +
+                    '"lastModifiedDateTime": "invalid-modified-date", ' +
+                    '"body": {"contentType": "text", "content": "Test"}}' +
+                ']}';
+                res.setBody(body);
+            } else {
+                res.setBody('{}');
+            }
+            return res;
+        }
+    }
+
+    /**
+     * Mock for Gmail with invalid RFC3339 dates
+     */
+    private class GmailInvalidRfc3339Mock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+
+            String endpoint = req.getEndpoint();
+
+            if (endpoint.contains('/lists') && !endpoint.contains('/tasks')) {
+                res.setBody('{"items":[{"id":"list1","title":"My Tasks"}]}');
+            } else if (endpoint.contains('/tasks')) {
+                String body = '{"items":[' +
+                    '{"id": "inv-rfc", "title": "Invalid RFC3339", ' +
+                    '"status": "needsAction", "notes": "Test", ' +
+                    '"due": "not-a-valid-rfc3339-date", ' +
+                    '"completed": "also-invalid-format", ' +
+                    '"updated": "completely-wrong"}' +
+                ']}';
+                res.setBody(body);
+            } else {
+                res.setBody('{}');
+            }
+            return res;
+        }
+    }
+
+    /**
+     * Mock for Gmail that causes conversion exception
+     */
+    private class GmailConversionExceptionMock implements HttpCalloutMock {
+        public HTTPResponse respond(HTTPRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+
+            String endpoint = req.getEndpoint();
+
+            if (endpoint.contains('/lists') && !endpoint.contains('/tasks')) {
+                res.setBody('{"items":[{"id":"list1","title":"My Tasks"}]}');
+            } else if (endpoint.contains('/tasks')) {
+                String body = '{"items":[' +
+                    '{"id": "exc1", "title": "Task 1", ' +
+                    '"status": "needsAction", "notes": "Valid task"},' +
+                    'null,' +
+                    '{"id": "exc2", "title": "Task 2", ' +
+                    '"status": "completed"}' +
                 ']}';
                 res.setBody(body);
             } else {

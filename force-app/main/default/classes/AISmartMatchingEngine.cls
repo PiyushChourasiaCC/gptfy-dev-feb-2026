@@ -77,7 +77,6 @@ public with sharing class AISmartMatchingEngine {
             // Skip matching if this email is the connected account email
             String normalizedSenderEmail = senderEmail.toLowerCase().trim();
             if (normalizedConnectedEmail != null && normalizedSenderEmail.equals(normalizedConnectedEmail)) {
-                // Return empty matches for connected account's own email
                 return matches;
             }
             
@@ -86,7 +85,8 @@ public with sharing class AISmartMatchingEngine {
             Set<String> allowedObjectTypes = getAllowedObjectTypes(precedenceConfig);
             
             // Exact Email Match (Contact/Lead only) - respects precedence
-            findEmailMatches(senderEmail, matches, matchedIds, allowedObjectTypes);
+            // V2-7889: Pass connectedAccountEmail to exclude matches with that email
+            findEmailMatches(senderEmail, matches, matchedIds, allowedObjectTypes, normalizedConnectedEmail);
             
             // Domain-based Account matching (INDEPENDENT - always runs)
             findAccountMatchesByDomain(senderEmail, matches, matchedIds);
@@ -213,20 +213,28 @@ public with sharing class AISmartMatchingEngine {
         return config;
     }
     
-    private static void findEmailMatches(String email, List<MatchResult> matches, Set<Id> matchedIds, Set<String> allowedObjectTypes) {
+    private static void findEmailMatches(String email, List<MatchResult> matches, Set<Id> matchedIds, Set<String> allowedObjectTypes, String normalizedConnectedEmail) {
         try {
             // Search Contacts - only if Contact is in precedence configuration
             if (allowedObjectTypes.contains('Contact')) {
                 try {
                     for (Contact c : [SELECT Id, Name, Account.Name, Email FROM Contact WHERE Email = :email WITH USER_MODE LIMIT 5]) {
                         if (!matchedIds.contains(c.Id)) {
+                            // V2-7889: Exclude matches where Contact email equals connected account email
+                            if (normalizedConnectedEmail != null && String.isNotBlank(c.Email)) {
+                                String normalizedContactEmail = c.Email.toLowerCase().trim();
+                                if (normalizedContactEmail.equals(normalizedConnectedEmail)) {
+                                    continue; // Skip this Contact
+                                }
+                            }
+                            
                             matches.add(new MatchResult(
-                                c.Id, 
-                                c.Name, 
+                                c.Id,
+                                c.Name,
                                 'Contact',
                                 c.Email,
-                                'Exact email match • ' + (c.Account.Name != null ? c.Account.Name : ''), 
-                                'standard:contact', 
+                                'Exact email match • ' + (c.Account.Name != null ? c.Account.Name : ''),
+                                'standard:contact',
                                 CONFIDENCE_EXACT_EMAIL
                             ));
                             matchedIds.add(c.Id);
@@ -236,19 +244,27 @@ public with sharing class AISmartMatchingEngine {
                     //ignore
                 }
             }
-            
+
             // Search Leads - only if Lead is in precedence configuration
             if (allowedObjectTypes.contains('Lead')) {
                 try {
                     for (Lead l : [SELECT Id, Name, Company, Email FROM Lead WHERE Email = :email AND IsConverted = false WITH USER_MODE LIMIT 5]) {
                         if (!matchedIds.contains(l.Id)) {
+                            // V2-7889: Exclude matches where Lead email equals connected account email
+                            if (normalizedConnectedEmail != null && String.isNotBlank(l.Email)) {
+                                String normalizedLeadEmail = l.Email.toLowerCase().trim();
+                                if (normalizedLeadEmail.equals(normalizedConnectedEmail)) {
+                                    continue; // Skip this Lead
+                                }
+                            }
+                            
                             matches.add(new MatchResult(
-                                l.Id, 
-                                l.Name, 
+                                l.Id,
+                                l.Name,
                                 'Lead',
                                 l.Email,
-                                'Exact email match • ' + (l.Company != null ? l.Company : ''), 
-                                'standard:lead', 
+                                'Exact email match • ' + (l.Company != null ? l.Company : ''),
+                                'standard:lead',
                                 CONFIDENCE_EXACT_EMAIL
                             ));
                             matchedIds.add(l.Id);
@@ -278,10 +294,6 @@ public with sharing class AISmartMatchingEngine {
             String domain = extractDomain(email);
             if (String.isBlank(domain)) return;
             
-            // Skip common public email domains
-            if (isPublicEmailDomain(domain)) {
-                return;
-            }
             
             // Query Accounts where Website contains the domain
             String likePattern = '%' + domain + '%';
@@ -340,22 +352,4 @@ public with sharing class AISmartMatchingEngine {
         
         return null;
     }
-    
-    /**
-     * Check if domain is a public email provider
-     * @param domain Domain to check
-     * @return true if domain is a public email provider
-     */
-    private static Boolean isPublicEmailDomain(String domain) {
-        if (String.isBlank(domain)) return false;
-        
-        Set<String> publicDomains = new Set<String>{
-            'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'google.com',
-            'live.com', 'msn.com', 'aol.com', 'icloud.com',
-            'mail.com', 'protonmail.com', 'yandex.com', 'zoho.com'
-        };
-        
-        return publicDomains.contains(domain.toLowerCase());
-    }
-    
 }

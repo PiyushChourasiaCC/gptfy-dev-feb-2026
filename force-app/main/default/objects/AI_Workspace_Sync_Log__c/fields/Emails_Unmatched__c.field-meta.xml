@@ -4,7 +4,7 @@
     <description>Records with no CRM record match</description>
     <externalId>false</externalId>
     <inlineHelpText>Number of records where no matching Lead or Contact was found in Salesforce. These records were processed but not linked to any CRM record.</inlineHelpText>
-    <label>Unmatched</label>
+    <label>Failed</label>
     <precision>18</precision>
     <required>false</required>
     <scale>0</scale>

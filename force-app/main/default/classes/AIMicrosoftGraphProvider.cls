@@ -285,7 +285,7 @@ public with sharing class AIMicrosoftGraphProvider extends AIEmailProviderServic
     }
 
     public override ProviderType getProviderType() {
-        return ProviderType.MICROSOFT_GRAPH;
+        return ProviderType.MICROSOFT_EMAIL;
     }
 
     public override Boolean isAuthenticated() {

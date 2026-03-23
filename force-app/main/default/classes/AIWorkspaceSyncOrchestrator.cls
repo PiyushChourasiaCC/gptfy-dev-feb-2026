@@ -17,6 +17,7 @@ public with sharing class AIWorkspaceSyncOrchestrator {
     /**
      * Start scheduled sync for ALL workspace users.
      * Called by AIEmailSyncScheduler.
+     * V2-7889: Fixed to start with the first enabled sync type (Email, Calendar, or Task)
      */
     public static void startScheduledSync() {
         AI_Workspace_Sync_Settings__c settings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
@@ -54,10 +55,21 @@ public with sharing class AIWorkspaceSyncOrchestrator {
             return;
         }
         
-        System.debug('Starting scheduled workspace sync for ' + workspaceUserIds.size() + ' users');
+        // V2-7889: Determine the first enabled sync type to start with
+        AIWorkspaceSyncQueueable.SyncType startSyncType;
+        if (emailEnabled) {
+            startSyncType = AIWorkspaceSyncQueueable.SyncType.EMAIL;
+        } else if (calendarEnabled) {
+            startSyncType = AIWorkspaceSyncQueueable.SyncType.CALENDAR;
+        } else if (taskEnabled) {
+            startSyncType = AIWorkspaceSyncQueueable.SyncType.TASK;
+        } else {
+            // This should never happen due to the check above, but default to EMAIL
+            startSyncType = AIWorkspaceSyncQueueable.SyncType.EMAIL;
+        }
         
-        // Start queueable chain (sequential processing)
-        System.enqueueJob(new AIWorkspaceSyncQueueable(workspaceUserIds, 0));
+        // Start queueable chain with the correct starting sync type
+        System.enqueueJob(new AIWorkspaceSyncQueueable(workspaceUserIds, 0, startSyncType));
     }
     
     /**
@@ -90,8 +102,6 @@ public with sharing class AIWorkspaceSyncOrchestrator {
         if (workspaceUserIds.isEmpty()) {
             throw new AuraHandledException('No authenticated email providers found. Please connect your Outlook or Gmail account first.');
         }
-        
-        System.debug('Starting run-now sync for current user with ' + workspaceUserIds.size() + ' provider(s)');
         
         // Determine which sync type to start with based on settings
         AI_Workspace_Sync_Settings__c settings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
@@ -229,7 +239,7 @@ public with sharing class AIWorkspaceSyncOrchestrator {
             List<AI_Workspace_Sync_Log__c> logsToInsert = new List<AI_Workspace_Sync_Log__c>{ log };
             FLSCheck.getInstance().insertDML(logsToInsert);
         } catch (Exception e) {
-            System.debug('Error creating system sync log: ' + e.getMessage());
+            // Ignore
         }
     }
     

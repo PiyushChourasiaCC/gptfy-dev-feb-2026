@@ -1,0 +1,7 @@
+<aura:component implements="lightning:actionOverride,lightning:isUrlAddressable,force:hasRecordId,force:hasSObjectName" access="global">
+    <aura:handler name="change" value="{!v.pageReference}" action="{!c.reInit}" />
+
+    <div class="slds-scope">
+        <c:aIWorkspaceProcessingPolicyComponent recordId="{!v.recordId}" objectApiName="{!v.sObjectName}" aura:id="policyComponent" oncancel="{!c.handleCancel}" />
+    </div>
+</aura:component>

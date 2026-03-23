@@ -15,7 +15,7 @@ export default class CockpitComponent extends NavigationMixin(LightningElement) 
 
     @track showSpinner = false;
     @track timeSaved = '0h';
-    @track moneySaved = '$0';
+    @track moneySaved = '0';
     @track activePrompts = 0;
     @track namespace = '';
     @track incompleteSetup = false;
@@ -23,7 +23,7 @@ export default class CockpitComponent extends NavigationMixin(LightningElement) 
     
     // Analytics section metrics
     @track promptsDeployed = '0 Prompts Deployed';
-    @track roiSavings = '0 USD Saved';
+    //@track roiSavings = 0;
     @track aiInsightsUsers = '0 Active Users';
     @track qualityFeedbacks = '0 Feedbacks';
     
@@ -35,7 +35,7 @@ export default class CockpitComponent extends NavigationMixin(LightningElement) 
     @track dataContextMappingMetric = '0 Deployed';
     
     // Workspace Sync section metrics
-    @track workspaceAuthenticationMetric = 'Manage Authentication';
+    @track workspaceSyncMetric = 'Manage Workspace Sync';
     @track emailSyncMetric = 'Manage Email Sync';
     @track calendarSyncMetric = 'Manage Calendar Sync';
     @track taskSyncMetric = 'Manage Tasks Sync';
@@ -72,7 +72,7 @@ export default class CockpitComponent extends NavigationMixin(LightningElement) 
                 
                 // Format money saved with currency symbol
                 const money = result.moneySaved || 0;
-                this.moneySaved = '$' + this.formatNumber(money);
+                this.moneySaved = money;//this.formatNumber(money);
                 
                 // Set active prompts count
                 this.activePrompts = result.activePrompts || 0;
@@ -82,7 +82,7 @@ export default class CockpitComponent extends NavigationMixin(LightningElement) 
                 
                 // Analytics section metrics
                 this.promptsDeployed = (result.noOfPrompts || 0) + ' Prompts Deployed';
-                this.roiSavings = (result.totalSavings || '0 USD') + ' Saved';
+                //this.roiSavings = (result.totalSavings || 0);
                 this.aiInsightsUsers = result.usageDetail || '0 Active Users';
                 this.qualityFeedbacks = (result.noOfFeedbacks || 0) + ' Feedbacks';
                 
@@ -207,14 +207,9 @@ export default class CockpitComponent extends NavigationMixin(LightningElement) 
                         // Fallback: Custom smooth scroll animation for environments where scrollTo is not available
                         this.smoothScrollTo(scrollableContainer, scrollPosition);
                     }
-                    
-                    console.log('Scrolling to:', sectionId, 'at position:', scrollPosition);
                 } else {
                     if (!section) {
                         console.error('Section not found:', sectionId);
-                        // Debug: show all elements with data-ids
-                        const allDataIds = Array.from(this.template.querySelectorAll('[data-id]')).map(el => el.dataset.id);
-                        console.log('Available section data-ids:', allDataIds);
                     }
                     if (!scrollableContainer) {
                         console.error('Scrollable container not found');
@@ -306,17 +301,23 @@ export default class CockpitComponent extends NavigationMixin(LightningElement) 
         this.navigateToTab('Workspace_Authentication');
     }
 
+    handleWorkspaceSync() {
+        this.navigateToTab('AI_Workspace_Sync');
+    }
+
+    /*
     handleEmailSync() {
-        this.navigateToTab('AI_Mail_Sync');
+        this.navigateToTab('');
     }
 
     handleCalendarSync() {
-        this.navigateToTab('AI_Calendar_Event_Selector');
+        this.navigateToTab('');
     }
 
     handleTaskSync() {
-        this.navigateToTab('AI_Task_Selector');
+        this.navigateToTab('');
     }
+    */
 
     handleWorkspaceSyncScheduler() {
         this.navigateToTab('AI_Workspace_Sync_Scheduler');
@@ -372,7 +373,6 @@ export default class CockpitComponent extends NavigationMixin(LightningElement) 
     }
 
     handleError(error){
-        console.log(JSON.stringify(error));
         if(error && error.body && error.body.message){
             this.showToast('error', 'Error', error.body.message);
         }else{

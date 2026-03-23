@@ -4,7 +4,7 @@
     <description>Records that matched to CRM records (Lead, Contact, or User)</description>
     <externalId>false</externalId>
     <inlineHelpText>Number of records that successfully matched to existing Lead or Contact records in Salesforce based on email address matching and precedence rules.</inlineHelpText>
-    <label>Matched</label>
+    <label>Staged</label>
     <precision>18</precision>
     <required>false</required>
     <scale>0</scale>

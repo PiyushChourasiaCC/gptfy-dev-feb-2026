@@ -62,7 +62,7 @@ private class AIEmailTaskCreatorTest {
         AIEmailTaskCreator.EmailImportResult result = AIEmailTaskCreator.createEmailTasks(
             emailDataList,
             matchResults,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'user@company.com'
         );
         Test.stopTest();
@@ -120,7 +120,7 @@ private class AIEmailTaskCreatorTest {
         AIEmailTaskCreator.EmailImportResult result = AIEmailTaskCreator.createEmailTasks(
             emailDataList,
             matchResults,
-            'GMAIL',
+            'GMAIL_EMAIL',
             'user@company.com'
         );
         Test.stopTest();
@@ -164,7 +164,7 @@ private class AIEmailTaskCreatorTest {
         AIEmailTaskCreator.EmailImportResult result = AIEmailTaskCreator.createEmailTasks(
             emailDataList,
             matchResults,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'user@company.com'
         );
         Test.stopTest();
@@ -206,7 +206,7 @@ private class AIEmailTaskCreatorTest {
         AIEmailTaskCreator.EmailImportResult result = AIEmailTaskCreator.createEmailTasks(
             emailDataList,
             matchResults,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'user@company.com'
         );
         Test.stopTest();
@@ -260,7 +260,7 @@ private class AIEmailTaskCreatorTest {
         AIEmailTaskCreator.EmailImportResult result = AIEmailTaskCreator.createEmailTasks(
             emailDataList,
             matchResults,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'user@company.com'
         );
         Test.stopTest();
@@ -296,7 +296,7 @@ private class AIEmailTaskCreatorTest {
         AIEmailTaskCreator.EmailImportResult result = AIEmailTaskCreator.createEmailTasks(
             emailDataList,
             matchResults,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'user@company.com'
         );
         Test.stopTest();
@@ -313,7 +313,7 @@ private class AIEmailTaskCreatorTest {
         AIEmailTaskCreator.EmailImportResult result1 = AIEmailTaskCreator.createEmailTasks(
             null,
             new List<AIQuickMatchService.MatchResult>(),
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'user@company.com'
         );
         Assert.isTrue(!result1.errors.isEmpty(), 'Should have error for null input');
@@ -326,7 +326,7 @@ private class AIEmailTaskCreatorTest {
         AIEmailTaskCreator.EmailImportResult result2 = AIEmailTaskCreator.createEmailTasks(
             emailDataList,
             new List<AIQuickMatchService.MatchResult>{ new AIQuickMatchService.MatchResult() },
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'user@company.com'
         );
         Assert.isTrue(!result2.errors.isEmpty(), 'Should have error for size mismatch');
@@ -383,7 +383,7 @@ private class AIEmailTaskCreatorTest {
         AIEmailTaskCreator.EmailImportResult result = AIEmailTaskCreator.createEmailTasks(
             emailDataList,
             matchResults,
-            'MICROSOFT_GRAPH',
+            'MICROSOFT_EMAIL',
             'user@company.com'
         );
         Test.stopTest();

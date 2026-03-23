@@ -1,0 +1,9 @@
+{
+  "name": "guide_slds_blueprints",
+  "description": "Retrieve comprehensive SLDS blueprints guidance and reference documentation. Use this to understand what blueprints are, how to use them, and get a complete index of all 85 available blueprints organized by category.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

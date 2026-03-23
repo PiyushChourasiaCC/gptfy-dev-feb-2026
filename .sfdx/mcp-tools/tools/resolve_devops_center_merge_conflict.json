@@ -1,0 +1,29 @@
+{
+  "name": "resolve_devops_center_merge_conflict",
+  "description": "Resolves merge conflicts for a selected work item by name.\n\n      **When to use:**\n      - After running 'detect_devops_center_merge_conflict' and conflicts were found.\n\n      **MANDATORY input:**\n      - workItemName (exact Name of the Work Item) and username or alias of the DevOps Center org.\n\n      **Behavior:**\n      - Looks up the Work Item by Name, validates required fields, and prepares per-file resolution commands.\n      - If branch/target branch/repo URL are missing, returns actionable guidance to fix inputs first.\n\n      **What this tool does:**\n      1. Confirms the repo is in a conflicted state\n      2. Lists conflicted files\n      3. For each file, provides choices (keep current / keep incoming / keep both ) with exact git commands\n      4. Guides removing conflict markers, staging, and committing\n\n      **Output:**\n      - If conflicts exist: per-file action plan with commands\n      - If no conflicts: confirms the repo is clean\n      - On error: actionable troubleshooting\n",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "usernameOrAlias": {
+        "type": "string",
+        "description": "The username or alias for the Salesforce org to run this tool against.\n\nA username follows the <name@domain.com> format.\nIf the user refers to an org with a string not following that format, it can be a valid alias.\n\nIMPORTANT:\n- If it is not clear what the username or alias is, run the #get_username tool to resolve it.\n- NEVER guess or make-up a username or alias.\n"
+      },
+      "workItemName": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Exact Work Item Name (mandatory)"
+      },
+      "localPath": {
+        "type": "string",
+        "description": "Local path to the repository (defaults to current working directory)"
+      }
+    },
+    "required": [
+      "usernameOrAlias",
+      "workItemName",
+      "localPath"
+    ],
+    "additionalProperties": false,
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  }
+}

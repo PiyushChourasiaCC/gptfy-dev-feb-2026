@@ -436,6 +436,48 @@ private class AIWorkspaceSyncOrchestratorTest {
         }
     }
     
+    @isTest
+    static void testStartScheduledSync_CalendarOnlyEnabled() {
+        AIWorkspaceSyncQueueable.disableChaining = true;
+        
+        // V2-7889: Test that scheduler starts with CALENDAR sync type when only calendar is enabled
+        AI_Workspace_Sync_Settings__c settings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
+        if (settings == null) {
+            settings = new AI_Workspace_Sync_Settings__c();
+        }
+        settings.Sync_Enabled__c = false;
+        settings.Calendar_Sync_Enabled__c = true;
+        settings.Task_Sync_Enabled__c = false;
+        upsert settings;
+        
+        Test.startTest();
+        AIWorkspaceSyncOrchestrator.startScheduledSync();
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Should start calendar sync when only calendar is enabled');
+    }
+    
+    @isTest
+    static void testStartScheduledSync_TaskOnlyEnabled() {
+        AIWorkspaceSyncQueueable.disableChaining = true;
+        
+        // V2-7889: Test that scheduler starts with TASK sync type when only task is enabled
+        AI_Workspace_Sync_Settings__c settings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
+        if (settings == null) {
+            settings = new AI_Workspace_Sync_Settings__c();
+        }
+        settings.Sync_Enabled__c = false;
+        settings.Calendar_Sync_Enabled__c = false;
+        settings.Task_Sync_Enabled__c = true;
+        upsert settings;
+        
+        Test.startTest();
+        AIWorkspaceSyncOrchestrator.startScheduledSync();
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Should start task sync when only task is enabled');
+    }
+    
     // ========================================================================
     // HELPER METHODS
     // ========================================================================

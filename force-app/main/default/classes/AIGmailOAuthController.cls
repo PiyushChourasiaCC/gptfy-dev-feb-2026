@@ -121,7 +121,6 @@ public with sharing class AIGmailOAuthController {
             showConnectButton = false;
             showInfo = false;
             errorMessage = 'Unexpected error: ' + e.getMessage();
-            System.debug(LoggingLevel.ERROR, 'Exception in exchangeCodeForTokens: ' + e.getMessage());
         }
     }
     
@@ -158,19 +157,16 @@ public with sharing class AIGmailOAuthController {
      */
     public void saveRefreshTokenToWorkspaceUser() {
         if (String.isBlank(refreshToken)) {
-            System.debug(LoggingLevel.WARN, 'Refresh token is blank, cannot save');
             throw new AuraHandledException('Refresh token is blank, cannot save workspace user.');
         }
         
         Id currentUserId = UserInfo.getUserId();
-        System.debug('Attempting to save Gmail tokens for user: ' + currentUserId);
         
         // Check CRUD permissions
         if (!Schema.sObjectType.AI_Workspace_User__c.isAccessible() ||
             !Schema.sObjectType.AI_Workspace_User__c.isCreateable() ||
             !Schema.sObjectType.AI_Workspace_User__c.isUpdateable()) {
             String errorMsg = 'User does not have access to AI_Workspace_User__c object';
-            System.debug(LoggingLevel.ERROR, errorMsg);
             throw new AuraHandledException(errorMsg);
         }
         
@@ -183,17 +179,11 @@ public with sharing class AIGmailOAuthController {
             LIMIT 1
         ];
         
-        System.debug('Found ' + existingUsers.size() + ' existing Gmail workspace user records');
-        
         AI_Workspace_User__c workspaceUser;
         
         // Encrypt tokens using user/org-specific key before storing
         String encryptedRefreshToken = encryptRefreshToken(refreshToken);
         String encryptedAccessToken = String.isNotBlank(accessToken) ? encryptRefreshToken(accessToken) : null;
-        
-        System.debug('Refresh token length: ' + refreshToken.length());
-        System.debug('Access token length: ' + (String.isNotBlank(accessToken) ? String.valueOf(accessToken.length()) : 'NULL'));
-        System.debug('Encrypted refresh token length: ' + encryptedRefreshToken.length());
         
         if (!existingUsers.isEmpty()) {
             // Update existing record
@@ -202,12 +192,12 @@ public with sharing class AIGmailOAuthController {
             workspaceUser.Access_Token__c = encryptedAccessToken;
             workspaceUser.Provider__c = 'Gmail';
             workspaceUser.Auto_Sync_Enabled__c = true; // Enable auto sync on (re)authentication
-            System.debug('About to update Gmail workspace user record: ' + workspaceUser.Id);
+            // V2-7889: Store the service user email for matching staging records
+            workspaceUser.Service_User_Email__c = userEmail;
             
             // Use FLSCheck for security enforcement
             List<AI_Workspace_User__c> usersToUpdate = new List<AI_Workspace_User__c>{ workspaceUser };
             FLSCheck.getInstance().updateDML(usersToUpdate);
-            System.debug('Successfully updated AI_Workspace_User__c record: ' + workspaceUser.Id);
         } else {
             // Create new record
             workspaceUser = new AI_Workspace_User__c(
@@ -216,14 +206,13 @@ public with sharing class AIGmailOAuthController {
                 Provider__c = 'Gmail',
                 Refresh_Token__c = encryptedRefreshToken,
                 Access_Token__c = encryptedAccessToken,
-                Auto_Sync_Enabled__c = true // Enable auto sync by default
+                Auto_Sync_Enabled__c = true, // Enable auto sync by default
+                Service_User_Email__c = userEmail // V2-7889: Store service user email
             );
-            System.debug('About to insert new Gmail workspace user record');
             
             // Use FLSCheck for security enforcement
             List<AI_Workspace_User__c> usersToInsert = new List<AI_Workspace_User__c>{ workspaceUser };
             FLSCheck.getInstance().insertDML(usersToInsert);
-            System.debug('Successfully created new AI_Workspace_User__c record: ' + workspaceUser.Id);
         }
     }
     
@@ -366,23 +355,16 @@ public with sharing class AIGmailOAuthController {
         }
         
         Blob encryptionKey = getEncryptionKey(userId);
-        System.debug('Encrypting refresh token. Token length: ' + refreshToken.length());
-        System.debug('Using encryption algorithm: ' + ALGORITHM);
-        System.debug('Encryption key length: ' + encryptionKey.size());
         
         // Convert the refresh token to a Blob
         Blob dataToEncrypt = Blob.valueOf(refreshToken);
-        System.debug('Data to encrypt blob size: ' + dataToEncrypt.size());
         
         // Encrypt the data using AES256 with managed IV
         Blob encryptedData = Crypto.encryptWithManagedIV(ALGORITHM, encryptionKey, dataToEncrypt);
-        System.debug('Encrypted data blob size: ' + encryptedData.size());
         
         // Convert to Base64 for storage
         String encryptedString = EncodingUtil.base64Encode(encryptedData);
-        System.debug('Base64 encoded string length: ' + encryptedString.length());
         
-        System.debug('Refresh token encrypted successfully');
         return encryptedString;
     }
     
@@ -416,20 +398,16 @@ public with sharing class AIGmailOAuthController {
             Blob encryptedData = EncodingUtil.base64Decode(encryptedToken);
             Blob decryptedData = Crypto.decryptWithManagedIV(ALGORITHM, encryptionKey, encryptedData);
             String decryptedToken = decryptedData.toString();
-            System.debug('Refresh token decrypted successfully for user: ' + userId);
             return decryptedToken;
         } catch (Exception e) {
             // Decryption failed - might be an unencrypted legacy token
-            System.debug(LoggingLevel.WARN, 'Decryption failed for user ' + userId + ': ' + e.getMessage() + '. Treating as unencrypted token.');
             
             // If it looks like a Gmail refresh token (starts with "1/"), return as-is
             if (encryptedToken.startsWith('1/')) {
-                System.debug('Token appears to be unencrypted Gmail token. Returning as-is.');
                 return encryptedToken;
             }
             
             // Otherwise, log error and return the token (might work, might not)
-            System.debug(LoggingLevel.ERROR, 'Token format unknown. Returning as-is.');
             return encryptedToken;
         }
     }
@@ -469,8 +447,8 @@ public with sharing class AIGmailOAuthController {
     private static String getWorkspaceAuthenticationUrl() {
         String namespace = AIConstants.NAMESPACE;
         if (String.isNotBlank(namespace)) {
-            return '/lightning/n/' + namespace + 'Workspace_Authentication';
+            return '/lightning/n/' + namespace + 'AI_Workspace_Sync';
         }
-        return '/lightning/n/Workspace_Authentication';
+        return '/lightning/n/AI_Workspace_Sync';
     }
 }

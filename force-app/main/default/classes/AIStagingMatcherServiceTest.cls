@@ -367,8 +367,8 @@ private class AIStagingMatcherServiceTest {
             To_Address__c = 'recipient@example.com',
             Subject__c = 'Test Subject',
             RecordTypeId = emailRecordTypeId,
-            Provider__c = 'MICROSOFT_GRAPH',
-            Status__c = 'Unmatched'
+            Provider__c = 'MICROSOFT_EMAIL',
+            Status__c = 'Staged'
         );
         insert staging;
         
@@ -519,8 +519,8 @@ private class AIStagingMatcherServiceTest {
             To_Address__c = 'recipient@example.com',
             Subject__c = 'Test Subject',
             RecordTypeId = emailRecordTypeId,
-            Provider__c = 'MICROSOFT_GRAPH',
-            Status__c = 'Unmatched'
+            Provider__c = 'MICROSOFT_EMAIL',
+            Status__c = 'Staged'
         );
         insert staging;
         
@@ -576,8 +576,8 @@ private class AIStagingMatcherServiceTest {
             Cc_Address__c = 'cc@example.com',
             Subject__c = 'Test Subject',
             RecordTypeId = emailRecordTypeId,
-            Provider__c = 'MICROSOFT_GRAPH',
-            Status__c = 'Unmatched'
+            Provider__c = 'MICROSOFT_EMAIL',
+            Status__c = 'Staged'
         );
         insert staging;
         
@@ -629,7 +629,7 @@ private class AIStagingMatcherServiceTest {
             End_DateTime__c = DateTime.now().addHours(2),
             RecordTypeId = calendarRecordTypeId,
             Provider__c = 'MICROSOFT_CALENDAR',
-            Status__c = 'Unmatched'
+            Status__c = 'Staged'
         );
         insert staging;
         
@@ -675,8 +675,8 @@ private class AIStagingMatcherServiceTest {
             To_Address__c = 'recipient@example.com',
             Subject__c = 'Test Subject',
             RecordTypeId = emailRecordTypeId,
-            Provider__c = 'MICROSOFT_GRAPH',
-            Status__c = 'Unmatched'
+            Provider__c = 'MICROSOFT_EMAIL',
+            Status__c = 'Staged'
         );
         insert staging;
         
@@ -754,7 +754,7 @@ private class AIStagingMatcherServiceTest {
             To_Address__c = 'user1@test.com,user2@test.com;user3@test.com',
             Cc_Address__c = 'user4@test.com',
             RecordTypeId = emailRecordTypeId,
-            Status__c = 'Unmatched'
+            Status__c = 'Staged'
         );
         insert staging;
         
@@ -787,7 +787,7 @@ private class AIStagingMatcherServiceTest {
             Organizer__c = 'John Doe <john@example.com>',
             Attendees__c = 'Jane Smith <jane@example.com>',
             RecordTypeId = calendarRecordTypeId,
-            Status__c = 'Unmatched'
+            Status__c = 'Staged'
         );
         insert staging1;
         
@@ -796,7 +796,7 @@ private class AIStagingMatcherServiceTest {
             Organizer__c = 'organizer@test.com',
             Attendees__c = 'attendee@test.com',
             RecordTypeId = calendarRecordTypeId,
-            Status__c = 'Unmatched'
+            Status__c = 'Staged'
         );
         insert staging2;
         
@@ -805,7 +805,7 @@ private class AIStagingMatcherServiceTest {
             Organizer__c = 'John Doe',
             Attendees__c = 'Jane Smith',
             RecordTypeId = calendarRecordTypeId,
-            Status__c = 'Unmatched'
+            Status__c = 'Staged'
         );
         insert staging3;
         
@@ -838,7 +838,7 @@ private class AIStagingMatcherServiceTest {
             Organizer__c = TEST_EMAIL,
             Attendees__c = 'other@test.com',
             RecordTypeId = calendarRecordTypeId,
-            Status__c = 'Unmatched'
+            Status__c = 'Staged'
         );
         insert staging;
         
@@ -871,7 +871,7 @@ private class AIStagingMatcherServiceTest {
         AI_Workspace_Staging__c staging = new AI_Workspace_Staging__c(
             From_Address__c = TEST_EMAIL,
             RecordTypeId = emailRecordTypeId,
-            Status__c = 'Unmatched'
+            Status__c = 'Staged'
         );
         insert staging;
         
@@ -1072,7 +1072,7 @@ private class AIStagingMatcherServiceTest {
             To_Address__c = TEST_EMAIL,
             Cc_Address__c = TEST_EMAIL,
             RecordTypeId = emailRecordTypeId,
-            Status__c = 'Unmatched'
+            Status__c = 'Staged'
         );
         insert staging;
         

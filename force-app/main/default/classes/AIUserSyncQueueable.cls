@@ -51,12 +51,10 @@ public with sharing class AIUserSyncQueueable implements Queueable, Database.All
      */
     public void execute(QueueableContext context) {
         if (userIds == null || userIds.isEmpty() || currentIndex >= userIds.size()) {
-            System.debug('User sync chain complete. Processed ' + currentIndex + ' users.');
             return;
         }
 
         Id currentUserId = userIds[currentIndex];
-        System.debug('Processing ' + currentSyncType + ' sync for user index ' + currentIndex + ': ' + currentUserId);
 
         // Execute the current sync type
         switch on currentSyncType {
@@ -86,12 +84,9 @@ public with sharing class AIUserSyncQueueable implements Queueable, Database.All
      */
     private void syncEmail(Id userId) {
         try {
-            System.debug('Starting email sync for user: ' + userId);
             AIEmailSyncService.syncUserEmails(userId);
-            System.debug('Email sync complete for user: ' + userId);
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error syncing email for user ' + userId + ': ' + e.getMessage());
-            logSyncError(userId, 'MICROSOFT_GRAPH', 'Email', e);
+            logSyncError(userId, 'MICROSOFT_EMAIL', 'Email', e);
         }
     }
 
@@ -100,12 +95,9 @@ public with sharing class AIUserSyncQueueable implements Queueable, Database.All
      */
     private void syncCalendar(Id userId) {
         try {
-            System.debug('Starting calendar sync for user: ' + userId);
             AICalendarSyncService.syncUserCalendar(userId);
-            System.debug('Calendar sync complete for user: ' + userId);
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error syncing calendar for user ' + userId + ': ' + e.getMessage());
-            logSyncError(userId, 'MICROSOFT_GRAPH', 'Calendar', e);
+            logSyncError(userId, 'MICROSOFT_CALENDAR', 'Calendar', e);
         }
     }
 
@@ -114,11 +106,8 @@ public with sharing class AIUserSyncQueueable implements Queueable, Database.All
      */
     private void syncTasks(Id userId) {
         try {
-            System.debug('Starting task sync for user: ' + userId);
             AITaskSyncService.syncUserTasks(userId);
-            System.debug('Task sync complete for user: ' + userId);
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Error syncing tasks for user ' + userId + ': ' + e.getMessage());
             logSyncError(userId, 'MICROSOFT_TASKS', 'Task', e);
         }
     }
@@ -147,7 +136,6 @@ public with sharing class AIUserSyncQueueable implements Queueable, Database.All
             List<AI_Workspace_Sync_Log__c> logsToInsert = new List<AI_Workspace_Sync_Log__c>{ errorLog };
             FLSCheck.getInstance().insertDML(logsToInsert);
         } catch (Exception logError) {
-            System.debug(LoggingLevel.ERROR, 'Failed to create error log: ' + logError.getMessage());
         }
     }
 
@@ -160,7 +148,6 @@ public with sharing class AIUserSyncQueueable implements Queueable, Database.All
         // In test context, we don't chain to avoid "Maximum stack depth" errors
         // since Test.stopTest() synchronously executes all enqueued jobs
         if (disableChaining || Test.isRunningTest()) {
-            System.debug('Chaining disabled (test context or explicit). Stopping at user index ' + currentIndex + ', sync type ' + currentSyncType);
             return;
         }
 
@@ -200,7 +187,6 @@ public with sharing class AIUserSyncQueueable implements Queueable, Database.All
 
         // Check if we should continue
         if (nextUserIndex >= userIds.size()) {
-            System.debug('User sync chain complete. Processed all ' + userIds.size() + ' users.');
             return;
         }
 
@@ -211,7 +197,6 @@ public with sharing class AIUserSyncQueueable implements Queueable, Database.All
             Boolean taskEnabled = AISyncSettingsService.isTaskSyncEnabled();
 
             if (!emailEnabled && !calendarEnabled && !taskEnabled) {
-                System.debug('All sync types disabled. Stopping chain.');
                 return;
             }
 
@@ -240,7 +225,6 @@ public with sharing class AIUserSyncQueueable implements Queueable, Database.All
             System.enqueueJob(nextJob);
         }
 
-        System.debug('Chained to: User index ' + nextUserIndex + ', Sync type ' + nextSyncType);
     }
 
     /**

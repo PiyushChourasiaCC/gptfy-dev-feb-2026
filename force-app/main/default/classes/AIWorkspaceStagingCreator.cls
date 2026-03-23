@@ -80,6 +80,98 @@ public with sharing class AIWorkspaceStagingCreator {
         return recordTypeIdCache.get(developerName);
     }
 
+    // V2-7889: Cache for workspace user IDs
+    private static Map<String, Id> workspaceUserIdCache;
+
+    /**
+     * V2-7889: Map staging provider type to workspace user provider type
+     * @param stagingProvider Provider type from staging record (e.g., MICROSOFT_EMAIL, GOOGLE_CALENDAR)
+     * @return Workspace provider type ('Outlook' or 'Gmail')
+     */
+    private static String mapProviderToWorkspaceProvider(String stagingProvider) {
+        if (String.isBlank(stagingProvider)) {
+            return null;
+        }
+        if (stagingProvider.startsWithIgnoreCase('MICROSOFT') || stagingProvider.equalsIgnoreCase('Outlook')) {
+            return 'Outlook';
+        } else if (stagingProvider.startsWithIgnoreCase('GOOGLE') || stagingProvider.startsWithIgnoreCase('GMAIL')) {
+            return 'Gmail';
+        }
+        return null;
+    }
+
+    /**
+     * V2-7889: Get workspace user ID for a given user and provider
+     * Uses caching to minimize queries
+     * Matches by Salesforce User ID (User__c) and Provider
+     * @param userId The Salesforce user ID
+     * @param stagingProvider The staging provider type (e.g., MICROSOFT_EMAIL, GOOGLE_CALENDAR)
+     * @return The AI_Workspace_User__c record ID, or null if not found
+     */
+    public static Id getWorkspaceUserIdPublic(Id userId, String stagingProvider) {
+        return getWorkspaceUserId(userId, stagingProvider);
+    }
+    
+    /**
+     * V2-7889: Internal method to get workspace user ID
+     */
+    private static Id getWorkspaceUserId(Id userId, String stagingProvider) {
+        if (userId == null || String.isBlank(stagingProvider)) {
+            return null;
+        }
+
+        // Map staging provider to workspace provider
+        String workspaceProvider = mapProviderToWorkspaceProvider(stagingProvider);
+        
+        if (String.isBlank(workspaceProvider)) {
+            return null;
+        }
+
+        // Initialize cache if needed
+        if (workspaceUserIdCache == null) {
+            workspaceUserIdCache = new Map<String, Id>();
+        }
+
+        // Check cache first
+        String cacheKey = String.valueOf(userId) + '_' + workspaceProvider;
+        if (workspaceUserIdCache.containsKey(cacheKey)) {
+            Id cachedId = workspaceUserIdCache.get(cacheKey);
+            return cachedId;
+        }
+
+        // Query for workspace user by User__c and Provider__c
+        
+        // First, check if ANY workspace user exists for this user (debugging)
+        List<AI_Workspace_User__c> allUserWorkspaceUsers = [
+            SELECT Id, Provider__c, User__c, Name
+            FROM AI_Workspace_User__c
+            WHERE User__c = :userId
+        ];
+        for (AI_Workspace_User__c wu : allUserWorkspaceUsers) {
+        }
+        
+        // Try case-insensitive matching since Provider__c is a picklist
+        Id workspaceUserId = null;
+        for (AI_Workspace_User__c wu : allUserWorkspaceUsers) {
+            if (wu.Provider__c != null && wu.Provider__c.equalsIgnoreCase(workspaceProvider)) {
+                workspaceUserId = wu.Id;
+                break;
+            }
+        }
+        
+        
+        workspaceUserIdCache.put(cacheKey, workspaceUserId);
+        return workspaceUserId;
+    }
+
+    /**
+     * V2-7889: Clear workspace user cache (for testing)
+     */
+    @TestVisible
+    private static void clearWorkspaceUserCache() {
+        workspaceUserIdCache = null;
+    }
+
     /**
      * Creates staging records for emails
      * @param emails List of email data maps from Graph API
@@ -174,7 +266,7 @@ public with sharing class AIWorkspaceStagingCreator {
                 }
                 
                 // Collect unmatched records for re-matching
-                if (existing.Status__c == 'Unmatched') {
+                if (existing.Status__c == 'Staged') {
                     existingUnmatchedIds.add(existing.Id);
                 }
             }
@@ -241,26 +333,28 @@ public with sharing class AIWorkspaceStagingCreator {
         if (!recordsToInsert.isEmpty()) {
             insertStagingRecords(recordsToInsert, result);
             
-            // Immediately run matching for the newly created staging records
-            // Pass the connected account email (userEmail) to exclude from matching
-            if (!result.stagingRecordIds.isEmpty()) {
+            // V2-7889: Two-phase sync approach
+            // For AUTO-SYNC (sendNotifications=false): Only create staging with Status='Staged'
+            // Phase 2 batch jobs (AIStagingEmailMatcherBatch) will handle matching later
+            // For MANUAL IMPORT (sendNotifications=true): Run inline matching immediately
+            if (sendNotifications && !result.stagingRecordIds.isEmpty()) {
+                // MANUAL IMPORT: Immediately run matching for the newly created staging records
+                // Pass the connected account email (userEmail) to exclude from matching
                 MatchingCounts counts = matchEmailStagingRecordsInline(result.stagingRecordIds, sendNotifications, userEmail);
                 result.matchedCount += counts.matchedCount;
                 result.unmatchedCount += counts.unmatchedCount;
                 result.importedCount += counts.importedCount;
                 // Note: Notifications are sent from within matchEmailStagingRecordsInline (if sendNotifications=true)
+            } else if (!sendNotifications && !result.stagingRecordIds.isEmpty()) {
+                // AUTO-SYNC: Mark all as unmatched (staged) - Phase 2 batch will handle matching
+                result.unmatchedCount += result.stagingRecordIds.size();
             }
         }
         
-        // Re-run matching on existing unmatched records
-        // This handles two scenarios:
-        // 1. User manually re-selects a previously unmatched email
-        // 2. Scheduler re-fetches an email that was unmatched in previous sync (auto-retry)
-        // If a Contact/Lead/Account was added since last sync, the email will now match and import.
-        // NOTE: We don't add rematching counts to the main totals because those emails
-        // were NOT fetched in this sync - they were already in staging from previous syncs.
-        // The unmatchedCount was already incremented above when we detected existing unmatched staging.
-        if (!existingUnmatchedIds.isEmpty()) {
+        // Re-run matching on existing unmatched records (ONLY for manual imports)
+        // This handles the scenario where user manually re-selects a previously unmatched email
+        // For auto-sync, the Phase 2 batch will handle re-matching of existing Staged records
+        if (sendNotifications && !existingUnmatchedIds.isEmpty()) {
             MatchingCounts rematchCounts = matchEmailStagingRecordsInline(existingUnmatchedIds, sendNotifications, userEmail);
             // Track how many were rematched for informational purposes
             result.rematchedCount = existingUnmatchedIds.size();
@@ -375,7 +469,7 @@ public with sharing class AIWorkspaceStagingCreator {
                     existingStagingByICalUID.put(existing.ICalUID__c, existing);
                 }
                 // Collect unmatched records for re-processing
-                if (existing.Status__c == 'Unmatched') {
+                if (existing.Status__c == 'Staged') {
                     existingUnmatchedCalendarIds.add(existing.Id);
                 }
             }
@@ -434,28 +528,30 @@ public with sharing class AIWorkspaceStagingCreator {
         if (!recordsToInsert.isEmpty()) {
             insertStagingRecords(recordsToInsert, result);
             
-            // Immediately run matching for the newly created calendar staging records
-            // Pass the connected account email to exclude from matching
-            if (!result.stagingRecordIds.isEmpty()) {
+            // V2-7889: Two-phase sync approach
+            // For AUTO-SYNC (sendNotifications=false): Only create staging with Status='Staged'
+            // Phase 2 batch jobs (AIStagingCalendarMatcherBatch) will handle matching later
+            // For MANUAL IMPORT (sendNotifications=true): Run inline matching immediately
+            if (sendNotifications && !result.stagingRecordIds.isEmpty()) {
+                // MANUAL IMPORT: Immediately run matching for the newly created calendar staging records
+                // Pass the connected account email to exclude from matching
                 MatchingCounts counts = matchCalendarStagingRecordsInline(result.stagingRecordIds, connectedAccountEmail);
                 result.matchedCount += counts.matchedCount;
                 result.unmatchedCount += counts.unmatchedCount;
                 result.importedCount += counts.importedCount;
                 
-                // Send notifications only for manual imports (not for auto-sync/scheduler)
-                if (sendNotifications) {
-                    sendCalendarStagingNotifications(result.stagingRecordIds, counts);
-                }
+                // Send notifications only for manual imports
+                sendCalendarStagingNotifications(result.stagingRecordIds, counts);
+            } else if (!sendNotifications && !result.stagingRecordIds.isEmpty()) {
+                // AUTO-SYNC: Mark all as unmatched (staged) - Phase 2 batch will handle matching
+                result.unmatchedCount += result.stagingRecordIds.size();
             }
         }
         
-        // Re-process existing unmatched calendar events
-        // This handles the case where scheduler re-fetches an event that was unmatched in previous sync
-        // If the event can now be processed (e.g., calendar settings changed), it will be imported
-        // NOTE: We don't add reprocessing counts to the main totals because those events
-        // were NOT fetched in this sync - they were already in staging from previous syncs.
-        // The unmatchedCount was already incremented above when we detected existing unmatched staging.
-        if (!existingUnmatchedCalendarIds.isEmpty()) {
+        // Re-process existing unmatched calendar events (ONLY for manual imports)
+        // This handles the scenario where user manually re-selects a previously unmatched event
+        // For auto-sync, the Phase 2 batch will handle re-matching of existing Staged records
+        if (sendNotifications && !existingUnmatchedCalendarIds.isEmpty()) {
             MatchingCounts reprocessCounts = matchCalendarStagingRecordsInline(existingUnmatchedCalendarIds, connectedAccountEmail);
             // Track how many were reprocessed for informational purposes
             result.rematchedCount = existingUnmatchedCalendarIds.size();
@@ -567,7 +663,7 @@ public with sharing class AIWorkspaceStagingCreator {
                 if (existingStaging != null) {
                     result.duplicateCount++;
                     // If Unmatched, collect ID for retry (but don't count again)
-                    if (existingStaging.Status__c == 'Unmatched') {
+                    if (existingStaging.Status__c == 'Staged') {
                         existingUnmatchedStagingIdsSet.add(existingStaging.Id);
                     }
                     continue;
@@ -596,8 +692,9 @@ public with sharing class AIWorkspaceStagingCreator {
 
         // CRITICAL: Get connected email BEFORE DML to avoid "callout after DML" error
         // This callout must happen before insertStagingRecords() which performs DML
+        // Only needed for manual imports (sendNotifications=true)
         String connectedEmail = null;
-        if (!recordsToInsert.isEmpty() || !existingUnmatchedStagingIdsSet.isEmpty()) {
+        if (sendNotifications && (!recordsToInsert.isEmpty() || !existingUnmatchedStagingIdsSet.isEmpty())) {
             connectedEmail = getConnectedUserEmail(providerType);
         }
 
@@ -605,27 +702,36 @@ public with sharing class AIWorkspaceStagingCreator {
         if (!recordsToInsert.isEmpty()) {
             insertStagingRecords(recordsToInsert, result);
         }
-        
-        // Combine new staging IDs with existing Unmatched staging IDs for Task creation
-        // Use Set to ensure no duplicates
-        Set<Id> allStagingIdsSet = new Set<Id>();
-        allStagingIdsSet.addAll(result.stagingRecordIds);
-        allStagingIdsSet.addAll(existingUnmatchedStagingIdsSet);
-        List<Id> allStagingIdsToProcess = new List<Id>(allStagingIdsSet);
-        
-        // IMPORTANT: Add existing Unmatched staging IDs to result so controller can query them
-        // This ensures manual imports from modal can link the created Tasks to selected Contacts
-        // Convert result.stagingRecordIds to Set first to avoid duplicates
-        Set<Id> resultStagingIdsSet = new Set<Id>(result.stagingRecordIds);
-        resultStagingIdsSet.addAll(existingUnmatchedStagingIdsSet);
-        result.stagingRecordIds = new List<Id>(resultStagingIdsSet);
-        
-        // Create/retry Salesforce Task records for both new and existing Unmatched staging
-        if (!allStagingIdsToProcess.isEmpty()) {
-            MatchingCounts counts = createTasksFromStagingInlineWithEmail(allStagingIdsToProcess, connectedEmail, sendNotifications);
-            result.matchedCount += counts.matchedCount;
-            result.unmatchedCount += counts.unmatchedCount;
-            result.importedCount += counts.importedCount;
+
+        // V2-7889: Two-phase sync approach
+        // For AUTO-SYNC (sendNotifications=false): Only create staging with Status='Staged'
+        // Phase 2 batch jobs (AIStagingTaskMatcherBatch) will handle matching later
+        // For MANUAL IMPORT (sendNotifications=true): Create Task records immediately
+        if (sendNotifications) {
+            // MANUAL IMPORT: Combine new staging IDs with existing Unmatched staging IDs for Task creation
+            // Use Set to ensure no duplicates
+            Set<Id> allStagingIdsSet = new Set<Id>();
+            allStagingIdsSet.addAll(result.stagingRecordIds);
+            allStagingIdsSet.addAll(existingUnmatchedStagingIdsSet);
+            List<Id> allStagingIdsToProcess = new List<Id>(allStagingIdsSet);
+
+            // IMPORTANT: Add existing Unmatched staging IDs to result so controller can query them
+            // This ensures manual imports from modal can link the created Tasks to selected Contacts
+            // Convert result.stagingRecordIds to Set first to avoid duplicates
+            Set<Id> resultStagingIdsSet = new Set<Id>(result.stagingRecordIds);
+            resultStagingIdsSet.addAll(existingUnmatchedStagingIdsSet);
+            result.stagingRecordIds = new List<Id>(resultStagingIdsSet);
+
+            // Create/retry Salesforce Task records for both new and existing Unmatched staging
+            if (!allStagingIdsToProcess.isEmpty()) {
+                MatchingCounts counts = createTasksFromStagingInlineWithEmail(allStagingIdsToProcess, connectedEmail, sendNotifications);
+                result.matchedCount += counts.matchedCount;
+                result.unmatchedCount += counts.unmatchedCount;
+                result.importedCount += counts.importedCount;
+            }
+        } else if (!sendNotifications && !result.stagingRecordIds.isEmpty()) {
+            // AUTO-SYNC: Mark all as unmatched (staged) - Phase 2 batch will handle matching
+            result.unmatchedCount += result.stagingRecordIds.size();
         }
 
         return result;
@@ -710,7 +816,7 @@ public with sharing class AIWorkspaceStagingCreator {
                 if (existingStaging != null) {
                     result.duplicateCount++;
                     // If Unmatched, collect ID for retry (but don't count again)
-                    if (existingStaging.Status__c == 'Unmatched') {
+                    if (existingStaging.Status__c == 'Staged') {
                         existingUnmatchedStagingIdsSet.add(existingStaging.Id);
                     }
                     continue;
@@ -738,8 +844,9 @@ public with sharing class AIWorkspaceStagingCreator {
 
         // CRITICAL: Get connected email BEFORE DML to avoid "callout after DML" error
         // This callout must happen before insertStagingRecords() which performs DML
+        // Only needed for manual imports (sendNotifications=true)
         String connectedEmail = null;
-        if (!recordsToInsert.isEmpty() || !existingUnmatchedStagingIdsSet.isEmpty()) {
+        if (sendNotifications && (!recordsToInsert.isEmpty() || !existingUnmatchedStagingIdsSet.isEmpty())) {
             connectedEmail = getConnectedUserEmail(providerType);
         }
 
@@ -747,27 +854,36 @@ public with sharing class AIWorkspaceStagingCreator {
         if (!recordsToInsert.isEmpty()) {
             insertStagingRecords(recordsToInsert, result);
         }
-        
-        // Combine new staging IDs with existing Unmatched staging IDs for Task creation
-        // Use Set to ensure no duplicates
-        Set<Id> allStagingIdsSet = new Set<Id>();
-        allStagingIdsSet.addAll(result.stagingRecordIds);
-        allStagingIdsSet.addAll(existingUnmatchedStagingIdsSet);
-        List<Id> allStagingIdsToProcess = new List<Id>(allStagingIdsSet);
-        
-        // IMPORTANT: Add existing Unmatched staging IDs to result so controller can query them
-        // This ensures manual imports from modal can link the created Tasks to selected Contacts
-        // Convert result.stagingRecordIds to Set first to avoid duplicates
-        Set<Id> resultStagingIdsSet = new Set<Id>(result.stagingRecordIds);
-        resultStagingIdsSet.addAll(existingUnmatchedStagingIdsSet);
-        result.stagingRecordIds = new List<Id>(resultStagingIdsSet);
-        
-        // Create/retry Salesforce Task records for both new and existing Unmatched staging
-        if (!allStagingIdsToProcess.isEmpty()) {
-            MatchingCounts counts = createTasksFromStagingInlineWithEmail(allStagingIdsToProcess, connectedEmail, sendNotifications);
-            result.matchedCount += counts.matchedCount;
-            result.unmatchedCount += counts.unmatchedCount;
-            result.importedCount += counts.importedCount;
+
+        // V2-7889: Two-phase sync approach
+        // For AUTO-SYNC (sendNotifications=false): Only create staging with Status='Staged'
+        // Phase 2 batch jobs (AIStagingTaskMatcherBatch) will handle matching later
+        // For MANUAL IMPORT (sendNotifications=true): Create Task records immediately
+        if (sendNotifications) {
+            // MANUAL IMPORT: Combine new staging IDs with existing Unmatched staging IDs for Task creation
+            // Use Set to ensure no duplicates
+            Set<Id> allStagingIdsSet = new Set<Id>();
+            allStagingIdsSet.addAll(result.stagingRecordIds);
+            allStagingIdsSet.addAll(existingUnmatchedStagingIdsSet);
+            List<Id> allStagingIdsToProcess = new List<Id>(allStagingIdsSet);
+
+            // IMPORTANT: Add existing Unmatched staging IDs to result so controller can query them
+            // This ensures manual imports from modal can link the created Tasks to selected Contacts
+            // Convert result.stagingRecordIds to Set first to avoid duplicates
+            Set<Id> resultStagingIdsSet = new Set<Id>(result.stagingRecordIds);
+            resultStagingIdsSet.addAll(existingUnmatchedStagingIdsSet);
+            result.stagingRecordIds = new List<Id>(resultStagingIdsSet);
+
+            // Create/retry Salesforce Task records for both new and existing Unmatched staging
+            if (!allStagingIdsToProcess.isEmpty()) {
+                MatchingCounts counts = createTasksFromStagingInlineWithEmail(allStagingIdsToProcess, connectedEmail, sendNotifications);
+                result.matchedCount += counts.matchedCount;
+                result.unmatchedCount += counts.unmatchedCount;
+                result.importedCount += counts.importedCount;
+            }
+        } else if (!sendNotifications && !result.stagingRecordIds.isEmpty()) {
+            // AUTO-SYNC: Mark all as unmatched (staged) - Phase 2 batch will handle matching
+            result.unmatchedCount += result.stagingRecordIds.size();
         }
 
         return result;
@@ -788,12 +904,15 @@ public with sharing class AIWorkspaceStagingCreator {
         staging.Provider_Id__c = task.taskId;
         staging.User__c = userId;
         staging.Import_Date__c = DateTime.now();
-        staging.Status__c = 'Unmatched';
+        staging.Status__c = 'Staged';
+        // V2-7889: Link to workspace user for matching
+        staging.AI_Workspace_User__c = getWorkspaceUserId(userId, providerType);
 
-        // Subject/Title
-        staging.Subject__c = truncateField(task.title, 4000);
+        // Subject/Title (V2-7889: Encrypt for security)
+        String subject = truncateField(task.title, 4000);
+        staging.Subject__c = AIWorkspaceEncryptionService.encryptEmailBody(subject, userId);
 
-        // Description/Body (Google uses "notes")
+        // Description/Body (Google uses "notes") (V2-7889: Encrypt for security)
         String description = '';
         if (String.isNotBlank(task.listName)) {
             description += 'From List: ' + task.listName + '\n---\n';
@@ -801,7 +920,8 @@ public with sharing class AIWorkspaceStagingCreator {
         if (String.isNotBlank(task.body)) {
             description += task.body;
         }
-        staging.Text_Body__c = truncateField(description, 32000);
+        String textBody = truncateField(description, 32000);
+        staging.Text_Body__c = AIWorkspaceEncryptionService.encryptEmailBody(textBody, userId);
 
         // List name
         staging.List_Name__c = truncateField(task.listName, 255);
@@ -856,23 +976,31 @@ public with sharing class AIWorkspaceStagingCreator {
         staging.User__c = targetUserId != null ? targetUserId : UserInfo.getUserId();
         staging.Sync_Log__c = syncLogId;
         staging.Import_Date__c = DateTime.now();
-        staging.Status__c = 'Unmatched';
+        staging.Status__c = 'Staged';
+        // V2-7889: Link to workspace user for matching
+        staging.AI_Workspace_User__c = getWorkspaceUserId(staging.User__c, providerType);
 
-        // Subject
-        staging.Subject__c = truncateField((String) emailData.get('subject'), 4000);
+        // Subject (V2-7889: Encrypt for security)
+        Id userId = targetUserId != null ? targetUserId : UserInfo.getUserId();
+        String subject = truncateField((String) emailData.get('subject'), 4000);
+        staging.Subject__c = AIWorkspaceEncryptionService.encryptEmailBody(subject, userId);
 
-        // Body content
+        // Body content (V2-7889: Encrypt email bodies for security)
         Map<String, Object> body = (Map<String, Object>) emailData.get('body');
         if (body != null) {
             String contentType = (String) body.get('contentType');
             String content = (String) body.get('content');
 
             if (contentType == 'html') {
-                staging.Html_Body__c = truncateField(content, 32000);
-                staging.Text_Body__c = truncateField(stripHtml(content), 32000);
+                String htmlBody = truncateField(content, 32000);
+                String textBody = truncateField(stripHtml(content), 32000);
+                staging.Html_Body__c = AIWorkspaceEncryptionService.encryptEmailBody(htmlBody, userId);
+                staging.Text_Body__c = AIWorkspaceEncryptionService.encryptEmailBody(textBody, userId);
             } else {
-                staging.Text_Body__c = truncateField(content, 32000);
-                staging.Html_Body__c = truncateField('<pre>' + content + '</pre>', 32000);
+                String textBody = truncateField(content, 32000);
+                String htmlBody = truncateField('<pre>' + content + '</pre>', 32000);
+                staging.Text_Body__c = AIWorkspaceEncryptionService.encryptEmailBody(textBody, userId);
+                staging.Html_Body__c = AIWorkspaceEncryptionService.encryptEmailBody(htmlBody, userId);
             }
         }
 
@@ -931,13 +1059,18 @@ public with sharing class AIWorkspaceStagingCreator {
         staging.User__c = targetUserId != null ? targetUserId : UserInfo.getUserId();
         staging.Sync_Log__c = syncLogId;
         staging.Import_Date__c = DateTime.now();
-        staging.Status__c = 'Unmatched';
+        staging.Status__c = 'Staged';
+        // V2-7889: Link to workspace user for matching
+        staging.AI_Workspace_User__c = getWorkspaceUserId(staging.User__c, providerType);
 
-        // Subject/Title
-        staging.Subject__c = truncateField(evt.subject, 4000);
+        // Subject/Title (V2-7889: Encrypt for security)
+        Id userId = targetUserId != null ? targetUserId : UserInfo.getUserId();
+        String subject = truncateField(evt.subject, 4000);
+        staging.Subject__c = AIWorkspaceEncryptionService.encryptEmailBody(subject, userId);
 
-        // Description
-        staging.Text_Body__c = truncateField(evt.description, 32000);
+        // Description (V2-7889: Encrypt for security)
+        String textBody = truncateField(evt.description, 32000);
+        staging.Text_Body__c = AIWorkspaceEncryptionService.encryptEmailBody(textBody, userId);
 
         // DateTime fields
         staging.Start_DateTime__c = evt.startDateTime;
@@ -989,12 +1122,16 @@ public with sharing class AIWorkspaceStagingCreator {
         staging.User__c = targetUserId != null ? targetUserId : UserInfo.getUserId();
         staging.Sync_Log__c = syncLogId;
         staging.Import_Date__c = DateTime.now();
-        staging.Status__c = 'Unmatched';
+        staging.Status__c = 'Staged';
+        // V2-7889: Link to workspace user for matching
+        staging.AI_Workspace_User__c = getWorkspaceUserId(staging.User__c, providerType);
 
-        // Subject/Title
-        staging.Subject__c = truncateField(task.title, 4000);
+        // Subject/Title (V2-7889: Encrypt for security)
+        Id userId = targetUserId != null ? targetUserId : UserInfo.getUserId();
+        String subject = truncateField(task.title, 4000);
+        staging.Subject__c = AIWorkspaceEncryptionService.encryptEmailBody(subject, userId);
 
-        // Description/Body
+        // Description/Body (V2-7889: Encrypt for security)
         String description = '';
         if (String.isNotBlank(task.listName)) {
             description += 'From List: ' + task.listName + '\n---\n';
@@ -1002,7 +1139,8 @@ public with sharing class AIWorkspaceStagingCreator {
         if (String.isNotBlank(task.body)) {
             description += task.body;
         }
-        staging.Text_Body__c = truncateField(description, 32000);
+        String textBody = truncateField(description, 32000);
+        staging.Text_Body__c = AIWorkspaceEncryptionService.encryptEmailBody(textBody, userId);
 
         // List name
         staging.List_Name__c = truncateField(task.listName, 255);
@@ -1044,22 +1182,23 @@ public with sharing class AIWorkspaceStagingCreator {
         }
         
         
-        // Perform DML with partial success handling
-        Database.SaveResult[] saveResults = Database.insert(accessibleRecords, false);
-
-        for (Integer i = 0; i < saveResults.size(); i++) {
-            if (saveResults[i].isSuccess()) {
-                result.successCount++;
-                result.stagingRecordIds.add(saveResults[i].getId());
-            } else {
-                result.failedCount++;
-                for (Database.Error err : saveResults[i].getErrors()) {
-                    String subject = accessibleRecords[i].Subject__c;
-                    String errorMsg = String.isNotBlank(subject) 
-                        ? subject + ': ' + err.getMessage()
-                        : err.getMessage();
-                    result.errors.add(errorMsg);
+        // V2-7889: Use FLSCheck for FLS/CRUD enforcement
+        try {
+            List<AI_Workspace_Staging__c> insertedRecords = (List<AI_Workspace_Staging__c>) FLSCheck.getInstance().insertDML(accessibleRecords, false);
+            result.successCount = insertedRecords.size();
+            for (AI_Workspace_Staging__c rec : insertedRecords) {
+                if (rec.Id != null) {
+                    result.stagingRecordIds.add(rec.Id);
                 }
+            }
+        } catch (DmlException e) {
+            result.failedCount++;
+            for (Integer i = 0; i < e.getNumDml(); i++) {
+                String subject = i < accessibleRecords.size() ? accessibleRecords[i].Subject__c : '';
+                String errorMsg = String.isNotBlank(subject) 
+                    ? subject + ': ' + e.getDmlMessage(i)
+                    : e.getDmlMessage(i);
+                result.errors.add(errorMsg);
             }
         }
         
@@ -1080,8 +1219,8 @@ public with sharing class AIWorkspaceStagingCreator {
             return;
         }
         
-        // Perform DML with partial success handling
-        Database.update(accessibleRecords, false);
+        // V2-7889: Use FLSCheck for FLS/CRUD enforcement
+        FLSCheck.getInstance().updateDML(accessibleRecords, false);
     }
 
     /**
@@ -1413,7 +1552,7 @@ public with sharing class AIWorkspaceStagingCreator {
             // Mark all as Unmatched since matching is disabled
             List<AI_Workspace_Staging__c> stagingToUpdate = new List<AI_Workspace_Staging__c>();
             for (Id stagingId : stagingRecordIds) {
-                stagingToUpdate.add(new AI_Workspace_Staging__c(Id = stagingId, Status__c = 'Unmatched'));
+                stagingToUpdate.add(new AI_Workspace_Staging__c(Id = stagingId, Status__c = 'Staged'));
             }
             updateStagingRecordsWithFLS(stagingToUpdate);
             counts.unmatchedCount = stagingRecordIds.size();
@@ -1472,7 +1611,7 @@ public with sharing class AIWorkspaceStagingCreator {
                 
                 if (multiMatch != null && multiMatch.hasAnyMatch) {
                     // Mark as matched - the actual Lead/Contact associations are stored in EmailMessageRelation
-                    updateRecord.Status__c = 'Matched';
+                    updateRecord.Status__c = 'Imported';
                     counts.matchedCount++;
                     
                     // Create EmailMessage for matched records
@@ -1486,7 +1625,7 @@ public with sharing class AIWorkspaceStagingCreator {
                     emailsToCreate.add(em);
                 } else {
                     // No match found
-                    updateRecord.Status__c = 'Unmatched';
+                    updateRecord.Status__c = 'Staged';
                     counts.unmatchedCount++;
                 }
                 
@@ -1657,13 +1796,12 @@ public with sharing class AIWorkspaceStagingCreator {
                 continue;
             }
             
-            Database.SaveResult[] results = Database.insert(accessibleBatch, false);
-            for (Database.SaveResult sr : results) {
-                if (sr.isSuccess()) {
-                    totalSuccess++;
-                } else {
-                    totalFailed++;
-                }
+            // V2-7889: Use FLSCheck for FLS/CRUD enforcement
+            try {
+                List<EmailMessageRelation> insertedBatch = (List<EmailMessageRelation>) FLSCheck.getInstance().insertDML(accessibleBatch, false);
+                totalSuccess += insertedBatch.size();
+            } catch (DmlException e) {
+                totalFailed += e.getNumDml();
             }
         }
     }
@@ -1873,15 +2011,18 @@ public with sharing class AIWorkspaceStagingCreator {
     private static EmailMessage createEmailMessageFromStaging(AI_Workspace_Staging__c staging) {
         EmailMessage em = new EmailMessage();
         
+        // V2-7889: Decrypt sensitive fields before creating EmailMessage
+        Id userId = staging.User__c;
+        
         // Standard EmailMessage fields
-        em.Subject = staging.Subject__c;
+        em.Subject = AIWorkspaceEncryptionService.decryptEmailBody(staging.Subject__c, userId);
         em.FromAddress = staging.From_Address__c;
         em.FromName = staging.From_Name__c;
         em.ToAddress = staging.To_Address__c;
         em.CcAddress = staging.Cc_Address__c;
         em.BccAddress = staging.Bcc_Address__c;
-        em.TextBody = staging.Text_Body__c;
-        em.HtmlBody = staging.Html_Body__c;
+        em.TextBody = AIWorkspaceEncryptionService.decryptEmailBody(staging.Text_Body__c, userId);
+        em.HtmlBody = AIWorkspaceEncryptionService.decryptEmailBody(staging.Html_Body__c, userId);
         em.MessageDate = staging.Message_Date__c;
         em.MessageIdentifier = staging.Message_Identifier__c;
         em.Incoming = staging.Is_Incoming__c != null ? staging.Is_Incoming__c : true;
@@ -1930,12 +2071,12 @@ public with sharing class AIWorkspaceStagingCreator {
             return new Map<Integer, Id>();
         }
         
-        // Insert all emails (they will be owned by the current running user - scheduler user)
-        Database.SaveResult[] results = Database.insert(accessibleEmails, false);
+        // V2-7889: Use FLSCheck for FLS/CRUD enforcement
+        List<EmailMessage> insertedEmails = (List<EmailMessage>) FLSCheck.getInstance().insertDML(accessibleEmails, false);
         
-        for (Integer i = 0; i < results.size(); i++) {
-            if (results[i].isSuccess()) {
-                indexToId.put(i, results[i].getId());
+        for (Integer i = 0; i < insertedEmails.size(); i++) {
+            if (insertedEmails[i].Id != null) {
+                indexToId.put(i, insertedEmails[i].Id);
             }
         }
         
@@ -1982,7 +2123,8 @@ public with sharing class AIWorkspaceStagingCreator {
                 return;
             }
             
-            Database.insert(accessibleRelations, false);
+            // V2-7889: Use FLSCheck for FLS/CRUD enforcement
+            FLSCheck.getInstance().insertDML(accessibleRelations, false);
         }
     }
     
@@ -2006,7 +2148,7 @@ public with sharing class AIWorkspaceStagingCreator {
             // Mark all as Unmatched since matching is disabled
             List<AI_Workspace_Staging__c> stagingToUpdate = new List<AI_Workspace_Staging__c>();
             for (Id stagingId : stagingRecordIds) {
-                stagingToUpdate.add(new AI_Workspace_Staging__c(Id = stagingId, Status__c = 'Unmatched'));
+                stagingToUpdate.add(new AI_Workspace_Staging__c(Id = stagingId, Status__c = 'Staged'));
             }
             updateStagingRecordsWithFLS(stagingToUpdate);
             counts.unmatchedCount = stagingRecordIds.size();
@@ -2045,7 +2187,7 @@ public with sharing class AIWorkspaceStagingCreator {
                 
                 if (multiMatch != null && multiMatch.hasAnyMatch) {
                     // Mark as matched - the actual Lead/Contact associations are stored in EventRelation
-                    updateRecord.Status__c = 'Matched';
+                    updateRecord.Status__c = 'Imported';
                     counts.matchedCount++;
                     
                     // Create Event with primary match
@@ -2059,7 +2201,7 @@ public with sharing class AIWorkspaceStagingCreator {
                     eventsToCreate.add(evt);
                 } else {
                     // No match found
-                    updateRecord.Status__c = 'Unmatched';
+                    updateRecord.Status__c = 'Staged';
                     counts.unmatchedCount++;
                 }
                 
@@ -2338,20 +2480,18 @@ public with sharing class AIWorkspaceStagingCreator {
                 batch.add(relations[j]);
             }
             
-            // Use FLSCheck for FLS/OLS enforcement
+            // V2-7889: Use FLSCheck for FLS/CRUD enforcement
             List<EventRelation> accessibleBatch = FLSCheck.getInstance().insertCheck(batch);
             
             if (accessibleBatch == null || accessibleBatch.isEmpty()) {
                 continue;
             }
             
-            Database.SaveResult[] results = Database.insert(accessibleBatch, false);
-            for (Database.SaveResult sr : results) {
-                if (sr.isSuccess()) {
-                    totalSuccess++;
-                } else {
-                    totalFailed++;
-                }
+            try {
+                List<EventRelation> insertedBatch = (List<EventRelation>) FLSCheck.getInstance().insertDML(accessibleBatch, false);
+                totalSuccess += insertedBatch.size();
+            } catch (DmlException e) {
+                totalFailed += e.getNumDml();
             }
         }
     }
@@ -2368,14 +2508,17 @@ public with sharing class AIWorkspaceStagingCreator {
     private static Event createEventFromStaging(AI_Workspace_Staging__c staging, AIStagingMatcherService.MatchResult match) {
         Event evt = new Event();
         
+        // V2-7889: Decrypt sensitive fields before creating Event
+        Id userId = staging.User__c != null ? staging.User__c : UserInfo.getUserId();
+        
         // Standard Event fields
-        evt.Subject = staging.Subject__c;
-        evt.Description = staging.Text_Body__c;
+        evt.Subject = AIWorkspaceEncryptionService.decryptEmailBody(staging.Subject__c, userId);
+        evt.Description = AIWorkspaceEncryptionService.decryptEmailBody(staging.Text_Body__c, userId);
         evt.StartDateTime = staging.Start_DateTime__c;
         evt.EndDateTime = staging.End_DateTime__c;
         evt.IsAllDayEvent = staging.Is_All_Day__c == true;
         evt.Location = staging.Location__c;
-        evt.OwnerId = staging.User__c != null ? staging.User__c : UserInfo.getUserId();
+        evt.OwnerId = userId;
         
         // Set WhoId based on matched record (Contact or Lead)
         if (match.contactId != null) {
@@ -2419,11 +2562,12 @@ public with sharing class AIWorkspaceStagingCreator {
             return indexToId;
         }
         
-        Database.SaveResult[] results = Database.insert(accessibleEvents, false);
+        // V2-7889: Use FLSCheck for FLS/CRUD enforcement
+        List<Event> insertedEvents = (List<Event>) FLSCheck.getInstance().insertDML(accessibleEvents, false);
         
-        for (Integer i = 0; i < results.size(); i++) {
-            if (results[i].isSuccess()) {
-                indexToId.put(i, results[i].getId());
+        for (Integer i = 0; i < insertedEvents.size(); i++) {
+            if (insertedEvents[i].Id != null) {
+                indexToId.put(i, insertedEvents[i].Id);
             }
         }
         
@@ -2539,7 +2683,7 @@ public with sharing class AIWorkspaceStagingCreator {
                         updateRecord.Email_Message__c = String.valueOf(taskId); // Reuse field for linked record
                         // If task was successfully imported, mark as Matched (linked to user)
                         // For tasks, "Matched" means successfully imported and linked, not necessarily to Contact/Lead
-                        updateRecord.Status__c = 'Matched';
+                        updateRecord.Status__c = 'Imported';
                         counts.matchedCount++;
                         stagingToUpdate.add(updateRecord);
                     }
@@ -2556,7 +2700,7 @@ public with sharing class AIWorkspaceStagingCreator {
                     if (!processedIds.contains(stagingId) && stagingIdHasMatch.get(stagingId) == true) {
                         // Task creation failed for a matched record
                         AI_Workspace_Staging__c updateRecord = new AI_Workspace_Staging__c(Id = stagingId);
-                        updateRecord.Status__c = 'Unmatched';
+                        updateRecord.Status__c = 'Staged';
                         stagingToUpdate.add(updateRecord);
                         counts.unmatchedCount++;
                     }
@@ -2566,7 +2710,7 @@ public with sharing class AIWorkspaceStagingCreator {
                 for (Id stagingId : stagingRecordIds) {
                     if (stagingIdHasMatch.get(stagingId) == false) {
                         AI_Workspace_Staging__c updateRecord = new AI_Workspace_Staging__c(Id = stagingId);
-                        updateRecord.Status__c = 'Unmatched';
+                        updateRecord.Status__c = 'Staged';
                         stagingToUpdate.add(updateRecord);
                         // counts.unmatchedCount already incremented earlier
                     }
@@ -2757,11 +2901,14 @@ public with sharing class AIWorkspaceStagingCreator {
     private static Task createTaskFromStagingWithMatch(AI_Workspace_Staging__c staging, AIStagingMatcherService.MatchResult matchResult) {
         Task t = new Task();
         
+        // V2-7889: Decrypt sensitive fields before creating Task
+        Id userId = staging.User__c != null ? staging.User__c : UserInfo.getUserId();
+        
         // Standard Task fields
-        t.Subject = staging.Subject__c;
-        t.Description = staging.Text_Body__c;
+        t.Subject = AIWorkspaceEncryptionService.decryptEmailBody(staging.Subject__c, userId);
+        t.Description = AIWorkspaceEncryptionService.decryptEmailBody(staging.Text_Body__c, userId);
         t.ActivityDate = staging.Due_Date__c;
-        t.OwnerId = staging.User__c != null ? staging.User__c : UserInfo.getUserId();
+        t.OwnerId = userId;
         
         // Apply precedence-based matching result
         // Link Task to matched Lead or Contact based on precedence config
@@ -2837,11 +2984,12 @@ public with sharing class AIWorkspaceStagingCreator {
             return indexToId;
         }
         
-        Database.SaveResult[] results = Database.insert(accessibleTasks, false);
+        // V2-7889: Use FLSCheck for FLS/CRUD enforcement
+        List<Task> insertedTasks = (List<Task>) FLSCheck.getInstance().insertDML(accessibleTasks, false);
         
-        for (Integer i = 0; i < results.size(); i++) {
-            if (results[i].isSuccess()) {
-                indexToId.put(i, results[i].getId());
+        for (Integer i = 0; i < insertedTasks.size(); i++) {
+            if (insertedTasks[i].Id != null) {
+                indexToId.put(i, insertedTasks[i].Id);
             }
         }
         

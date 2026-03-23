@@ -38,19 +38,30 @@
 
         <!-- Main Content Area -->
         <div class="main-content-area">
-            <!-- Email Component -->
-            <template if:true={isEmailView}>
-                <c-ai-exchange-email-selector selected-provider={emailProvider}></c-ai-exchange-email-selector>
+            <!-- Loading State -->
+            <template if:true={isInitializing}>
+                <div class="loading-container">
+                    <div class="spinner-large"></div>
+                    <p>Initializing workspace...</p>
+                </div>
             </template>
 
-            <!-- Task Component -->
-            <template if:true={isTaskView}>
-                <c-ai-task-selector selected-provider={taskProvider}></c-ai-task-selector>
-            </template>
+            <!-- Content after initialization -->
+            <template if:true={showContent}>
+                <!-- Email Component -->
+                <template if:true={isEmailView}>
+                    <c-ai-exchange-email-selector selected-provider={emailProvider} onopensettings={handleSettingsClick}></c-ai-exchange-email-selector>
+                </template>
 
-            <!-- Calendar Component -->
-            <template if:true={isCalendarView}>
-                <c-ai-calendar-event-selector selected-provider={calendarProvider}></c-ai-calendar-event-selector>
+                <!-- Task Component -->
+                <template if:true={isTaskView}>
+                    <c-ai-task-selector selected-provider={taskProvider} onopensettings={handleSettingsClick}></c-ai-task-selector>
+                </template>
+
+                <!-- Calendar Component -->
+                <template if:true={isCalendarView}>
+                    <c-ai-calendar-event-selector selected-provider={calendarProvider} onopensettings={handleSettingsClick}></c-ai-calendar-event-selector>
+                </template>
             </template>
         </div>
 

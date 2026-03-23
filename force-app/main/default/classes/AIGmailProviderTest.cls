@@ -402,7 +402,7 @@ public class AIGmailProviderTest {
             User__c = UserInfo.getUserId(),
             Access_Token__c = 'test_access_token',
             Refresh_Token__c = 'test_refresh_token',
-            Provider__c = 'GMAIL'
+            Provider__c = 'GMAIL_EMAIL'
         );
         insert workspaceUser;
     }
@@ -581,8 +581,8 @@ public class AIGmailProviderTest {
         AIEmailProviderService.ProviderType providerType = provider.getProviderType();
         Test.stopTest();
         
-        Assert.areEqual(AIEmailProviderService.ProviderType.GMAIL, providerType, 
-            'Should return GMAIL provider type');
+        Assert.areEqual(AIEmailProviderService.ProviderType.GMAIL_EMAIL, providerType, 
+            'Should return GMAIL_EMAIL provider type');
     }
 
     /**

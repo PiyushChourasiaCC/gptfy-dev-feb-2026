@@ -691,103 +691,45 @@
                 </tbody>
             </table>
 
-            <!-- Exclusion Rules Section -->
+            <!-- Exclusions Section -->
             <div class="section-header">
-                <span class="section-title">Exclusion Rules</span>
+                <span class="section-title">Exclusions</span>
             </div>
             <table class="slds-table slds-table_cell-buffer slds-table_header-hidden">
                 <tbody>
                     <tr class="slds-hint-parent">
-                        <td data-label="Exclude Internal Emails">
-                            <div class="field-label">Exclude Internal Emails</div>
+                        <td data-label="Excluded Domains">
+                            <div class="field-label">Excluded Domains</div>
                         </td>
-                        <td data-label="Exclude Internal Emails">
+                        <td data-label="Excluded Domains">
                             <div class="field-value">
-                                <lightning-input 
-                                    type="toggle" 
-                                    label="Exclude Internal Emails" 
-                                    name="excludeInternal"
-                                    message-toggle-active="Active" 
-                                    message-toggle-inactive="Inactive"
-                                    variant="label-hidden"
-                                    checked={settings.excludeInternal}
-                                    onchange={handleToggleChange}
-                                ></lightning-input>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr class="slds-hint-parent">
-                        <td data-label="Exclude Marketing Emails">
-                            <div class="field-label">Exclude Marketing Emails</div>
-                        </td>
-                        <td data-label="Exclude Marketing Emails">
-                            <div class="field-value">
-                                <lightning-input 
-                                    type="toggle" 
-                                    label="Exclude Marketing Emails" 
-                                    name="excludeMarketing"
-                                    message-toggle-active="Active" 
-                                    message-toggle-inactive="Inactive"
-                                    variant="label-hidden"
-                                    checked={settings.excludeMarketing}
-                                    onchange={handleToggleChange}
-                                ></lightning-input>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr class="slds-hint-parent">
-                        <td data-label="Exclude Confidential Emails">
-                            <div class="field-label">Exclude Confidential Emails</div>
-                        </td>
-                        <td data-label="Exclude Confidential Emails">
-                            <div class="field-value">
-                                <lightning-input 
-                                    type="toggle" 
-                                    label="Exclude Confidential Emails" 
-                                    name="excludeConfidential"
-                                    message-toggle-active="Active" 
-                                    message-toggle-inactive="Inactive"
-                                    variant="label-hidden"
-                                    checked={settings.excludeConfidential}
-                                    onchange={handleToggleChange}
-                                ></lightning-input>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr class="slds-hint-parent">
-                        <td data-label="Exclude Public Domains">
-                            <div class="field-label">Exclude Public Domains</div>
-                        </td>
-                        <td data-label="Exclude Public Domains">
-                            <div class="field-value">
-                                <lightning-input 
-                                    type="toggle" 
-                                    label="Exclude Public Domains" 
-                                    name="excludePublicDomains"
-                                    message-toggle-active="Active" 
-                                    message-toggle-inactive="Inactive"
-                                    variant="label-hidden"
-                                    checked={settings.excludePublicDomains}
-                                    onchange={handleToggleChange}
-                                ></lightning-input>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr class="slds-hint-parent">
-                        <td data-label="Internal Domains">
-                            <div class="field-label">Internal Domains (comma-separated)</div>
-                        </td>
-                        <td data-label="Internal Domains">
-                            <div class="field-value">
-                                <lightning-input 
-                                    type="text" 
-                                    label="Internal Domains" 
-                                    name="internalDomains"
-                                    value={settings.internalDomains}
+                                <lightning-textarea 
+                                    label="Excluded Domains" 
+                                    name="excludedDomains"
+                                    value={settings.excludedDomains}
                                     onblur={handleFieldBlur}
                                     variant="label-hidden"
                                     placeholder="company.com, subsidiary.com"
-                                ></lightning-input>
+                                    rows="3"
+                                ></lightning-textarea>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="slds-hint-parent">
+                        <td data-label="Excluded Labels/Categories">
+                            <div class="field-label">Excluded Labels/Categories</div>
+                        </td>
+                        <td data-label="Excluded Labels/Categories">
+                            <div class="field-value">
+                                <lightning-textarea 
+                                    label="Excluded Labels/Categories" 
+                                    name="excludedLabelsCategories"
+                                    value={settings.excludedLabelsCategories}
+                                    onblur={handleFieldBlur}
+                                    variant="label-hidden"
+                                    placeholder="Marketing, Confidential, Internal"
+                                    rows="3"
+                                ></lightning-textarea>
                             </div>
                         </td>
                     </tr>

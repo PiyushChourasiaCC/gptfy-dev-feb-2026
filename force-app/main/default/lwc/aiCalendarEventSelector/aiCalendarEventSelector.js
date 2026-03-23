@@ -72,14 +72,10 @@ export default class aiCalendarEventSelector extends NavigationMixin(LightningEl
         getProviderSettings()
             .then(settings => {
                 this.providerSettings = settings;
-                
-                // If only one provider is enabled, auto-select it
-                if (settings.singleProvider) {
-                    // Map to calendar-specific provider names
-                    // singleProvider returns 'GMAIL_EMAIL' or 'MICROSOFT_EMAIL'
-                    this.selectedProvider = settings.singleProvider === 'GMAIL_EMAIL' ? 'GOOGLE_CALENDAR' : 'MICROSOFT_CALENDAR';
-                }
-                
+
+                // Note: selectedProvider comes from parent via @api, so don't override
+                // The parent component is responsible for determining the correct provider
+
                 this.checkAccess();
             })
             .catch(error => {
@@ -98,11 +94,9 @@ export default class aiCalendarEventSelector extends NavigationMixin(LightningEl
                 // Token refreshed successfully - use these details
                 this.isCalendarAccessible = true;
                 this.namespace = refreshResult.namespace || '';
-                
-                if (refreshResult.provider) {
-                    this.selectedProvider = refreshResult.provider;
-                }
-                
+
+                // Note: Don't override selectedProvider - parent component controls this
+
                 // If ownerEmail is empty (due to callout-after-DML prevention), fetch it separately
                 if (refreshResult.ownerEmail) {
                     this.calendarEmail = refreshResult.ownerEmail;
@@ -110,7 +104,7 @@ export default class aiCalendarEventSelector extends NavigationMixin(LightningEl
                     // Fetch calendar info in a separate call (after DML transaction is committed)
                     this.fetchCalendarEmail();
                 }
-                
+
                 await this.loadEvents();
             } else {
                 // Token refresh failed or no access - fall back to regular access check
@@ -119,13 +113,7 @@ export default class aiCalendarEventSelector extends NavigationMixin(LightningEl
                 this.calendarEmail = result.ownerEmail || '';
                 this.namespace = result.namespace || '';
 
-                if (result.provider && !this.selectedProvider) {
-                    this.selectedProvider = result.provider;
-                }
-
-                if (!this.selectedProvider) {
-                    this.selectedProvider = 'MICROSOFT_CALENDAR';
-                }
+                // Note: Don't override selectedProvider - parent component controls this
 
                 if (this.isCalendarAccessible) {
                     await this.loadEvents();
@@ -133,9 +121,7 @@ export default class aiCalendarEventSelector extends NavigationMixin(LightningEl
             }
         } catch (error) {
             this.isCalendarAccessible = false;
-            if (!this.selectedProvider) {
-                this.selectedProvider = 'MICROSOFT_CALENDAR';
-            }
+            // Note: Don't override selectedProvider - parent component controls this
         } finally {
             this.isLoading = false;
         }
@@ -163,6 +149,14 @@ export default class aiCalendarEventSelector extends NavigationMixin(LightningEl
         setTimeout(() => {
             this.checkAccess();
         }, 100);
+    }
+
+    /**
+     * Handle connect button click - dispatch event to parent to open settings modal
+     */
+    handleConnectClick() {
+        const event = new CustomEvent('opensettings');
+        this.dispatchEvent(event);
     }
 
     /**
@@ -840,9 +834,6 @@ export default class aiCalendarEventSelector extends NavigationMixin(LightningEl
     }
 
     get notAccessibleMessage() {
-        if (this.selectedProvider === 'GOOGLE_CALENDAR') {
-            return 'Google Calendar access is not available. Please ensure the calendar.readonly scope is granted in your Google OAuth configuration.';
-        }
-        return 'Outlook Calendar access is not available. Please ensure the Calendars.Read permission is granted in your Microsoft 365 / Azure AD configuration.';
+        return 'Calendar access is not available. Please ensure the calendars read permission is granted.';
     }
 }

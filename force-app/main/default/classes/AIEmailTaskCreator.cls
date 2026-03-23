@@ -39,7 +39,7 @@ public with sharing class AIEmailTaskCreator {
      *
      * @param emailDataList List of email data maps from provider API
      * @param matchResults List of AIQuickMatchService.MatchResult aligned with emailDataList
-     * @param providerType The email provider type (MICROSOFT_GRAPH or GMAIL)
+     * @param providerType The email provider type (MICROSOFT_EMAIL or GMAIL_EMAIL)
      * @param userEmail The syncing user's email address for sent/received detection
      * @return EmailImportResult with success/failure counts and created Task IDs
      */
@@ -59,7 +59,7 @@ public with sharing class AIEmailTaskCreator {
      *
      * @param emailDataList List of email data maps from provider API
      * @param matchResults List of AIQuickMatchService.MatchResult aligned with emailDataList
-     * @param providerType The email provider type (MICROSOFT_GRAPH or GMAIL)
+     * @param providerType The email provider type (MICROSOFT_EMAIL or GMAIL_EMAIL)
      * @param userEmail The syncing user's email address for sent/received detection
      * @param ownerId The Salesforce User ID who should own the Task records (null = current user)
      * @return EmailImportResult with success/failure counts and created Task IDs
@@ -417,10 +417,11 @@ public with sharing class AIEmailTaskCreator {
             }
         }
 
+        // V2-7889: Using SObject approach for TaskRelation compatibility
         if (!relationsToInsert.isEmpty()) {
-            List<SObject> relationsToBeInserted = FLSCheck.getInstance().insertCheck(relationsToInsert);
-            if(relationsToBeInserted != null && !relationsToBeInserted.isEmpty()){
-                Database.insert(relationsToBeInserted, false);
+            List<SObject> relationsToCheck = FLSCheck.getInstance().insertCheck(relationsToInsert);
+            if(relationsToCheck != null && !relationsToCheck.isEmpty()){
+                Database.insert(relationsToCheck, false);
             }
         }
     }
@@ -463,7 +464,6 @@ public with sharing class AIEmailTaskCreator {
             }
             return DateTime.valueOfGmt(cleaned);
         } catch (Exception e) {
-            System.debug('Failed to parse datetime: ' + isoString + ' - ' + e.getMessage());
             return null;
         }
     }

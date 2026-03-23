@@ -3,17 +3,16 @@
  * Uses AI_Workspace_User__c and AI_Workspace_Sync_Settings__c for configuration
  * 
  * Provider Type Mapping:
- * - 'MICROSOFT_GRAPH', 'MICROSOFT_EMAIL', 'Outlook' -> AIMicrosoftGraphProvider
- * - 'GMAIL', 'GMAIL_EMAIL', 'Gmail' -> AIGmailProvider
+ * - 'MICROSOFT_EMAIL', 'Outlook' -> AIMicrosoftGraphProvider
+ * - 'GMAIL_EMAIL', 'Gmail' -> AIGmailProvider
  * 
- * @Jira V2-7695, V2-7696, V2-7796
+ * @Jira V2-7695, V2-7696, V2-7796, V2-7889
  */
 public with sharing class AIEmailProviderFactory {
 
     // Supported provider types (normalized to uppercase)
     public static final String PROVIDER_OUTLOOK = 'OUTLOOK';
     public static final String PROVIDER_GMAIL = 'GMAIL';
-    public static final String PROVIDER_MICROSOFT_GRAPH = 'MICROSOFT_GRAPH';
     public static final String PROVIDER_MICROSOFT_EMAIL = 'MICROSOFT_EMAIL';
     public static final String PROVIDER_GMAIL_EMAIL = 'GMAIL_EMAIL';
 
@@ -24,7 +23,7 @@ public with sharing class AIEmailProviderFactory {
      * Gets the appropriate email provider based on provider type
      * Supports multiple naming conventions for backward compatibility
      * 
-     * @param providerType Provider type string (e.g., 'MICROSOFT_GRAPH', 'Outlook', 'GMAIL')
+     * @param providerType Provider type string (e.g., 'MICROSOFT_EMAIL', 'Outlook', 'GMAIL_EMAIL')
      * @return AIEmailProviderService instance
      */
     public static AIEmailProviderService getProvider(String providerType) {
@@ -43,7 +42,7 @@ public with sharing class AIEmailProviderFactory {
         }
 
         throw new AIEmailProviderService.EmailProviderException(
-            'Unknown provider type: ' + providerType + '. Supported types: Outlook, Gmail, MICROSOFT_GRAPH, GMAIL'
+            'Unknown provider type: ' + providerType + '. Supported types: Outlook, Gmail, MICROSOFT_EMAIL, GMAIL_EMAIL'
         );
     }
 
@@ -59,7 +58,6 @@ public with sharing class AIEmailProviderFactory {
      */
     private static Boolean isOutlookProvider(String normalizedType) {
         return normalizedType == PROVIDER_OUTLOOK ||
-               normalizedType == PROVIDER_MICROSOFT_GRAPH ||
                normalizedType == PROVIDER_MICROSOFT_EMAIL;
     }
 
@@ -155,7 +153,7 @@ public with sharing class AIEmailProviderFactory {
 
     /**
      * Normalizes provider type to standard format used in AI_Workspace_User__c
-     * Converts MICROSOFT_GRAPH -> Outlook, GMAIL_EMAIL -> Gmail, etc.
+     * Converts MICROSOFT_EMAIL -> Outlook, GMAIL_EMAIL -> Gmail, etc.
      * 
      * @param providerType Input provider type
      * @return Normalized provider type ('Outlook' or 'Gmail')

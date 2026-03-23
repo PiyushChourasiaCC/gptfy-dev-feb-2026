@@ -21,22 +21,38 @@
     <picklistValues>
         <picklist>Provider__c</picklist>
         <values>
-            <fullName>GMAIL</fullName>
+            <fullName>GMAIL_EMAIL</fullName>
             <default>false</default>
         </values>
         <values>
-            <fullName>GOOGLE</fullName>
+            <fullName>GOOGLE_CALENDAR</fullName>
             <default>false</default>
         </values>
         <values>
-            <fullName>MICROSOFT_GRAPH</fullName>
+            <fullName>GOOGLE_TASKS</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>MICROSOFT_CALENDAR</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>MICROSOFT_EMAIL</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>MICROSOFT_TASKS</fullName>
             <default>false</default>
         </values>
     </picklistValues>
     <picklistValues>
         <picklist>Status__c</picklist>
         <values>
-            <fullName>Matched</fullName>
+            <fullName>Errored</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Imported</fullName>
             <default>false</default>
         </values>
         <values>
@@ -44,7 +60,15 @@
             <default>true</default>
         </values>
         <values>
-            <fullName>Unmatched</fullName>
+            <fullName>Ready</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Rejected</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Staged</fullName>
             <default>false</default>
         </values>
     </picklistValues>

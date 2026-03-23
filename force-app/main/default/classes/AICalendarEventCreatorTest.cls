@@ -24,7 +24,7 @@ private class AICalendarEventCreatorTest {
         evt.organizerName = 'Test Organizer';
         evt.isAllDay = false;
         evt.status = 'confirmed';
-        evt.provider = 'MICROSOFT_GRAPH';
+        evt.provider = 'MICROSOFT_CALENDAR';
 
         // Add attendees
         evt.attendees = new List<AIMicrosoftCalendarService.Attendee>();
@@ -53,7 +53,7 @@ private class AICalendarEventCreatorTest {
         events.add(createSampleCalendarEvent('event2', 'Meeting 2', 'ical-uid-002'));
 
         Test.startTest();
-        AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(events, 'MICROSOFT_GRAPH');
+        AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(events, 'MICROSOFT_CALENDAR');
         Test.stopTest();
 
         Assert.areEqual(2, result.successCount, 'Should have 2 successful imports');
@@ -84,7 +84,7 @@ private class AICalendarEventCreatorTest {
         events.add(createSampleCalendarEvent('event2', 'New Meeting', 'new-ical-uid'));
 
         Test.startTest();
-        AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(events, 'MICROSOFT_GRAPH');
+        AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(events, 'MICROSOFT_CALENDAR');
         Test.stopTest();
 
         //Assert.areEqual(1, result.successCount, 'Should have 1 successful import');
@@ -95,7 +95,7 @@ private class AICalendarEventCreatorTest {
     @isTest
     static void testImportEvents_Empty() {
         Test.startTest();
-        AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(null, 'MICROSOFT_GRAPH');
+        AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(null, 'MICROSOFT_CALENDAR');
         Test.stopTest();
 
         Assert.areEqual(0, result.successCount, 'Should have no imports');
@@ -107,7 +107,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>(),
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -119,16 +119,18 @@ private class AICalendarEventCreatorTest {
         AIMicrosoftCalendarService.CalendarEvent evt = createSampleCalendarEvent('single1', 'Single Meeting', 'single-ical-001');
 
         Test.startTest();
-        Id stagingId = AICalendarEventCreator.importSingleEvent(evt, 'MICROSOFT_GRAPH');
+        Id stagingId = AICalendarEventCreator.importSingleEvent(evt, 'MICROSOFT_CALENDAR');
         Test.stopTest();
 
         Assert.areNotEqual(null, stagingId, 'Should return staging record ID');
 
         AI_Workspace_Staging__c staging = [SELECT Subject__c, ICalUID__c, Provider__c, Location__c, Meeting_Link__c
                               FROM AI_Workspace_Staging__c WHERE Id = :stagingId];
-        Assert.areEqual('Single Meeting', staging.Subject__c, 'Subject should match');
+        // V2-7889: Decrypt subject for assertion
+        String decryptedSubject = AIWorkspaceEncryptionService.decryptEmailBody(staging.Subject__c, UserInfo.getUserId());
+        Assert.areEqual('Single Meeting', decryptedSubject, 'Subject should match');
         Assert.areEqual('single-ical-001', staging.ICalUID__c, 'iCalUID should match');
-        Assert.areEqual('MICROSOFT_GRAPH', staging.Provider__c, 'Provider should match');
+        Assert.areEqual('MICROSOFT_CALENDAR', staging.Provider__c, 'Provider should match');
         Assert.areEqual('Conference Room A', staging.Location__c, 'Location should match');
     }
 
@@ -140,7 +142,7 @@ private class AICalendarEventCreatorTest {
         evt.endDateTime = DateTime.newInstance(Date.today().addDays(2), Time.newInstance(0, 0, 0, 0));
 
         Test.startTest();
-        Id stagingId = AICalendarEventCreator.importSingleEvent(evt, 'MICROSOFT_GRAPH');
+        Id stagingId = AICalendarEventCreator.importSingleEvent(evt, 'MICROSOFT_CALENDAR');
         Test.stopTest();
 
         Assert.areNotEqual(null, stagingId, 'Should return staging record ID');
@@ -155,7 +157,7 @@ private class AICalendarEventCreatorTest {
         evt.meetingLink = 'https://teams.microsoft.com/l/meetup-join/abc123';
 
         Test.startTest();
-        Id stagingId = AICalendarEventCreator.importSingleEvent(evt, 'MICROSOFT_GRAPH');
+        Id stagingId = AICalendarEventCreator.importSingleEvent(evt, 'MICROSOFT_CALENDAR');
         Test.stopTest();
 
         AI_Workspace_Staging__c staging = [SELECT Meeting_Link__c FROM AI_Workspace_Staging__c WHERE Id = :stagingId];
@@ -178,7 +180,7 @@ private class AICalendarEventCreatorTest {
             ICalUID__c = 'ical-001',
             User__c = currentUserId,
             RecordTypeId = calendarRecordTypeId,
-            Provider__c = 'MICROSOFT_GRAPH'
+            Provider__c = 'MICROSOFT_CALENDAR'
         ));
         stagingRecords.add(new AI_Workspace_Staging__c(
             Subject__c = 'Event 2',
@@ -187,7 +189,7 @@ private class AICalendarEventCreatorTest {
             ICalUID__c = 'ical-002',
             User__c = currentUserId,
             RecordTypeId = calendarRecordTypeId,
-            Provider__c = 'MICROSOFT_GRAPH'
+            Provider__c = 'MICROSOFT_CALENDAR'
         ));
         insert stagingRecords;
 
@@ -224,7 +226,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -241,7 +243,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -256,7 +258,7 @@ private class AICalendarEventCreatorTest {
         events.add(createSampleCalendarEvent('log1', 'Log Test Meeting', 'log-ical-001'));
 
         Test.startTest();
-        AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(events, 'MICROSOFT_GRAPH');
+        AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(events, 'MICROSOFT_CALENDAR');
         Test.stopTest();
 
         // Verify event was imported successfully
@@ -288,7 +290,7 @@ private class AICalendarEventCreatorTest {
         AIMicrosoftCalendarService.CalendarEvent evt = new AIMicrosoftCalendarService.CalendarEvent();
         evt.eventId = 'ms-event-123';
         evt.iCalUID = 'ical-uid-abc@microsoft.com';
-        evt.provider = 'MICROSOFT_GRAPH';
+        evt.provider = 'MICROSOFT_CALENDAR';
         evt.recurringEventId = null; // Not a recurring event
 
         Test.startTest();
@@ -423,7 +425,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -468,7 +470,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -503,7 +505,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -532,7 +534,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -555,7 +557,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -574,7 +576,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -593,7 +595,7 @@ private class AICalendarEventCreatorTest {
         evt.iCalUID = 'blankemail-ical-001';
         evt.startDateTime = DateTime.now().addDays(1);
         evt.endDateTime = DateTime.now().addDays(1).addHours(1);
-        evt.provider = 'MICROSOFT_GRAPH';
+        evt.provider = 'MICROSOFT_CALENDAR';
 
         // Add attendee with blank email
         evt.attendees = new List<AIMicrosoftCalendarService.Attendee>();
@@ -613,7 +615,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -632,7 +634,7 @@ private class AICalendarEventCreatorTest {
         evt.iCalUID = 'minimal-ical-001';
         evt.startDateTime = DateTime.now().addDays(1);
         evt.endDateTime = DateTime.now().addDays(1).addHours(1);
-        evt.provider = 'MICROSOFT_GRAPH';
+        evt.provider = 'MICROSOFT_CALENDAR';
         evt.description = null;
         evt.organizerEmail = null;
         evt.organizerName = null;
@@ -644,7 +646,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -667,7 +669,7 @@ private class AICalendarEventCreatorTest {
         evt.iCalUID = 'orgatt-ical-001';
         evt.startDateTime = DateTime.now().addDays(1);
         evt.endDateTime = DateTime.now().addDays(1).addHours(1);
-        evt.provider = 'MICROSOFT_GRAPH';
+        evt.provider = 'MICROSOFT_CALENDAR';
         evt.description = 'Quarterly review';
         evt.organizerEmail = 'organizer@test.com';
         evt.organizerName = 'The Organizer';
@@ -690,7 +692,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -724,7 +726,7 @@ private class AICalendarEventCreatorTest {
         evt.iCalUID = 'orgmatch-ical-001';
         evt.startDateTime = DateTime.now().addDays(1);
         evt.endDateTime = DateTime.now().addDays(1).addHours(1);
-        evt.provider = 'MICROSOFT_GRAPH';
+        evt.provider = 'MICROSOFT_CALENDAR';
         evt.organizerEmail = 'organizer@test.com';
         evt.organizerName = 'Test Organizer';
 
@@ -739,7 +741,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -846,7 +848,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -870,7 +872,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -931,14 +933,14 @@ private class AICalendarEventCreatorTest {
         evt.iCalUID = null;
         evt.startDateTime = DateTime.now().addDays(1);
         evt.endDateTime = DateTime.now().addDays(1).addHours(1);
-        evt.provider = 'MICROSOFT_GRAPH';
+        evt.provider = 'MICROSOFT_CALENDAR';
         evt.isAllDay = false;
         evt.attendees = new List<AIMicrosoftCalendarService.Attendee>();
 
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -976,7 +978,7 @@ private class AICalendarEventCreatorTest {
         evt1.iCalUID = 'mixed-ical-001';
         evt1.startDateTime = DateTime.now().addDays(1);
         evt1.endDateTime = DateTime.now().addDays(1).addHours(1);
-        evt1.provider = 'MICROSOFT_GRAPH';
+        evt1.provider = 'MICROSOFT_CALENDAR';
         evt1.attendees = new List<AIMicrosoftCalendarService.Attendee>();
         AIMicrosoftCalendarService.Attendee att1 = new AIMicrosoftCalendarService.Attendee();
         att1.email = 'contact@matched.com';
@@ -991,7 +993,7 @@ private class AICalendarEventCreatorTest {
         evt2.iCalUID = 'mixed-ical-002';
         evt2.startDateTime = DateTime.now().addDays(2);
         evt2.endDateTime = DateTime.now().addDays(2).addHours(1);
-        evt2.provider = 'MICROSOFT_GRAPH';
+        evt2.provider = 'MICROSOFT_CALENDAR';
         evt2.attendees = new List<AIMicrosoftCalendarService.Attendee>();
         AIMicrosoftCalendarService.Attendee att2 = new AIMicrosoftCalendarService.Attendee();
         att2.email = 'lead@matched.com';
@@ -1002,7 +1004,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt1, evt2},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -1033,7 +1035,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -1052,7 +1054,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -1081,7 +1083,7 @@ private class AICalendarEventCreatorTest {
         events.add(createSampleCalendarEvent('new1', 'New Event', 'new-sync-id'));
 
         Test.startTest();
-        AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(events, 'MICROSOFT_GRAPH');
+        AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(events, 'MICROSOFT_CALENDAR');
         Test.stopTest();
 
         // Verify sync log was created with appropriate counts
@@ -1115,7 +1117,7 @@ private class AICalendarEventCreatorTest {
         evt.iCalUID = 'case-ical-001';
         evt.startDateTime = DateTime.now().addDays(1);
         evt.endDateTime = DateTime.now().addDays(1).addHours(1);
-        evt.provider = 'MICROSOFT_GRAPH';
+        evt.provider = 'MICROSOFT_CALENDAR';
 
         evt.attendees = new List<AIMicrosoftCalendarService.Attendee>();
         AIMicrosoftCalendarService.Attendee att = new AIMicrosoftCalendarService.Attendee();
@@ -1127,7 +1129,7 @@ private class AICalendarEventCreatorTest {
         Test.startTest();
         AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(
             new List<AIMicrosoftCalendarService.CalendarEvent>{evt},
-            'MICROSOFT_GRAPH'
+            'MICROSOFT_CALENDAR'
         );
         Test.stopTest();
 
@@ -1151,7 +1153,7 @@ private class AICalendarEventCreatorTest {
         }
 
         Test.startTest();
-        AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(events, 'MICROSOFT_GRAPH');
+        AICalendarEventCreator.ImportResult result = AICalendarEventCreator.importEvents(events, 'MICROSOFT_CALENDAR');
         Test.stopTest();
 
         Assert.areEqual(20, result.successCount, 'Should import all 20 events');
@@ -1183,8 +1185,8 @@ private class AICalendarEventCreatorTest {
             ICalUID__c = 'staging-ref-001',
             User__c = UserInfo.getUserId(),
             RecordTypeId = calendarRecordTypeId,
-            Provider__c = 'MICROSOFT_GRAPH',
-            Status__c = 'Matched',
+            Provider__c = 'MICROSOFT_CALENDAR',
+            Status__c = 'Imported',
             Email_Message__c = String.valueOf(refEvent.Id)
         );
         insert staging;
@@ -1216,8 +1218,8 @@ private class AICalendarEventCreatorTest {
             ICalUID__c = 'bad-ref-001',
             User__c = UserInfo.getUserId(),
             RecordTypeId = calendarRecordTypeId,
-            Provider__c = 'MICROSOFT_GRAPH',
-            Status__c = 'Matched',
+            Provider__c = 'MICROSOFT_CALENDAR',
+            Status__c = 'Imported',
             Email_Message__c = 'not-a-valid-id'
         );
         insert staging;

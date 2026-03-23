@@ -49,6 +49,22 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>AIStagingPolicyMatcherBatch</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>AIWorkspaceEncryptionService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>AIWorkspaceFilterService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>AIWorkspaceProcessingPolicyController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>AIApexSecurityLayerInterface</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -997,21 +1013,7 @@
         <field>AI_Feedback__c.User__c</field>
         <readable>true</readable>
     </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>AI_GPTfy_Warehouse__c.Sub_Type__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>AI_GPTfy_Warehouse__c.Type__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>AI_GPTfy_Warehouse__c.Value__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
+
     <fieldPermissions>
         <editable>true</editable>
         <field>AI_Prompt_Action_Detail__c.External_Id__c</field>
@@ -2349,6 +2351,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>AI_Workspace_Staging__c.Error_Message__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>AI_Workspace_Staging__c.Subject__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -2380,6 +2387,16 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>AI_Workspace_Staging__c.User__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>AI_Workspace_Staging__c.WhoId__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>AI_Workspace_Staging__c.AI_Workspace_User__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -2515,6 +2532,36 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>AI_Workspace_User__c.User__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>AI_Workspace_User__c.Service_User_Email__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>AI_Workspace_Processing_Policy__c.Profiles__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>AI_Workspace_Processing_Policy__c.Users__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>AI_Workspace_Processing_Policy__c.Prompt__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>AI_Workspace_Sync_Settings__c.Excluded_Domains__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>AI_Workspace_Sync_Settings__c.Excluded_Labels_Categories__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -2711,16 +2758,6 @@
         <allowRead>true</allowRead>
         <modifyAllRecords>true</modifyAllRecords>
         <object>AI_Feedback__c</object>
-        <viewAllFields>false</viewAllFields>
-        <viewAllRecords>true</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>true</allowCreate>
-        <allowDelete>true</allowDelete>
-        <allowEdit>true</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>true</modifyAllRecords>
-        <object>AI_GPTfy_Warehouse__c</object>
         <viewAllFields>false</viewAllFields>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
@@ -2996,6 +3033,16 @@
     </objectPermissions>
     <objectPermissions>
         <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>true</modifyAllRecords>
+        <object>AI_Workspace_Processing_Policy__c</object>
+        <viewAllFields>false</viewAllFields>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
         <allowDelete>false</allowDelete>
         <allowEdit>false</allowEdit>
         <allowRead>true</allowRead>
@@ -3103,10 +3150,6 @@
         <visible>true</visible>
     </recordTypeVisibilities>
     <tabSettings>
-        <tab>AI_Calendar_Event_Selector</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
         <tab>AI_Card_Configuration__c</tab>
         <visibility>Visible</visibility>
     </tabSettings>
@@ -3127,15 +3170,7 @@
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>AI_GPTfy_Warehouse__c</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
         <tab>AI_Insights_Dashboard</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>AI_Mail_Sync</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
@@ -3163,10 +3198,6 @@
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>AI_Task_Selector</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
         <tab>AI_Test_Cycle__c</tab>
         <visibility>Visible</visibility>
     </tabSettings>
@@ -3180,6 +3211,10 @@
     </tabSettings>
     <tabSettings>
         <tab>AI_Workspace_Sync_Log__c</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>AI_Workspace_Processing_Policy__c</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
@@ -3228,10 +3263,6 @@
     </tabSettings>
     <tabSettings>
         <tab>Trending</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
-        <tab>Workspace_Authentication</tab>
         <visibility>Visible</visibility>
     </tabSettings>
 </PermissionSet>

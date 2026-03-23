@@ -15,7 +15,7 @@ import gptfyLogo from '@salesforce/resourceUrl/gptfylogo';
 
 export default class aiTaskSelector extends NavigationMixin(LightningElement) {
     @api recordId;
-    @api selectedProvider = 'MICROSOFT_GRAPH'; // Provider passed from parent
+    @api selectedProvider = 'MICROSOFT_TASKS'; // Provider passed from parent
 
     @track tasks = [];
     @track taskLists = [];
@@ -76,13 +76,10 @@ export default class aiTaskSelector extends NavigationMixin(LightningElement) {
         getProviderSettings()
             .then(settings => {
                 this.providerSettings = settings;
-                
-                // If only one provider is enabled, auto-select it
-                if (settings.singleProvider) {
-                    // Map to task-specific provider names
-                    this.selectedProvider = settings.singleProvider === 'GMAIL' ? 'GOOGLE_TASKS' : 'MICROSOFT_GRAPH';
-                }
-                
+
+                // Note: selectedProvider comes from parent via @api, so don't override
+                // The parent component is responsible for determining the correct provider
+
                 this.checkAccess();
             })
             .catch(error => {
@@ -415,6 +412,14 @@ export default class aiTaskSelector extends NavigationMixin(LightningElement) {
     }
 
     /**
+     * Handle connect button click - dispatch event to parent to open settings modal
+     */
+    handleConnectClick() {
+        const event = new CustomEvent('opensettings');
+        this.dispatchEvent(event);
+    }
+
+    /**
      * Handle checkbox click directly
      * Stops propagation to prevent double-toggle from row click
      */
@@ -731,10 +736,7 @@ export default class aiTaskSelector extends NavigationMixin(LightningElement) {
     }
 
     get notAccessibleMessage() {
-        if (this.selectedProvider === 'GOOGLE_TASKS') {
-            return 'Google Tasks access is not available. Please ensure the tasks.readonly scope is granted in your Google OAuth configuration.';
-        }
-        return 'Microsoft To-Do access is not available. Please ensure the Tasks.Read permission is granted in your Microsoft 365 / Azure AD configuration.';
+        return 'Tasks access is not available. Please ensure the tasks.readonly scope is granted.';
     }
 
     // Provider switch getters
@@ -743,7 +745,7 @@ export default class aiTaskSelector extends NavigationMixin(LightningElement) {
     }
 
     get outlookSwitchClass() {
-        return 'provider-btn' + (this.selectedProvider === 'MICROSOFT_GRAPH' ? ' active' : '');
+        return 'provider-btn' + (this.selectedProvider === 'MICROSOFT_TASKS' ? ' active' : '');
     }
 
     get showProviderSwitch() {
@@ -768,11 +770,8 @@ export default class aiTaskSelector extends NavigationMixin(LightningElement) {
      * Maps UI provider names to Apex-expected provider names
      */
     get modalProviderType() {
-        // MICROSOFT_GRAPH is used for UI/API calls, but Apex expects MICROSOFT_TASKS for task imports
-        if (this.selectedProvider === 'MICROSOFT_GRAPH') {
-            return 'MICROSOFT_TASKS';
-        }
-        return this.selectedProvider; // GOOGLE_TASKS stays as is
+        // Return the provider type as-is since we're now using consistent naming
+        return this.selectedProvider;
     }
 
     handleProviderSwitch(event) {

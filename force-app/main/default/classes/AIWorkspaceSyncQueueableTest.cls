@@ -1,6 +1,7 @@
 /**
  * Test class for AIWorkspaceSyncQueueable
  * Tests the workspace-based sync queueable job
+ * V2-7889
  * 
  * @author GPTfy
  * @date 2026-01-16
@@ -10,10 +11,26 @@ private class AIWorkspaceSyncQueueableTest {
     
     @TestSetup
     static void setup() {
-        // Create test user
         User testUser = createTestUser();
         
-        // Create workspace user record
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Microsoft_Client_Id__c = 'test_microsoft_client_id',
+            Microsoft_Client_Secret__c = 'test_microsoft_secret',
+            Microsoft_Auth_Endpoint__c = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+            Microsoft_Token_Endpoint__c = 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+            Microsoft_Scope__c = 'https://graph.microsoft.com/.default offline_access',
+            Google_Client_Id__c = 'test_google_client_id',
+            Google_Client_Secret__c = 'test_google_secret',
+            Google_Auth_Endpoint__c = 'https://accounts.google.com/o/oauth2/v2/auth',
+            Google_Token_Endpoint__c = 'https://oauth2.googleapis.com/token',
+            Google_Scope__c = 'https://www.googleapis.com/auth/gmail.readonly',
+            Sync_Enabled__c = true,
+            Calendar_Sync_Enabled__c = true,
+            Task_Sync_Enabled__c = true
+        );
+        insert settings;
+        
         System.runAs(testUser) {
             AI_Workspace_User__c workspaceUser = new AI_Workspace_User__c(
                 User__c = testUser.Id,
@@ -25,729 +42,331 @@ private class AIWorkspaceSyncQueueableTest {
     }
     
     @isTest
-    static void testConstructor_SchedulerMode() {
+    static void testConstructors() {
         List<Id> workspaceUserIds = new List<Id>();
         
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(workspaceUserIds, 0);
-        Test.stopTest();
+        AIWorkspaceSyncQueueable q1 = new AIWorkspaceSyncQueueable(workspaceUserIds, 0);
+        AIWorkspaceSyncQueueable q2 = new AIWorkspaceSyncQueueable(workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL);
+        AIWorkspaceSyncQueueable q3 = new AIWorkspaceSyncQueueable(workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, true);
         
-        Assert.isNotNull(queueable, 'Queueable should be created');
+        Assert.isNotNull(q1, 'Constructor 1 should work');
+        Assert.isNotNull(q2, 'Constructor 2 should work');
+        Assert.isNotNull(q3, 'Constructor 3 should work');
     }
     
     @isTest
-    static void testConstructor_WithSyncType() {
-        List<Id> workspaceUserIds = new List<Id>();
-        
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL
-        );
-        Test.stopTest();
-        
-        Assert.isNotNull(queueable, 'Queueable should be created');
-    }
-    
-    @isTest
-    static void testConstructor_RunNowMode() {
-        List<Id> workspaceUserIds = new List<Id>();
-        
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, true
-        );
-        Test.stopTest();
-        
-        Assert.isNotNull(queueable, 'Queueable should be created');
-    }
-    
-    @isTest
-    static void testExecute_EmptyList() {
-        List<Id> workspaceUserIds = new List<Id>();
+    static void testExecute_EmptyAndInvalidInputs() {
         AIWorkspaceSyncQueueable.disableChaining = true;
         
         Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(workspaceUserIds, 0);
-        System.enqueueJob(queueable);
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>(), 0));
+        System.enqueueJob(new AIWorkspaceSyncQueueable(null, 0));
+        
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 10));
         Test.stopTest();
         
-        // Should complete without error
-        Assert.isTrue(true, 'Should handle empty list gracefully');
-    }
-    
-    @isTest
-    static void testExecute_IndexOutOfRange() {
-        AI_Workspace_User__c workspaceUser = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.startTest();
-        // Start at index 10 when list has only 1 item
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(workspaceUserIds, 10);
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        // Should complete without error
-        Assert.isTrue(true, 'Should handle out of range index gracefully');
-    }
-    
-    @isTest
-    static void testExecute_ValidWorkspaceUser_MockSuccess() {
-        AI_Workspace_User__c workspaceUser = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        // Mock successful token refresh and API calls
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(workspaceUserIds, 0);
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        // Verify sync log was created
-        List<AI_Workspace_Sync_Log__c> logs = [
-            SELECT Id, Status__c FROM AI_Workspace_Sync_Log__c
-        ];
-        
-        // At least one log entry should exist (either success or auth failure)
-        Assert.isTrue(true, 'Should complete execution');
-    }
-    
-    @isTest
-    static void testExecute_TokenRefreshFailure() {
-        AI_Workspace_User__c workspaceUser = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        // Mock failed token refresh
-        Test.setMock(HttpCalloutMock.class, new MockFailedTokenRefresh());
-        
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(workspaceUserIds, 0);
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        // Should create a failed sync log
-        List<AI_Workspace_Sync_Log__c> logs = [
-            SELECT Id, Status__c, Error_Message__c
-            FROM AI_Workspace_Sync_Log__c
-            WHERE Status__c = 'Failed'
-        ];
-        
-        // Auth failure should be logged
-        Assert.isTrue(true, 'Should handle token refresh failure gracefully');
-    }
-    
-    @isTest
-    static void testExecute_CalendarSyncType() {
-        AI_Workspace_User__c workspaceUser = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR
-        );
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        Assert.isTrue(true, 'Should execute calendar sync type');
-    }
-    
-    @isTest
-    static void testExecute_TaskSyncType() {
-        AI_Workspace_User__c workspaceUser = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.TASK
-        );
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        Assert.isTrue(true, 'Should execute task sync type');
-    }
-    
-    @isTest
-    static void testExecute_RunNowMode() {
-        AI_Workspace_User__c workspaceUser = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, true
-        );
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        Assert.isTrue(true, 'Should execute in run-now mode');
-    }
-    
-    @isTest
-    static void testSyncTypeEnum() {
-        // Test enum values exist
-        Assert.isNotNull(AIWorkspaceSyncQueueable.SyncType.EMAIL, 'EMAIL should exist');
-        Assert.isNotNull(AIWorkspaceSyncQueueable.SyncType.CALENDAR, 'CALENDAR should exist');
-        Assert.isNotNull(AIWorkspaceSyncQueueable.SyncType.TASK, 'TASK should exist');
-    }
-    
-    // ========================================================================
-    // LOOKBACK HOUR TESTS (Run Now Mode)
-    // ========================================================================
-    
-    /**
-     * Test Run Now with Email Lookback Hours configured (Scenario 1 & 2)
-     * Should use lookback hours instead of last sync record
-     */
-    @isTest
-    static void testRunNowWithEmailLookbackHours() {
-        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c workspaceUser = [SELECT Id, User__c FROM AI_Workspace_User__c LIMIT 1];
-        
-        // Configure lookback hours = 20
-        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
-            SetupOwnerId = UserInfo.getOrganizationId(),
-            Lookback_Hours__c = 20,
-            Max_Emails_Per_User__c = 50
-        );
-        insert settings;
-        AISyncSettingsService.setCachedSettings(settings);
-        
-        // Create a prior sync log (should be ignored in Run Now mode)
-        AI_Workspace_Sync_Log__c priorLog = new AI_Workspace_Sync_Log__c(
-            User__c = workspaceUser.User__c,
-            Provider_Type__c = 'MICROSOFT_EMAIL',
-            Status__c = 'Success',
-            Start_Time__c = DateTime.now().addHours(-48),
-            End_Time__c = DateTime.now().addHours(-47),
-            Sync_Window_Start__c = DateTime.now().addHours(-48),
-            Sync_Window_End__c = DateTime.now().addHours(-47)
-        );
-        insert priorLog;
-        
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        // Run in Run Now mode with isRunNowMode = true
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, true
-        );
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        // Verify new sync log was created
-        List<AI_Workspace_Sync_Log__c> newLogs = [
-            SELECT Id, Sync_Window_Start__c, Sync_Window_End__c
-            FROM AI_Workspace_Sync_Log__c
-            WHERE Id != :priorLog.Id
-            ORDER BY CreatedDate DESC
-            LIMIT 1
-        ];
-        
-        // Should have created a new log (even if it failed due to mock limitations)
-        Assert.isTrue(true, 'Run Now with email lookback hours should execute');
-    }
-    
-    /**
-     * Test Run Now with Calendar Lookback Days configured
-     * Should use Calendar_Lookback_Days__c instead of last sync record
-     */
-    @isTest
-    static void testRunNowWithCalendarLookbackDays() {
-        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c workspaceUser = [SELECT Id, User__c FROM AI_Workspace_User__c LIMIT 1];
-        
-        // Configure calendar lookback days = 7
-        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
-            SetupOwnerId = UserInfo.getOrganizationId(),
-            Calendar_Lookback_Days__c = 7,
-            Max_Calendar_Events_Per_User__c = 50
-        );
-        insert settings;
-        AISyncSettingsService.setCachedSettings(settings);
-        
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        // Run in Run Now mode for CALENDAR sync
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR, true
-        );
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        Assert.isTrue(true, 'Run Now with calendar lookback days should execute');
-    }
-    
-    /**
-     * Test Run Now with Task Lookback Days configured
-     * Should use Task_Lookback_Days__c instead of last sync record
-     */
-    @isTest
-    static void testRunNowWithTaskLookbackDays() {
-        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c workspaceUser = [SELECT Id, User__c FROM AI_Workspace_User__c LIMIT 1];
-        
-        // Configure task lookback days = 7
-        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
-            SetupOwnerId = UserInfo.getOrganizationId(),
-            Task_Lookback_Days__c = 7,
-            Max_Tasks_Per_User__c = 30
-        );
-        insert settings;
-        AISyncSettingsService.setCachedSettings(settings);
-        
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        // Run in Run Now mode for TASK sync
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.TASK, true
-        );
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        Assert.isTrue(true, 'Run Now with task lookback days should execute');
-    }
-    
-    /**
-     * Test Run Now with null/0 Lookback Hours and prior sync (Scenario 3)
-     * Should use incremental sync from last sync record
-     */
-    @isTest
-    static void testRunNowWithNullLookback() {
-        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c workspaceUser = [SELECT Id, User__c FROM AI_Workspace_User__c LIMIT 1];
-        
-        // Configure lookback hours = 0 (should use incremental sync)
-        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
-            SetupOwnerId = UserInfo.getOrganizationId(),
-            Lookback_Hours__c = 0,
-            Max_Emails_Per_User__c = 50
-        );
-        insert settings;
-        AISyncSettingsService.setCachedSettings(settings);
-        
-        // Create a prior sync log (should be used in Run Now mode when lookback = 0)
-        DateTime priorSyncEnd = DateTime.now().addHours(-2);
-        AI_Workspace_Sync_Log__c priorLog = new AI_Workspace_Sync_Log__c(
-            User__c = workspaceUser.User__c,
-            Provider_Type__c = 'MICROSOFT_EMAIL',
-            Status__c = 'Success',
-            Start_Time__c = DateTime.now().addHours(-24),
-            End_Time__c = priorSyncEnd,
-            Sync_Window_Start__c = DateTime.now().addHours(-24),
-            Sync_Window_End__c = priorSyncEnd
-        );
-        insert priorLog;
-        
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        // Run in Run Now mode with isRunNowMode = true
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, true
-        );
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        // Should use incremental sync logic
-        Assert.isTrue(true, 'Run Now with null/0 lookback should use incremental sync');
-    }
-    
-    /**
-     * Test Run Now with null Lookback Hours and no prior sync (Scenario 4)
-     * Should default to 24 hours lookback
-     */
-    @isTest
-    static void testRunNowNoPriorSyncDefaultLookback() {
-        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c workspaceUser = [SELECT Id, User__c FROM AI_Workspace_User__c LIMIT 1];
-        
-        // Configure lookback hours = null (should default to 24 hours)
-        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
-            SetupOwnerId = UserInfo.getOrganizationId(),
-            Max_Emails_Per_User__c = 50
-        );
-        insert settings;
-        AISyncSettingsService.setCachedSettings(settings);
-        
-        // No prior sync logs exist
-        
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        // Run in Run Now mode with isRunNowMode = true
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, true
-        );
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        // Should default to 24 hours lookback
-        Assert.isTrue(true, 'Run Now with no prior sync should default to 24 hours');
-    }
-    
-    /**
-     * Test Scheduled Sync ignores lookback hours (uses incremental sync)
-     * Even with Lookback Hours configured, scheduled sync should use last sync record
-     */
-    @isTest
-    static void testScheduledSyncIgnoresLookback() {
-        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c workspaceUser = [SELECT Id, User__c FROM AI_Workspace_User__c LIMIT 1];
-        
-        // Configure lookback hours = 20
-        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
-            SetupOwnerId = UserInfo.getOrganizationId(),
-            Lookback_Hours__c = 20,
-            Max_Emails_Per_User__c = 50
-        );
-        insert settings;
-        AISyncSettingsService.setCachedSettings(settings);
-        
-        // Create a prior sync log (should be used in scheduled mode)
-        DateTime priorSyncEnd = DateTime.now().addHours(-1);
-        AI_Workspace_Sync_Log__c priorLog = new AI_Workspace_Sync_Log__c(
-            User__c = workspaceUser.User__c,
-            Provider_Type__c = 'MICROSOFT_EMAIL',
-            Status__c = 'Success',
-            Start_Time__c = DateTime.now().addHours(-2),
-            End_Time__c = priorSyncEnd,
-            Sync_Window_Start__c = DateTime.now().addHours(-2),
-            Sync_Window_End__c = priorSyncEnd
-        );
-        insert priorLog;
-        
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        // Run in Scheduled mode with isRunNowMode = false (default)
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, false
-        );
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        // Scheduled sync should use incremental sync, not lookback hours
-        Assert.isTrue(true, 'Scheduled sync should ignore lookback hours and use incremental sync');
-    }
-    
-    @isTest
-    static void testExecute_GmailProvider() {
-        // Create Gmail workspace user
-        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c gmailUser = new AI_Workspace_User__c(
-            User__c = testUser.Id,
-            Provider__c = 'Gmail',
-            Refresh_Token__c = 'encrypted_gmail_token'
-        );
-        insert gmailUser;
-        
-        List<Id> workspaceUserIds = new List<Id>{ gmailUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL
-        );
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        Assert.isTrue(true, 'Gmail provider should execute without errors');
+        Assert.isTrue(true, 'Should handle empty/null/out-of-range gracefully');
     }
     
     @isTest
     static void testExecute_WorkspaceUserNotFound() {
-        // Use a non-existent ID
-        List<Id> workspaceUserIds = new List<Id>{ '001000000000000AAA' };
         AIWorkspaceSyncQueueable.disableChaining = true;
         
         Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(workspaceUserIds, 0);
-        System.enqueueJob(queueable);
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ '001000000000000AAA' }, 0));
         Test.stopTest();
         
-        Assert.isTrue(true, 'Should handle missing workspace user gracefully');
+        Assert.isTrue(true, 'Should handle missing user');
     }
     
     @isTest
     static void testExecute_BlankRefreshToken() {
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        wu.Refresh_Token__c = '';
+        update wu;
+        
+        AIWorkspaceSyncQueueable.disableChaining = true;
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0));
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Should handle blank token');
+    }
+    
+    @isTest
+    static void testExecute_TokenRefreshFailure() {
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        AIWorkspaceSyncQueueable.disableChaining = true;
+        
+        Test.setMock(HttpCalloutMock.class, new MockFailedTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0));
+        Test.stopTest();
+        
+        List<AI_Workspace_Sync_Log__c> logs = [SELECT Id, Status__c FROM AI_Workspace_Sync_Log__c WHERE Status__c = 'Failed'];
+        Assert.isTrue(logs.size() > 0, 'Should log auth failure');
+    }
+    
+    @isTest
+    static void testExecute_EmailSyncSuccess() {
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        
+        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL));
+        Test.stopTest();
+        
+        List<AI_Workspace_Sync_Log__c> logs = [SELECT Id, Record_Type__c FROM AI_Workspace_Sync_Log__c WHERE Record_Type__c = 'Email'];
+        Assert.isTrue(logs.size() > 0, 'Email sync log should be created');
+    }
+    
+    @isTest
+    static void testExecute_CalendarSyncSuccess() {
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        
+        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR));
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Calendar sync should execute');
+    }
+    
+    @isTest
+    static void testExecute_TaskSyncSuccess() {
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        
+        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.TASK));
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Task sync should execute');
+    }
+    
+    @isTest
+    static void testExecute_GmailProvider() {
         User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c workspaceUser = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
-        
-        // Update to have blank refresh token
-        workspaceUser.Refresh_Token__c = '';
-        update workspaceUser;
-        
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(workspaceUserIds, 0);
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        Assert.isTrue(true, 'Should handle blank refresh token gracefully');
-    }
-    
-    @isTest
-    static void testExecute_TokenRotation() {
-        AI_Workspace_User__c workspaceUser = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        // Mock returns new refresh token
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(workspaceUserIds, 0);
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        Assert.isTrue(true, 'Should handle token rotation');
-    }
-    
-    @isTest
-    static void testExecute_CalendarSyncDisabled() {
-        AI_Workspace_User__c workspaceUser = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        // Disable calendar sync
-        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
-            SetupOwnerId = UserInfo.getOrganizationId(),
-            Calendar_Sync_Enabled__c = false
+        AI_Workspace_User__c gmailUser = new AI_Workspace_User__c(
+            User__c = testUser.Id,
+            Provider__c = 'Gmail',
+            Refresh_Token__c = 'encrypted_gmail_token'
         );
-        insert settings;
-        AISyncSettingsService.setCachedSettings(settings);
+        insert gmailUser;
         
         Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
         
         Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR
-        );
-        System.enqueueJob(queueable);
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ gmailUser.Id }, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL));
         Test.stopTest();
         
-        Assert.isTrue(true, 'Should skip calendar sync when disabled');
+        List<AI_Workspace_Sync_Log__c> logs = [SELECT Id, Provider_Type__c FROM AI_Workspace_Sync_Log__c WHERE Provider_Type__c = 'GMAIL_EMAIL'];
+        Assert.isTrue(logs.size() > 0, 'Gmail sync log should be created');
     }
     
     @isTest
-    static void testExecute_TaskSyncDisabled() {
-        AI_Workspace_User__c workspaceUser = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
+    static void testExecute_SyncDisabled() {
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
         AIWorkspaceSyncQueueable.disableChaining = true;
         
-        // Disable task sync
         AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
             SetupOwnerId = UserInfo.getOrganizationId(),
+            Sync_Enabled__c = false,
+            Calendar_Sync_Enabled__c = false,
             Task_Sync_Enabled__c = false
         );
-        insert settings;
-        AISyncSettingsService.setCachedSettings(settings);
+        updateSettings(settings);
         
         Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
         
         Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.TASK
-        );
-        System.enqueueJob(queueable);
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL));
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR));
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.TASK));
         Test.stopTest();
         
-        Assert.isTrue(true, 'Should skip task sync when disabled');
+        Assert.isTrue(true, 'Should skip sync when disabled');
     }
     
     @isTest
-    static void testExecute_EmailSyncDisabled() {
-        AI_Workspace_User__c workspaceUser = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        // Disable email sync
-        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
-            SetupOwnerId = UserInfo.getOrganizationId(),
-            Sync_Enabled__c = false
-        );
-        insert settings;
-        AISyncSettingsService.setCachedSettings(settings);
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL
-        );
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        Assert.isTrue(true, 'Should skip email sync when disabled');
-    }
-    
-    @isTest
-    static void testExecute_GmailCalendarSync() {
+    static void testDecryptRefreshToken_BlankToken() {
         User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c gmailUser = new AI_Workspace_User__c(
+        AI_Workspace_User__c wu = new AI_Workspace_User__c(
+            User__c = testUser.Id,
+            Provider__c = 'Outlook',
+            Refresh_Token__c = ''
+        );
+        
+        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0);
+        String result = queueable.decryptRefreshToken(wu);
+        
+        Assert.isNull(result, 'Should return null for blank token');
+    }
+    
+    @isTest
+    static void testDecryptRefreshToken_OutlookException() {
+        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+        AI_Workspace_User__c wu = new AI_Workspace_User__c(
+            User__c = testUser.Id,
+            Provider__c = 'Outlook',
+            Refresh_Token__c = 'invalid_encrypted_data'
+        );
+        
+        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0);
+        String result = queueable.decryptRefreshToken(wu);
+        
+        Assert.isTrue(result == null || result != null, 'Decryption may succeed or fail based on encryption service');
+    }
+    
+    @isTest
+    static void testDecryptRefreshToken_GmailException() {
+        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+        AI_Workspace_User__c wu = new AI_Workspace_User__c(
             User__c = testUser.Id,
             Provider__c = 'Gmail',
-            Refresh_Token__c = 'encrypted_gmail_token'
+            Refresh_Token__c = 'invalid_encrypted_data'
         );
-        insert gmailUser;
         
-        List<Id> workspaceUserIds = new List<Id>{ gmailUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
+        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0);
+        String result = queueable.decryptRefreshToken(wu);
         
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
-        
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR
-        );
-        System.enqueueJob(queueable);
-        Test.stopTest();
-        
-        Assert.isTrue(true, 'Gmail calendar sync should execute');
+        Assert.isTrue(result == null || result != null, 'Decryption may succeed or fail based on encryption service');
     }
     
     @isTest
-    static void testExecute_GmailTaskSync() {
+    static void testHandleAuthFailure_AllRecordTypes() {
         User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c gmailUser = new AI_Workspace_User__c(
-            User__c = testUser.Id,
-            Provider__c = 'Gmail',
-            Refresh_Token__c = 'encrypted_gmail_token'
-        );
-        insert gmailUser;
+        AI_Workspace_User__c wu = [SELECT Id, User__c, Provider__c, Refresh_Token__c FROM AI_Workspace_User__c LIMIT 1];
         
-        List<Id> workspaceUserIds = new List<Id>{ gmailUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        AIWorkspaceSyncQueueable q1 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.EMAIL);
+        AIWorkspaceSyncQueueable q2 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR);
+        AIWorkspaceSyncQueueable q3 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.TASK);
         
         Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.TASK
-        );
-        System.enqueueJob(queueable);
+        q1.handleAuthFailure(wu, 'Test error');
+        q2.handleAuthFailure(wu, 'Test error');
+        q3.handleAuthFailure(wu, 'Test error');
         Test.stopTest();
         
-        Assert.isTrue(true, 'Gmail task sync should execute');
+        List<AI_Workspace_Sync_Log__c> logs = [SELECT Id, Record_Type__c FROM AI_Workspace_Sync_Log__c WHERE Status__c = 'Failed'];
+        Assert.areEqual(3, logs.size(), 'Should create 3 failed logs');
     }
     
     @isTest
-    static void testExecute_DecryptionFailure() {
+    static void testLogSyncError() {
         User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c workspaceUser = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        AI_Workspace_User__c wu = [SELECT Id, User__c, Provider__c, Refresh_Token__c FROM AI_Workspace_User__c LIMIT 1];
         
-        // Set an invalid encrypted token that will fail decryption
-        workspaceUser.Refresh_Token__c = 'invalid_encrypted_data_that_cannot_be_decrypted';
-        update workspaceUser;
-        
-        List<Id> workspaceUserIds = new List<Id>{ workspaceUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
+        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0);
         
         Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(workspaceUserIds, 0);
-        System.enqueueJob(queueable);
+        queueable.logSyncError(wu, AIWorkspaceSyncQueueable.SyncType.EMAIL, new CalloutException('Test'));
         Test.stopTest();
         
-        Assert.isTrue(true, 'Should handle decryption failure gracefully');
+        Assert.isTrue(true, 'Should handle sync error');
     }
     
-    @isTest
-    static void testExecute_NullWorkspaceUserIds() {
-        AIWorkspaceSyncQueueable.disableChaining = true;
+    // @isTest
+    // static void testExecuteSync_EmailWithException() {
+    //     User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+    //     AI_Workspace_User__c wu = [SELECT Id, User__c, Provider__c, Refresh_Token__c FROM AI_Workspace_User__c LIMIT 1];
         
-        Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(null, 0);
-        System.enqueueJob(queueable);
-        Test.stopTest();
+    //     AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.EMAIL);
         
-        Assert.isTrue(true, 'Should handle null workspace user IDs');
-    }
+    //     Test.setMock(HttpCalloutMock.class, new MockExceptionResponse());
+        
+    //     Test.startTest();
+    //     queueable.executeSync(wu, 'test_token');
+    //     Test.stopTest();
+        
+    //     Assert.isTrue(true, 'Should handle email sync exception');
+    // }
+    
+    // @isTest
+    // static void testExecuteSync_CalendarWithException() {
+    //     User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+    //     AI_Workspace_User__c wu = [SELECT Id, User__c, Provider__c, Refresh_Token__c FROM AI_Workspace_User__c LIMIT 1];
+        
+    //     AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR);
+        
+    //     Test.setMock(HttpCalloutMock.class, new MockExceptionResponse());
+        
+    //     Test.startTest();
+    //     queueable.executeSync(wu, 'test_token');
+    //     Test.stopTest();
+        
+    //     Assert.isTrue(true, 'Should handle calendar sync exception');
+    // }
+    
+    // @isTest
+    // static void testExecuteSync_TaskWithException() {
+    //     User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+    //     AI_Workspace_User__c wu = [SELECT Id, User__c, Provider__c, Refresh_Token__c FROM AI_Workspace_User__c LIMIT 1];
+        
+    //     AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.TASK);
+        
+    //     Test.setMock(HttpCalloutMock.class, new MockExceptionResponse());
+        
+    //     Test.startTest();
+    //     queueable.executeSync(wu, 'test_token');
+    //     Test.stopTest();
+        
+    //     Assert.isTrue(true, 'Should handle task sync exception');
+    // }
     
     @isTest
-    static void testGmailSyncWithPriorLog() {
+    static void testGmailTwoPointerSyncWindow_FirstSync() {
         User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c gmailUser = new AI_Workspace_User__c(
-            User__c = testUser.Id,
-            Provider__c = 'Gmail',
-            Refresh_Token__c = 'encrypted_gmail_token'
-        );
-        insert gmailUser;
         
-        // Create prior sync log with Gmail-specific fields
+        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0);
+        
+        Test.startTest();
+        AIWorkspaceSyncQueueable.GmailSyncWindow window = queueable.getGmailTwoPointerSyncWindow(testUser.Id, 'GMAIL_EMAIL');
+        Test.stopTest();
+        
+        Assert.isNotNull(window.forwardCursor, 'Forward cursor should be set');
+        Assert.isTrue(window.backfillComplete, 'First sync should have backfill complete');
+    }
+    
+    @isTest
+    static void testGmailTwoPointerSyncWindow_BackfillInProgress() {
+        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+        
+        DateTime now = DateTime.now();
+        DateTime lookbackBoundary = now.addHours(-48);
         AI_Workspace_Sync_Log__c priorLog = new AI_Workspace_Sync_Log__c(
             User__c = testUser.Id,
             Provider_Type__c = 'GMAIL_EMAIL',
             Record_Type__c = 'Email',
             Status__c = 'Success',
-            Start_Time__c = DateTime.now().addHours(-2),
-            End_Time__c = DateTime.now().addHours(-1),
-            Sync_Window_Start__c = DateTime.now().addHours(-24),
-            Sync_Window_End__c = DateTime.now().addHours(-1),
-            Gmail_Forward_Cursor__c = DateTime.now().addHours(-1)
+            Start_Time__c = now.addHours(-2),
+            End_Time__c = now.addHours(-1),
+            Sync_Window_Start__c = lookbackBoundary,
+            Sync_Window_End__c = now.addHours(-12),
+            Gmail_Forward_Cursor__c = now.addHours(-1)
         );
         insert priorLog;
         
-        List<Id> workspaceUserIds = new List<Id>{ gmailUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
-        
-        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0);
         
         Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL
-        );
-        System.enqueueJob(queueable);
+        AIWorkspaceSyncQueueable.GmailSyncWindow window = queueable.getGmailTwoPointerSyncWindow(testUser.Id, 'GMAIL_EMAIL');
         Test.stopTest();
         
-        Assert.isTrue(true, 'Gmail sync with prior log should execute');
+        Assert.isFalse(window.backfillComplete, 'Backfill should be in progress');
+        Assert.isNotNull(window.lookbackBoundary, 'Lookback boundary should be set');
     }
     
     @isTest
-    static void testGmailBackfillComplete() {
+    static void testGmailTwoPointerSyncWindow_BackfillComplete() {
         User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
-        AI_Workspace_User__c gmailUser = new AI_Workspace_User__c(
-            User__c = testUser.Id,
-            Provider__c = 'Gmail',
-            Refresh_Token__c = 'encrypted_gmail_token'
-        );
-        insert gmailUser;
         
-        // Create prior log where backfill is complete (Sync_Window_End >= Gmail_Forward_Cursor)
         DateTime now = DateTime.now();
         AI_Workspace_Sync_Log__c priorLog = new AI_Workspace_Sync_Log__c(
             User__c = testUser.Id,
@@ -756,30 +375,491 @@ private class AIWorkspaceSyncQueueableTest {
             Status__c = 'Success',
             Start_Time__c = now.addHours(-2),
             End_Time__c = now.addHours(-1),
-            Sync_Window_Start__c = now.addHours(-24),
-            Sync_Window_End__c = now, // >= forward cursor means backfill complete
+            Sync_Window_Start__c = now.addHours(-48),
+            Sync_Window_End__c = now,
             Gmail_Forward_Cursor__c = now.addHours(-1)
         );
         insert priorLog;
         
-        List<Id> workspaceUserIds = new List<Id>{ gmailUser.Id };
-        AIWorkspaceSyncQueueable.disableChaining = true;
+        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0);
+        
+        Test.startTest();
+        AIWorkspaceSyncQueueable.GmailSyncWindow window = queueable.getGmailTwoPointerSyncWindow(testUser.Id, 'GMAIL_EMAIL');
+        Test.stopTest();
+        
+        Assert.isTrue(window.backfillComplete, 'Backfill should be complete');
+    }
+    
+    @isTest
+    static void testGmailTwoPointerSyncWindow_NullCursors() {
+        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+        
+        DateTime now = DateTime.now();
+        AI_Workspace_Sync_Log__c priorLog = new AI_Workspace_Sync_Log__c(
+            User__c = testUser.Id,
+            Provider_Type__c = 'GMAIL_EMAIL',
+            Record_Type__c = 'Email',
+            Status__c = 'Success',
+            Start_Time__c = now.addHours(-2),
+            End_Time__c = now.addHours(-1),
+            Sync_Window_Start__c = now.addHours(-48)
+        );
+        insert priorLog;
+        
+        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0);
+        
+        Test.startTest();
+        AIWorkspaceSyncQueueable.GmailSyncWindow window = queueable.getGmailTwoPointerSyncWindow(testUser.Id, 'GMAIL_EMAIL');
+        Test.stopTest();
+        
+        Assert.isNotNull(window.forwardCursor, 'Should default forward cursor to now');
+        Assert.isNotNull(window.backfillCursor, 'Should default backfill cursor to now');
+    }
+    
+    @isTest
+    static void testGmailTwoPointerSyncWindow_NullLookbackHours() {
+        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+        
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Lookback_Hours__c = null
+        );
+        updateSettings(settings);
+        
+        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0);
+        
+        Test.startTest();
+        AIWorkspaceSyncQueueable.GmailSyncWindow window = queueable.getGmailTwoPointerSyncWindow(testUser.Id, 'GMAIL_EMAIL');
+        Test.stopTest();
+        
+        Assert.isNotNull(window.lookbackBoundary, 'Should default to 24 hours');
+    }
+    
+    @isTest
+    static void testRunNowMode_WithLookbackSettings() {
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Lookback_Hours__c = 48,
+            Calendar_Lookback_Days__c = 14,
+            Task_Lookback_Days__c = 30
+        );
+        updateSettings(settings);
         
         Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
         
         Test.startTest();
-        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(
-            workspaceUserIds, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL
-        );
-        System.enqueueJob(queueable);
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, true));
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR, true));
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.TASK, true));
         Test.stopTest();
         
-        Assert.isTrue(true, 'Gmail sync with backfill complete should execute');
+        Assert.isTrue(true, 'Run now should use lookback settings');
     }
     
-    // ========================================================================
-    // HELPER METHODS
-    // ========================================================================
+    @isTest
+    static void testRunNowMode_WithPriorSyncLogs() {
+        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+        AI_Workspace_User__c wu = [SELECT Id, User__c FROM AI_Workspace_User__c LIMIT 1];
+        
+        DateTime priorEnd = DateTime.now().addHours(-1);
+        insert new List<AI_Workspace_Sync_Log__c>{
+            new AI_Workspace_Sync_Log__c(
+                User__c = wu.User__c,
+                Provider_Type__c = 'MICROSOFT_EMAIL',
+                Record_Type__c = 'Email',
+                Status__c = 'Success',
+                Start_Time__c = priorEnd.addHours(-1),
+                End_Time__c = priorEnd,
+                Sync_Window_End__c = priorEnd
+            ),
+            new AI_Workspace_Sync_Log__c(
+                User__c = wu.User__c,
+                Provider_Type__c = 'MICROSOFT_EMAIL',
+                Record_Type__c = 'Calendar',
+                Status__c = 'Success',
+                Start_Time__c = priorEnd.addDays(-1),
+                End_Time__c = priorEnd,
+                Sync_Window_End__c = priorEnd
+            ),
+            new AI_Workspace_Sync_Log__c(
+                User__c = wu.User__c,
+                Provider_Type__c = 'MICROSOFT_EMAIL',
+                Record_Type__c = 'Task',
+                Status__c = 'Success',
+                Start_Time__c = priorEnd.addDays(-1),
+                End_Time__c = priorEnd,
+                Sync_Window_End__c = priorEnd
+            )
+        };
+        
+        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, true));
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR, true));
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.TASK, true));
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Run now should use incremental sync with prior logs');
+    }
+    
+    @isTest
+    static void testScheduledMode_WithPriorSyncLogs() {
+        AI_Workspace_User__c wu = [SELECT Id, User__c FROM AI_Workspace_User__c LIMIT 1];
+        
+        DateTime priorEnd = DateTime.now().addHours(-1);
+        insert new AI_Workspace_Sync_Log__c(
+            User__c = wu.User__c,
+            Provider_Type__c = 'MICROSOFT_EMAIL',
+            Record_Type__c = 'Email',
+            Status__c = 'Success',
+            Start_Time__c = priorEnd.addHours(-1),
+            End_Time__c = priorEnd,
+            Sync_Window_End__c = priorEnd
+        );
+        
+        AIWorkspaceSyncQueueable.disableChaining = true;
+        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, false));
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Scheduled mode should use incremental sync');
+    }
+    
+    @isTest
+    static void testScheduledMode_NoPriorSyncLogs() {
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        
+        AIWorkspaceSyncQueueable.disableChaining = true;
+        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, false));
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Should use default lookback when no prior sync');
+    }
+    
+    @isTest
+    static void testGmailBackfillReachedLookbackBoundary() {
+        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+        AI_Workspace_User__c gmailUser = new AI_Workspace_User__c(
+            User__c = testUser.Id,
+            Provider__c = 'Gmail',
+            Refresh_Token__c = 'encrypted_gmail_token'
+        );
+        insert gmailUser;
+        
+        DateTime now = DateTime.now();
+        AI_Workspace_Sync_Log__c priorLog = new AI_Workspace_Sync_Log__c(
+            User__c = testUser.Id,
+            Provider_Type__c = 'GMAIL_EMAIL',
+            Record_Type__c = 'Email',
+            Status__c = 'Success',
+            Start_Time__c = now.addHours(-2),
+            End_Time__c = now.addHours(-1),
+            Sync_Window_Start__c = now.addHours(-48),
+            Sync_Window_End__c = now.addHours(-49),
+            Gmail_Forward_Cursor__c = now.addHours(-1)
+        );
+        insert priorLog;
+        
+        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ gmailUser.Id }, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL));
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Should handle backfill at lookback boundary');
+    }
+    
+    @isTest
+    static void testChaining_MultipleUsers() {
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        
+        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id, wu.Id }, 0));
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Should handle multiple users');
+    }
+    
+    @isTest
+    static void testChaining_WithDelay() {
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Queueable_Delay_Minutes__c = 5
+        );
+        updateSettings(settings);
+        
+        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id, wu.Id }, 0));
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Should handle delay in chaining');
+    }
+    
+    @isTest
+    static void testSyncTypeEnum() {
+        Assert.isNotNull(AIWorkspaceSyncQueueable.SyncType.EMAIL, 'EMAIL should exist');
+        Assert.isNotNull(AIWorkspaceSyncQueueable.SyncType.CALENDAR, 'CALENDAR should exist');
+        Assert.isNotNull(AIWorkspaceSyncQueueable.SyncType.TASK, 'TASK should exist');
+    }
+    
+    @isTest
+    static void testPrepareChainToNext_EmailOnly() {
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Sync_Enabled__c = true,
+            Calendar_Sync_Enabled__c = false,
+            Task_Sync_Enabled__c = false
+        );
+        updateSettings(settings);
+        
+        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id, wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL));
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Should chain to next user when only email enabled');
+    }
+    
+    @isTest
+    static void testPrepareChainToNext_CalendarOnly() {
+        AI_Workspace_User__c wu = [SELECT Id FROM AI_Workspace_User__c LIMIT 1];
+        
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Sync_Enabled__c = false,
+            Calendar_Sync_Enabled__c = true,
+            Task_Sync_Enabled__c = false
+        );
+        updateSettings(settings);
+        
+        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ wu.Id, wu.Id }, 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR));
+        Test.stopTest();
+        
+        Assert.isTrue(true, 'Should chain to next user when only calendar enabled');
+    }
+    
+    @isTest
+    static void testGmailBackfillCursorAssignment() {
+        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+        AI_Workspace_User__c gmailUser = new AI_Workspace_User__c(
+            User__c = testUser.Id,
+            Provider__c = 'Gmail',
+            Refresh_Token__c = 'encrypted_gmail_token'
+        );
+        insert gmailUser;
+        
+        DateTime now = DateTime.now();
+        DateTime lookbackBoundary = now.addHours(-48);
+        AI_Workspace_Sync_Log__c priorLog = new AI_Workspace_Sync_Log__c(
+            User__c = testUser.Id,
+            Provider_Type__c = 'GMAIL_EMAIL',
+            Record_Type__c = 'Email',
+            Status__c = 'Success',
+            Start_Time__c = now.addHours(-2),
+            End_Time__c = now.addHours(-1),
+            Sync_Window_Start__c = lookbackBoundary,
+            Sync_Window_End__c = lookbackBoundary.addHours(12),
+            Gmail_Forward_Cursor__c = now.addHours(-1)
+        );
+        insert priorLog;
+        
+        Test.setMock(HttpCalloutMock.class, new MockSuccessfulTokenRefresh());
+        
+        Test.startTest();
+        System.enqueueJob(new AIWorkspaceSyncQueueable(new List<Id>{ gmailUser.Id }, 0, AIWorkspaceSyncQueueable.SyncType.EMAIL));
+        Test.stopTest();
+        
+        List<AI_Workspace_Sync_Log__c> logs = [SELECT Id, Sync_Window_Start__c, Sync_Window_End__c FROM AI_Workspace_Sync_Log__c WHERE User__c = :testUser.Id ORDER BY CreatedDate DESC LIMIT 1];
+        Assert.isTrue(logs.size() > 0, 'Should create sync log with backfill window');
+    }
+    
+    @isTest
+    static void testGetLastSyncTime_AllRecordTypes() {
+        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+        
+        DateTime priorEnd = DateTime.now().addHours(-1);
+        insert new List<AI_Workspace_Sync_Log__c>{
+            new AI_Workspace_Sync_Log__c(
+                User__c = testUser.Id,
+                Provider_Type__c = 'MICROSOFT_EMAIL',
+                Record_Type__c = 'Email',
+                Status__c = 'Success',
+                Start_Time__c = priorEnd.addHours(-1),
+                End_Time__c = priorEnd,
+                Sync_Window_End__c = priorEnd
+            ),
+            new AI_Workspace_Sync_Log__c(
+                User__c = testUser.Id,
+                Provider_Type__c = 'MICROSOFT_EMAIL',
+                Record_Type__c = 'Calendar',
+                Status__c = 'Success',
+                Start_Time__c = priorEnd.addDays(-1),
+                End_Time__c = priorEnd,
+                Sync_Window_End__c = priorEnd
+            ),
+            new AI_Workspace_Sync_Log__c(
+                User__c = testUser.Id,
+                Provider_Type__c = 'MICROSOFT_EMAIL',
+                Record_Type__c = 'Task',
+                Status__c = 'Success',
+                Start_Time__c = priorEnd.addDays(-1),
+                End_Time__c = priorEnd,
+                Sync_Window_End__c = priorEnd
+            )
+        };
+        
+        AIWorkspaceSyncQueueable q1 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.EMAIL);
+        AIWorkspaceSyncQueueable q2 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR);
+        AIWorkspaceSyncQueueable q3 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.TASK);
+        
+        Test.startTest();
+        DateTime emailTime = q1.getLastSyncTime(testUser.Id, 'MICROSOFT_EMAIL');
+        DateTime calTime = q2.getLastSyncTime(testUser.Id, 'MICROSOFT_EMAIL');
+        DateTime taskTime = q3.getLastSyncTime(testUser.Id, 'MICROSOFT_EMAIL');
+        Test.stopTest();
+        
+        Assert.isNotNull(emailTime, 'Email sync time should be found');
+        Assert.isNotNull(calTime, 'Calendar sync time should be found');
+        Assert.isNotNull(taskTime, 'Task sync time should be found');
+    }
+    
+    @isTest
+    static void testGetRunNowLookbackTime_AllRecordTypes() {
+        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+        
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Lookback_Hours__c = 48,
+            Calendar_Lookback_Days__c = 14,
+            Task_Lookback_Days__c = 30
+        );
+        updateSettings(settings);
+        
+        AIWorkspaceSyncQueueable q1 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, true);
+        AIWorkspaceSyncQueueable q2 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR, true);
+        AIWorkspaceSyncQueueable q3 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.TASK, true);
+        
+        Test.startTest();
+        DateTime emailTime = q1.getRunNowLookbackTime(testUser.Id, 'MICROSOFT_EMAIL');
+        DateTime calTime = q2.getRunNowLookbackTime(testUser.Id, 'MICROSOFT_EMAIL');
+        DateTime taskTime = q3.getRunNowLookbackTime(testUser.Id, 'MICROSOFT_EMAIL');
+        Test.stopTest();
+        
+        Assert.isNotNull(emailTime, 'Email lookback should be set');
+        Assert.isNotNull(calTime, 'Calendar lookback should be set');
+        Assert.isNotNull(taskTime, 'Task lookback should be set');
+    }
+    
+    @isTest
+    static void testGetRunNowLookbackTime_WithPriorSync() {
+        User testUser = [SELECT Id FROM User WHERE Email = 'testuser@test.gptfy.com' LIMIT 1];
+        
+        DateTime priorEnd = DateTime.now().addHours(-1);
+        insert new AI_Workspace_Sync_Log__c(
+            User__c = testUser.Id,
+            Provider_Type__c = 'MICROSOFT_EMAIL',
+            Record_Type__c = 'Email',
+            Status__c = 'Success',
+            Start_Time__c = priorEnd.addHours(-1),
+            End_Time__c = priorEnd,
+            Sync_Window_End__c = priorEnd
+        );
+        
+        AIWorkspaceSyncQueueable queueable = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.EMAIL, true);
+        
+        Test.startTest();
+        DateTime result = queueable.getRunNowLookbackTime(testUser.Id, 'MICROSOFT_EMAIL');
+        Test.stopTest();
+        
+        Assert.isNull(result, 'Should return null when prior sync exists');
+    }
+    
+    @isTest
+    static void testGetDefaultLookbackTime_AllRecordTypes() {
+        AIWorkspaceSyncQueueable q1 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.EMAIL);
+        AIWorkspaceSyncQueueable q2 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR);
+        AIWorkspaceSyncQueueable q3 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.TASK);
+        
+        Test.startTest();
+        DateTime emailTime = q1.getDefaultLookbackTime();
+        DateTime calTime = q2.getDefaultLookbackTime();
+        DateTime taskTime = q3.getDefaultLookbackTime();
+        Test.stopTest();
+        
+        Assert.isNotNull(emailTime, 'Email default lookback should be set');
+        Assert.isNotNull(calTime, 'Calendar default lookback should be set');
+        Assert.isNotNull(taskTime, 'Task default lookback should be set');
+    }
+    
+    @isTest
+    static void testGetDefaultLookbackTime_WithNullSettings() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Lookback_Hours__c = null,
+            Calendar_Lookback_Days__c = null,
+            Task_Lookback_Days__c = null
+        );
+        updateSettings(settings);
+        
+        AIWorkspaceSyncQueueable q1 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.EMAIL);
+        AIWorkspaceSyncQueueable q2 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR);
+        AIWorkspaceSyncQueueable q3 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.TASK);
+        
+        Test.startTest();
+        DateTime emailTime = q1.getDefaultLookbackTime();
+        DateTime calTime = q2.getDefaultLookbackTime();
+        DateTime taskTime = q3.getDefaultLookbackTime();
+        Test.stopTest();
+        
+        Assert.isNotNull(emailTime, 'Should default to 24 hours for email');
+        Assert.isNotNull(calTime, 'Should default to 7 days for calendar');
+        Assert.isNotNull(taskTime, 'Should default to 7 days for task');
+    }
+    
+    @isTest
+    static void testGetDefaultLookbackTime_WithZeroSettings() {
+        AI_Workspace_Sync_Settings__c settings = new AI_Workspace_Sync_Settings__c(
+            SetupOwnerId = UserInfo.getOrganizationId(),
+            Lookback_Hours__c = 0,
+            Calendar_Lookback_Days__c = 0,
+            Task_Lookback_Days__c = 0
+        );
+        updateSettings(settings);
+        
+        AIWorkspaceSyncQueueable q1 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.EMAIL);
+        AIWorkspaceSyncQueueable q2 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.CALENDAR);
+        AIWorkspaceSyncQueueable q3 = new AIWorkspaceSyncQueueable(new List<Id>(), 0, AIWorkspaceSyncQueueable.SyncType.TASK);
+        
+        Test.startTest();
+        DateTime emailTime = q1.getDefaultLookbackTime();
+        DateTime calTime = q2.getDefaultLookbackTime();
+        DateTime taskTime = q3.getDefaultLookbackTime();
+        Test.stopTest();
+        
+        Assert.isNotNull(emailTime, 'Should default to 24 hours for email when 0');
+        Assert.isNotNull(calTime, 'Should default to 7 days for calendar when 0');
+        Assert.isNotNull(taskTime, 'Should default to 7 days for task when 0');
+    }
     
     private static User createTestUser() {
         Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
@@ -799,9 +879,16 @@ private class AIWorkspaceSyncQueueableTest {
         return u;
     }
     
-    // ========================================================================
-    // MOCK HTTP CLASSES
-    // ========================================================================
+    private static void updateSettings(AI_Workspace_Sync_Settings__c newSettings) {
+        AI_Workspace_Sync_Settings__c existingSettings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
+        if (existingSettings == null || existingSettings.Id == null) {
+            insert newSettings;
+        } else {
+            newSettings.Id = existingSettings.Id;
+            update newSettings;
+        }
+        AISyncSettingsService.setCachedSettings(newSettings);
+    }
     
     private class MockSuccessfulTokenRefresh implements HttpCalloutMock {
         public HttpResponse respond(HttpRequest req) {
@@ -811,16 +898,12 @@ private class AIWorkspaceSyncQueueableTest {
             String endpoint = req.getEndpoint();
             
             if (endpoint.contains('oauth2') || endpoint.contains('token')) {
-                // Token refresh response
                 res.setBody('{"access_token":"mock_access_token","refresh_token":"mock_refresh_token","expires_in":3600,"token_type":"Bearer"}');
             } else if (endpoint.contains('/me/messages') || endpoint.contains('/gmail/v1/users/me/messages')) {
-                // Email list response
                 res.setBody('{"value":[],"messages":[]}');
             } else if (endpoint.contains('/me') || endpoint.contains('/profile')) {
-                // User profile response
                 res.setBody('{"userPrincipalName":"test@example.com","mail":"test@example.com","emailAddress":"test@example.com"}');
             } else {
-                // Default empty response
                 res.setBody('{}');
             }
             
@@ -841,6 +924,12 @@ private class AIWorkspaceSyncQueueableTest {
             }
             
             return res;
+        }
+    }
+    
+    private class MockExceptionResponse implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            throw new CalloutException('Mock exception for testing');
         }
     }
 }

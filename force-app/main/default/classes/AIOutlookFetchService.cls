@@ -595,32 +595,25 @@ public with sharing class AIOutlookFetchService {
                 return allTasks;
             }
             
-            // Distribute max results across lists
-            Integer tasksPerList = Math.max(maxResults / taskLists.size(), 10);
-            
+            // V2-7889: Fetch tasks from all lists until we reach maxResults
+            // Don't split by list - just fetch maxResults total from all lists combined
             for (Map<String, Object> taskList : taskLists) {
                 String listId = (String) taskList.get('id');
                 String listName = (String) taskList.get('displayName');
                 
+                // Calculate how many more tasks we need
+                Integer remainingNeeded = maxResults - allTasks.size();
+                if (remainingNeeded <= 0) {
+                    break;
+                }
+                
                 try {
-                    List<Map<String, Object>> listTasks = fetchTasksFromList(accessToken, listId, listName, tasksPerList, includeCompleted, startDate, endDate);
+                    // Fetch remaining needed tasks from this list
+                    List<Map<String, Object>> listTasks = fetchTasksFromList(accessToken, listId, listName, remainingNeeded, includeCompleted, startDate, endDate);
                     allTasks.addAll(listTasks);
-                    
-                    if (allTasks.size() >= maxResults) {
-                        break;
-                    }
                 } catch (Exception e) {
                     // Continue with other lists
                 }
-            }
-            
-            // Trim to max results
-            if (allTasks.size() > maxResults) {
-                List<Map<String, Object>> trimmed = new List<Map<String, Object>>();
-                for (Integer i = 0; i < maxResults; i++) {
-                    trimmed.add(allTasks[i]);
-                }
-                return trimmed;
             }
             
             return allTasks;

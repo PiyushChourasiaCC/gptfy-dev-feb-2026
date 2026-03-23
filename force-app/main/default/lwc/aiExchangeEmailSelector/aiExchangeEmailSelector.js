@@ -20,7 +20,7 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
     @api recordId; // Parent record context
     @api objectApiName; // Parent object type
     @api flexipageRegionWidth; // Detect if in narrow region for compact mode
-    @api selectedProvider = 'MICROSOFT_GRAPH'; // Provider passed from parent
+    @api selectedProvider = 'MICROSOFT_EMAIL'; // Provider passed from parent
 
     // Tracked properties
     @track emails = [];
@@ -72,8 +72,8 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
 
     get providerOptions() {
         return [
-            { label: 'Microsoft Outlook', value: 'MICROSOFT_GRAPH' },
-            { label: 'Gmail', value: 'GMAIL' }
+            { label: 'Microsoft Outlook', value: 'MICROSOFT_EMAIL' },
+            { label: 'Gmail', value: 'GMAIL_EMAIL' }
         ];
     }
 
@@ -125,15 +125,10 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
         getProviderSettings()
             .then(settings => {
                 this.providerSettings = settings;
-                
-                // If only one provider is enabled, auto-select it
-                if (settings.singleProvider) {
-                    // Map from settings provider names to component provider names
-                    // singleProvider returns 'GMAIL_EMAIL' or 'MICROSOFT_EMAIL'
-                    this.selectedProvider = settings.singleProvider === 'GMAIL_EMAIL' ? 'GMAIL' : 'MICROSOFT_GRAPH';
-                }
-                // If neither is enabled, we'll show a message (handled in template)
-                // If both are enabled, keep default (MICROSOFT_GRAPH) and show switcher
+
+                // Only auto-select if parent hasn't already set the provider
+                // Note: selectedProvider comes from parent via @api, so don't override if it's already set
+                // The parent component is responsible for determining the correct provider
                 
                 this.checkAuthentication();
             })
@@ -159,6 +154,14 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
     }
 
     /**
+     * Handle connect button click - dispatch event to parent to open settings modal
+     */
+    handleConnectClick() {
+        const event = new CustomEvent('opensettings');
+        this.dispatchEvent(event);
+    }
+
+    /**
      * Check authentication and get user email address
      * On first load (selectedProvider is null), auto-detects which provider user is authenticated with
      * Now also refreshes the access token on page load to ensure it's fresh
@@ -174,11 +177,9 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
                 // Token refreshed successfully - use these details
                 this.isAuthenticated = true;
                 this.namespace = refreshResult.namespace || '';
-                
-                if (refreshResult.providerType) {
-                    this.selectedProvider = refreshResult.providerType;
-                }
-                
+
+                // Note: Don't override selectedProvider - parent component controls this
+
                 // If userEmail is empty (due to callout-after-DML prevention), fetch it separately
                 if (refreshResult.userEmail) {
                     this.userEmailAddress = refreshResult.userEmail;
@@ -186,7 +187,7 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
                     // Fetch user email in a separate call (after DML transaction is committed)
                     this.fetchUserEmail();
                 }
-                
+
                 this.loadEmails();
             } else {
                 // Token refresh failed or no connection - fall back to regular auth check
@@ -197,9 +198,7 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
                     this.userEmailAddress = result.userEmail;
                     this.namespace = result.namespace || '';
 
-                    if (result.providerType) {
-                        this.selectedProvider = result.providerType;
-                    }
+                    // Note: Don't override selectedProvider - parent component controls this
 
                     if (this.isAuthenticated) {
                         this.loadEmails();
@@ -306,7 +305,7 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
                 }
 
                 // Determine if there are more emails
-                if (this.selectedProvider === 'GMAIL') {
+                if (this.selectedProvider === 'GMAIL_EMAIL') {
                     // Gmail uses cursor-based pagination with nextPageToken
                     this.hasMoreEmails = !!result.nextPageToken;
 
@@ -328,20 +327,6 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
                         this.hasMoreEmails = this.emails.length >= this.pageSize;
                     }
                 }
-
-                console.log('Pagination Debug:', {
-                    provider: this.selectedProvider,
-                    currentPage: this.currentPage,
-                    pageSize: this.pageSize,
-                    emailsOnPage: this.emails.length,
-                    cumulativeCount: this.cumulativeEmailCount,
-                    totalEmails: this.totalEmails,
-                    hasMoreEmails: this.hasMoreEmails,
-                    isLastPage: this.emails.length < this.pageSize || !this.hasMoreEmails,
-                    resultHasMore: result.hasMore,
-                    resultTotalCount: result.totalCount,
-                    nextPageToken: result.nextPageToken || null
-                });
 
             } else {
                 throw new Error(result.error || 'Failed to load emails');
@@ -1083,8 +1068,8 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
     get isFilesFilter() { return this.activeFilter === 'files'; }
 
     // Provider switch classes
-    get gmailSwitchClass() { return 'provider-btn' + (this.selectedProvider === 'GMAIL' ? ' active' : ''); }
-    get outlookSwitchClass() { return 'provider-btn' + (this.selectedProvider === 'MICROSOFT_GRAPH' ? ' active' : ''); }
+    get gmailSwitchClass() { return 'provider-btn' + (this.selectedProvider === 'GMAIL_EMAIL' ? ' active' : ''); }
+    get outlookSwitchClass() { return 'provider-btn' + (this.selectedProvider === 'MICROSOFT_EMAIL' ? ' active' : ''); }
 
     // Show provider switch only when BOTH providers are enabled in org settings
     get showProviderSwitch() { 
@@ -1102,18 +1087,17 @@ export default class aiExchangeEmailSelector extends NavigationMixin(LightningEl
     }
 
     get providerDisplayName() {
-        return this.selectedProvider === 'GMAIL'
+        return this.selectedProvider === 'GMAIL_EMAIL'
             ? 'Gmail'
             : 'Microsoft Exchange / Outlook';
     }
 
     get notAccessibleMessage() {
-        const providerName = this.selectedProvider === 'GMAIL' ? 'Gmail' : 'Outlook';
-        return `${providerName} access is not available. Please ensure the mail.read scope is granted in your ${providerName === 'Gmail' ? 'Google' : 'Microsoft'} OAuth configuration.`;
+        return 'Email access is not available. Please ensure the mail.read scope is granted.';
     }
 
     get inboxTitle() {
-        return this.userEmailAddress || (this.selectedProvider === 'GMAIL' ? 'Google Gmail' : 'Outlook');
+        return this.userEmailAddress || (this.selectedProvider === 'GMAIL_EMAIL' ? 'Google Gmail' : 'Outlook');
     }
 
     get isCompactMode() {

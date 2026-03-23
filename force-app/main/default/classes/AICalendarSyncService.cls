@@ -46,7 +46,6 @@ public with sharing class AICalendarSyncService {
         AI_Workspace_Sync_Settings__c settings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
         
         if (settings == null || !settings.Calendar_Sync_Enabled__c) {
-            System.debug('Calendar sync is disabled');
             return;
         }
         
@@ -76,11 +75,9 @@ public with sharing class AICalendarSyncService {
             // For calendar events, we sync all events whose start time falls within the window.
             if (lookbackDays <= 0) {
                 lookbackDays = 7;
-                System.debug('Calendar sync: Lookback days empty/0, defaulting to 7 days');
             }
             if (lookaheadDays <= 0) {
                 lookaheadDays = 30;
-                System.debug('Calendar sync: Lookahead days empty/0, defaulting to 30 days');
             }
             
             // Use the configured lookback/lookahead days directly
@@ -88,16 +85,9 @@ public with sharing class AICalendarSyncService {
             startDate = DateTime.now().addDays(-lookbackDays);
             endDate = DateTime.now().addDays(lookaheadDays);
             
-            String syncMode = isRunNowMode ? 'Run Now' : 'Scheduled';
-            System.debug(syncMode + ' mode (CALENDAR): Using lookback days = ' + lookbackDays + ', lookahead days = ' + lookaheadDays);
-            System.debug('Sync window (by event start time): ' + startDate + ' to ' + endDate);
-            
             // Set sync window dates for logging
             result.syncWindowStart = startDate;
             result.syncWindowEnd = endDate;
-            
-            System.debug('Fetching calendar events for user ' + userId + ' using token-based auth');
-            System.debug('Date range: ' + startDate + ' to ' + endDate);
             
             // Fetch events using token-based fetch service
             List<Map<String, Object>> rawEvents;
@@ -108,7 +98,6 @@ public with sharing class AICalendarSyncService {
             }
             
             result.eventsFetched = rawEvents != null ? rawEvents.size() : 0;
-            System.debug('Fetched ' + result.eventsFetched + ' events');
             
             if (rawEvents == null || rawEvents.isEmpty()) {
                 result.status = 'Success';
@@ -134,29 +123,51 @@ public with sharing class AICalendarSyncService {
             // - The sync window should represent the actual query range, not the last event processed
             // This ensures the sync log accurately reflects the date range queried from the provider
             
+            // V2-7889: Apply exclusion filters before creating staging records
+            String excludedDomains = AISyncSettingsService.getExcludedDomains();
+            String excludedLabels = AISyncSettingsService.getExcludedLabelsCategories();
+            
+            AIWorkspaceFilterService.FilterResult filterResult =
+                AIWorkspaceFilterService.applyAllFilters(
+                    convertEventsToMaps(events),
+                    excludedDomains,
+                    excludedLabels,
+                    'Calendar',
+                    provider == 'Outlook' ? 'Outlook' : 'Gmail'
+                );
+            
+            Integer eventsExcluded = filterResult.excludedCount;
+            
+            // V2-7889: Build exclusion summary from filter results
+            String exclusionSummary = buildExclusionSummary(filterResult.exclusionReasons);
+            
+            // Convert filtered events back to CalendarEvent objects
+            List<AIMicrosoftCalendarService.CalendarEvent> filteredEvents = 
+                convertMapsToCalendarEvents(filterResult.includedRecords, provider, result.providerType);
+            
             // Import events to staging (deduplication and matching handled inside)
             AIWorkspaceStagingCreator.StagingResult stagingResult =
-                AIWorkspaceStagingCreator.createCalendarStagingRecords(events, result.providerType, null, userId, false);
+                AIWorkspaceStagingCreator.createCalendarStagingRecords(filteredEvents, result.providerType, null, userId, false);
             
+            // V2-7889: Phase 1 tracking - staging record creation only (not Lead/Contact matching)
+            // Matched = Successfully created staging records
+            // Unmatched = Failed to create staging records
             result.eventsDuplicate = stagingResult.duplicateCount;
-            
-            // Use actual counts from staging result
-            result.eventsImported = stagingResult.importedCount;    // Actual Event records created
-            result.eventsMatched = stagingResult.matchedCount;      // Matched to Lead/Contact
-            result.eventsUnmatched = stagingResult.unmatchedCount;  // Not matched
-            result.eventsFailed = stagingResult.failedCount;
+            result.eventsMatched = stagingResult.successCount;      // Successfully created staging records
+            result.eventsUnmatched = stagingResult.failedCount;     // Failed to create staging records
+            result.eventsExcluded = eventsExcluded;                 // Excluded by domain/label filters
+            result.exclusionSummary = exclusionSummary;             // Detailed breakdown
+            result.eventsImported = 0;  // Always 0 in Phase 1 (Phase 3 handles imports)
+            result.eventsFailed = 0;  // No failures if staging records created successfully
             result.status = stagingResult.errors.isEmpty() ? 'Success' : 'Partial';
             
             if (!stagingResult.errors.isEmpty()) {
                 result.errorMessage = String.join(stagingResult.errors, '; ');
             }
             
-            System.debug('Calendar sync complete: ' + result.eventsImported + ' imported to staging');
-            
         } catch (Exception e) {
             result.status = 'Failed';
             result.errorMessage = e.getMessage();
-            System.debug(LoggingLevel.ERROR, 'Calendar sync error: ' + e.getMessage() + '\n' + e.getStackTraceString());
         }
         
         createSyncLog(result, startTime);
@@ -305,7 +316,6 @@ public with sharing class AICalendarSyncService {
                 events.add(evt);
                 
             } catch (Exception e) {
-                System.debug('Error converting event: ' + e.getMessage());
                 // Continue with other events
             }
         }
@@ -333,7 +343,6 @@ public with sharing class AICalendarSyncService {
                 return DateTime.valueOfGmt(dateTimeStr.replace('T', ' '));
             }
         } catch (Exception e) {
-            System.debug('Error parsing datetime: ' + dateTimeStr);
             return null;
         }
     }
@@ -356,7 +365,6 @@ public with sharing class AICalendarSyncService {
             
             return DateTime.valueOfGmt(dateTimeStr.replace('T', ' '));
         } catch (Exception e) {
-            System.debug('Error parsing datetime: ' + dateTimeStr);
             return null;
         }
     }
@@ -373,7 +381,6 @@ public with sharing class AICalendarSyncService {
             Date d = Date.valueOf(dateStr);
             return DateTime.newInstance(d, Time.newInstance(0, 0, 0, 0));
         } catch (Exception e) {
-            System.debug('Error parsing date: ' + dateStr);
             return null;
         }
     }
@@ -388,7 +395,6 @@ public with sharing class AICalendarSyncService {
         AI_Workspace_Sync_Settings__c settings = AI_Workspace_Sync_Settings__c.getOrgDefaults();
 
         if (settings == null || !settings.Calendar_Sync_Enabled__c) {
-            System.debug('Calendar sync is disabled');
             return;
         }
 
@@ -402,14 +408,11 @@ public with sharing class AICalendarSyncService {
             result.providerType = provider;
 
             if (String.isBlank(provider)) {
-                System.debug('No calendar provider accessible for user ' + userId);
                 result.status = 'Skipped';
                 result.errorMessage = 'No calendar provider accessible - OAuth may not be configured for Microsoft or Google';
                 createSyncLog(result, startTime);
                 return;
             }
-
-            System.debug('Using calendar provider: ' + provider);
 
             // Calculate date range from settings
             Integer lookbackDays = settings.Calendar_Lookback_Days__c != null ?
@@ -422,18 +425,13 @@ public with sharing class AICalendarSyncService {
             // Validate lookback/lookahead days to prevent invalid date ranges
             if (lookbackDays <= 0) {
                 lookbackDays = 7;
-                System.debug('Calendar sync: Lookback days empty/0, defaulting to 7 days');
             }
             if (lookaheadDays <= 0) {
                 lookaheadDays = 30;
-                System.debug('Calendar sync: Lookahead days empty/0, defaulting to 30 days');
             }
 
             DateTime startDate = DateTime.now().addDays(-lookbackDays);
             DateTime endDate = DateTime.now().addDays(lookaheadDays);
-
-            System.debug('Fetching calendar events for user ' + userId);
-            System.debug('Date range: ' + startDate + ' to ' + endDate);
 
             // Fetch events from the appropriate provider
             List<AIMicrosoftCalendarService.CalendarEvent> events;
@@ -444,7 +442,6 @@ public with sharing class AICalendarSyncService {
             }
 
             result.eventsFetched = events.size();
-            System.debug('Fetched ' + events.size() + ' calendar events from ' + provider);
 
             if (events.isEmpty()) {
                 result.status = 'Success';
@@ -459,20 +456,19 @@ public with sharing class AICalendarSyncService {
 
             // Use actual counts from staging result
             result.eventsImported = stagingResult.importedCount;    // Actual Event records created
+            // V2-7889: Phase 1 tracking
             result.eventsDuplicate = stagingResult.duplicateCount;
-            result.eventsMatched = stagingResult.matchedCount;      // Matched to Lead/Contact
-            result.eventsUnmatched = stagingResult.unmatchedCount;  // Not matched
-            result.eventsFailed = stagingResult.failedCount;
+            result.eventsMatched = stagingResult.successCount;      // Successfully created staging records
+            result.eventsUnmatched = stagingResult.failedCount;     // Failed to create staging records
+            result.eventsImported = 0;  // Always 0 in Phase 1
+            result.eventsFailed = 0;  // No failures if staging records created
             result.status = stagingResult.errors.isEmpty() ? 'Success' : 'Partial';
 
             if (!stagingResult.errors.isEmpty()) {
                 result.errorMessage = String.join(stagingResult.errors, '; ');
             }
 
-            System.debug('Calendar sync complete: ' + result.eventsImported + ' imported');
-
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Calendar sync error: ' + e.getMessage() + '\n' + e.getStackTraceString());
             result.status = 'Failed';
             result.errorMessage = e.getMessage();
         }
@@ -535,10 +531,12 @@ public with sharing class AICalendarSyncService {
                 AIWorkspaceStagingCreator.StagingResult stagingResult = 
                     AIWorkspaceStagingCreator.createCalendarStagingRecords(events, 'MICROSOFT_CALENDAR', null, userId, false);
                 result.eventsImported = stagingResult.importedCount;    // Actual Event records created
-                result.eventsMatched = stagingResult.matchedCount;      // Matched to Lead/Contact
-                result.eventsUnmatched = stagingResult.unmatchedCount;  // Not matched
+                // V2-7889: Phase 1 tracking
+                result.eventsMatched = stagingResult.successCount;      // Successfully created staging records
+                result.eventsUnmatched = stagingResult.failedCount;     // Failed to create staging records
                 result.eventsDuplicate = stagingResult.duplicateCount;
-                result.eventsFailed = stagingResult.failedCount;
+                result.eventsImported = 0;  // Always 0 in Phase 1
+                result.eventsFailed = 0;  // No failures if staging records created
                 if (!stagingResult.errors.isEmpty()) result.errorMessage = String.join(stagingResult.errors, '; ');
             }
             
@@ -564,7 +562,7 @@ public with sharing class AICalendarSyncService {
                 return 'MICROSOFT_CALENDAR';
             }
         } catch (Exception e) {
-            System.debug('Microsoft Calendar not accessible: ' + e.getMessage());
+            // Continue to try Google Calendar
         }
 
         // Try Google Calendar
@@ -573,7 +571,7 @@ public with sharing class AICalendarSyncService {
                 return 'GOOGLE_CALENDAR';
             }
         } catch (Exception e) {
-            System.debug('Google Calendar not accessible: ' + e.getMessage());
+            // No calendar provider accessible
         }
 
         return null;
@@ -602,6 +600,8 @@ public with sharing class AICalendarSyncService {
                 calendarProviderType = 'MICROSOFT_CALENDAR'; // Default
             }
             
+            // V2-7889: Phase 1 tracking - use Emails_ fields for consistency with UI
+            // Formula: Fetched = Matched + Duplicate + Unmatched + Excluded
             AI_Workspace_Sync_Log__c log = new AI_Workspace_Sync_Log__c(
                 User__c = result.userId,
                 Sync_Type__c = result.syncType,
@@ -613,13 +613,15 @@ public with sharing class AICalendarSyncService {
                 Sync_Window_Start__c = result.syncWindowStart,
                 Sync_Window_End__c = result.syncWindowEnd,
                 Emails_Fetched__c = result.eventsFetched,
-                Emails_Imported__c = result.eventsImported,
+                Emails_Matched__c = result.eventsMatched,      // Successfully created staging records
                 Emails_Duplicate__c = result.eventsDuplicate,
-                Emails_Matched__c = result.eventsMatched,
-                Emails_Unmatched__c = result.eventsUnmatched,
-                Events_Imported__c = result.eventsImported,
+                Emails_Unmatched__c = result.eventsUnmatched,  // Failed to create staging records
+                Emails_Excluded__c = result.eventsExcluded,    // Excluded by domain/label filters
+                Emails_Imported__c = 0,  // Always 0 in Phase 1
+                Events_Imported__c = 0,  // Always 0 in Phase 1
                 Events_Duplicate__c = result.eventsDuplicate,
-                Events_Failed__c = result.eventsFailed,
+                Events_Failed__c = 0,  // No failures in Phase 1
+                Exclusion_Summary__c = result.exclusionSummary,  // Detailed breakdown
                 Error_Message__c = AIExchangeEmailHelper.truncateField(result.errorMessage, 32000)
             );
 
@@ -631,7 +633,7 @@ public with sharing class AICalendarSyncService {
             List<AI_Workspace_Sync_Log__c> logsToInsert = new List<AI_Workspace_Sync_Log__c>{ log };
             FLSCheck.getInstance().insertDML(logsToInsert);
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'Failed to create calendar sync log: ' + e.getMessage());
+            // Ignore
         }
     }
 
@@ -650,7 +652,95 @@ public with sharing class AICalendarSyncService {
         public Integer eventsDuplicate = 0;
         public Integer eventsMatched = 0;      // Matched to Lead/Contact
         public Integer eventsUnmatched = 0;    // Not matched to any Lead/Contact
+        public Integer eventsExcluded = 0;     // Excluded by domain/label filters
         public Integer eventsFailed = 0;
         public String errorMessage;
+        public String exclusionSummary;        // Detailed breakdown of exclusions
+    }
+    
+    /**
+     * V2-7889: Convert CalendarEvent objects to Map format for filter service
+     * The filter service expects organizer in Microsoft Graph API format:
+     * { "emailAddress": { "address": "email@domain.com" } }
+     */
+    private static List<Map<String, Object>> convertEventsToMaps(List<AIMicrosoftCalendarService.CalendarEvent> events) {
+        List<Map<String, Object>> eventMaps = new List<Map<String, Object>>();
+        
+        for (AIMicrosoftCalendarService.CalendarEvent evt : events) {
+            Map<String, Object> eventMap = new Map<String, Object>();
+            eventMap.put('id', evt.eventId);
+            eventMap.put('subject', evt.subject);
+            
+            // Convert organizer to Graph API format for filter service
+            if (String.isNotBlank(evt.organizerEmail)) {
+                Map<String, Object> organizer = new Map<String, Object>();
+                Map<String, Object> emailAddress = new Map<String, Object>();
+                emailAddress.put('address', evt.organizerEmail);
+                emailAddress.put('name', evt.organizerName);
+                organizer.put('emailAddress', emailAddress);
+                eventMap.put('organizer', organizer);
+            }
+            
+            // Note: categories field doesn't exist on CalendarEvent - labels are checked separately
+            eventMap.put('startDateTime', evt.startDateTime);
+            eventMap.put('endDateTime', evt.endDateTime);
+            eventMap.put('location', evt.location);
+            eventMap.put('isAllDay', evt.isAllDay);
+            eventMap.put('iCalUID', evt.iCalUID);
+            eventMap.put('provider', evt.provider);
+            
+            // Store the original event object for reconstruction
+            eventMap.put('_originalEvent', evt);
+            
+            eventMaps.add(eventMap);
+        }
+        
+        return eventMaps;
+    }
+    
+    /**
+     * V2-7889: Convert Map format back to CalendarEvent objects after filtering
+     * Uses the stored original event object to preserve all fields
+     */
+    private static List<AIMicrosoftCalendarService.CalendarEvent> convertMapsToCalendarEvents(
+        List<Map<String, Object>> eventMaps,
+        String provider,
+        String providerType
+    ) {
+        List<AIMicrosoftCalendarService.CalendarEvent> events = new List<AIMicrosoftCalendarService.CalendarEvent>();
+        
+        for (Map<String, Object> eventMap : eventMaps) {
+            // Use the original event object if available (preserves all fields)
+            AIMicrosoftCalendarService.CalendarEvent evt = 
+                (AIMicrosoftCalendarService.CalendarEvent) eventMap.get('_originalEvent');
+            
+            if (evt != null) {
+                events.add(evt);
+            }
+        }
+        
+        return events;
+    }
+    
+    // V2-7889: Build exclusion summary from filter results
+    private static String buildExclusionSummary(Map<String, Integer> exclusionReasons) {
+        if (exclusionReasons == null || exclusionReasons.isEmpty()) {
+            return null;
+        }
+        
+        List<String> summaryParts = new List<String>();
+        
+        // Sort reasons for consistent output
+        List<String> sortedReasons = new List<String>(exclusionReasons.keySet());
+        sortedReasons.sort();
+        
+        for (String reason : sortedReasons) {
+            Integer count = exclusionReasons.get(reason);
+            if (count > 0) {
+                summaryParts.add(reason + ': ' + count);
+            }
+        }
+        
+        return summaryParts.isEmpty() ? null : String.join(summaryParts, ', ');
     }
 }
